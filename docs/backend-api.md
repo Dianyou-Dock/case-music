@@ -60,14 +60,31 @@ resp
 
 ## 音乐类
 
-### 获取歌单
+### 获取全部歌单
 ```jsonc
-func get_song_list(req) -> resp
+func get_all_song_list(req) -> resp
 
 req
 {
-    "account": "",
-    "password": "",
+    "source": "" // NetEaseCloud, AppleMusic, Spotify
+}
+
+resp
+{
+    "code": 0,
+    "msg": "",
+    "data": {}
+}
+```
+
+
+### 获取指定歌单
+```jsonc
+func get_single_song_list(req) -> resp
+
+req
+{
+    "list_id": "",
     "source": "" // NetEaseCloud, AppleMusic, Spotify
 }
 
@@ -144,6 +161,43 @@ req
     "song": "",
     "signer": "",
     "source": "" // NetEaseCloud, AppleMusic, Spotify
+}
+
+resp
+{
+    "code": 0,
+    "msg": "",
+    "data": {}
+}
+```
+
+## 系统类
+
+### 登陆
+```jsonc
+func login(req) -> resp
+
+req
+{
+    "account": "",
+    "password": "",
+    "source": "" // NetEaseCloud, AppleMusic, Spotify
+}
+
+resp
+{
+    "code": 0,
+    "msg": "",
+    "data": {}
+}
+```
+### 登出
+```jsonc
+func logout(req) -> resp
+
+req
+{
+    "account": "",
 }
 
 resp
