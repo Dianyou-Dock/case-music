@@ -171,6 +171,27 @@ resp
 }
 ```
 
+### 添加/删除 红心
+```jsonc
+func song_like(req) -> resp
+
+req
+{
+    "song": "",
+    "is_like": true,
+    "source": "" // NetEaseCloud, AppleMusic, Spotify
+}
+
+resp
+{
+    "code": 0,
+    "msg": "",
+    "data": {}
+}
+```
+
+
+
 ## 系统类
 
 ### 登陆
