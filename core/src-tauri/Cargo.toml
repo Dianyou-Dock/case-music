@@ -23,3 +23,13 @@ tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+#ncm-api = { git = "https://github.com/gmg137/netease-cloud-music-api.git", branch = "dev", package = "netease-cloud-music-api" }
+ncm-api = {path = "../../../netease-cloud-music-api", package = "netease-cloud-music-api"}
+anyhow = { version = "1.0.93", features = ["backtrace"] }
+reqwest = { version = "0.12.9", features = ["json"] }
+async-trait = "0.1.83"
+tokio = { version = "1.35.0", features = ["full"] }
+cookie = "0.18.1"
+rand = "0.8.5" # 确保版本是最新的
+qrcode-generator = "5.0.0"
+once_cell = { version = "1.20.2", features = ["default"] }
