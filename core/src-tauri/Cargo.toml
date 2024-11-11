@@ -23,8 +23,8 @@ tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-#ncm-api = { git = "https://github.com/gmg137/netease-cloud-music-api.git", branch = "dev", package = "netease-cloud-music-api" }
-ncm-api = {path = "../../../netease-cloud-music-api", package = "netease-cloud-music-api"}
+ncm-api = { git = "https://github.com/malefooo/netease-cloud-music-api.git", branch = "master", package = "netease-cloud-music-api" }
+#ncm-api = {path = "../../../netease-cloud-music-api", package = "netease-cloud-music-api"}
 anyhow = { version = "1.0.93", features = ["backtrace"] }
 reqwest = { version = "0.12.9", features = ["json"] }
 async-trait = "0.1.83"
