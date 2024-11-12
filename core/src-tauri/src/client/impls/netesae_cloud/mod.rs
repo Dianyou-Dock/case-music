@@ -2,7 +2,10 @@ use crate::client::resp::GetLoginQrResp;
 use crate::client::Client;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use ncm_api::{LoginInfo, MusicApi};
+use errors::NetesaeError;
+use ncm_api::{CookieJar, LoginInfo, MusicApi};
+
+pub mod errors;
 
 pub enum CheckQrCode {
     Timeout,
@@ -44,6 +47,11 @@ impl NeteaseClient {
 
         Ok(NeteaseClient { api })
     }
+
+    fn replace_api(&mut self, cookie: CookieJar) {
+        let api = MusicApi::from_cookie_jar(cookie, 100);
+        self.api = api;
+    }
 }
 
 #[async_trait]
@@ -61,11 +69,26 @@ impl Client for NeteaseClient {
 
         let check_qr_code = CheckQrCode::from_i32(result.code);
         match check_qr_code {
-            CheckQrCode::Timeout => Err(anyhow!("二维码已过期")),
-            CheckQrCode::WaitScan => Err(anyhow!("未扫码")),
-            CheckQrCode::WaitConfirm => Err(anyhow!("等待确认中")),
-            CheckQrCode::LoginSuccess => self.api.login_status().await,
-            CheckQrCode::Unknown => Err(anyhow!("未知码: {}", result.code)),
+            CheckQrCode::Timeout => Err(NetesaeError::QrTimeout.anyhow_err()),
+            CheckQrCode::WaitScan => Err(NetesaeError::QrWaitScan.anyhow_err()),
+            CheckQrCode::WaitConfirm => Err(NetesaeError::QrWaitConfirm.anyhow_err()),
+            CheckQrCode::LoginSuccess => {
+                let msg = self.api.login_status().await?;
+                let cookie = if msg.code == 200 {
+                    let Some(cookie) = self.api.cookie_jar() else {
+                        return Err(NetesaeError::CookieIsNull.anyhow_err());
+                    };
+
+                    cookie.clone()
+                } else {
+                    return Err(NetesaeError::LoginFail.anyhow_err());
+                };
+
+                self.replace_api(cookie.clone());
+
+                Ok(msg)
+            }
+            CheckQrCode::Unknown => Err(NetesaeError::QrUnknown.anyhow_err()),
         }
     }
 

@@ -15,8 +15,6 @@ pub struct LoginReq {
 #[tauri::command]
 pub async fn get_qr() -> Result<ApplicationResp<GetLoginQrResp>, InvokeError> {
     let result = INSTANCE
-        .get()
-        .unwrap()
         .write()
         .await
         .client
@@ -30,8 +28,6 @@ pub async fn get_qr() -> Result<ApplicationResp<GetLoginQrResp>, InvokeError> {
 #[tauri::command]
 pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, InvokeError> {
     let result = INSTANCE
-        .get()
-        .unwrap()
         .write()
         .await
         .client
