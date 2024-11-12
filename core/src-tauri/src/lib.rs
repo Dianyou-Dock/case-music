@@ -17,7 +17,10 @@ pub async fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![application::system::login::get_qr,])
+        .invoke_handler(tauri::generate_handler![
+            application::system::login::get_qr,
+            application::system::login::login_by_qr,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

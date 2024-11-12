@@ -4,6 +4,7 @@ pub mod ai;
 
 pub mod music;
 
+mod resp;
 pub mod system;
 
 pub struct Application {
