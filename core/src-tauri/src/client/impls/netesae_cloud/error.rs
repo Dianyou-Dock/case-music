@@ -1,7 +1,7 @@
 use anyhow::anyhow;
-use strum_macros::{EnumString, ToString};
+use strum_macros::{Display, EnumString};
 
-#[derive(Debug, EnumString, ToString)]
+#[derive(Debug, EnumString, Display)]
 pub enum NetesaeError {
     #[strum(serialize = "qr code timeout")]
     QrTimeout,

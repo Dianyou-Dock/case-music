@@ -2,10 +2,10 @@ use crate::client::resp::GetLoginQrResp;
 use crate::client::Client;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use errors::NetesaeError;
+use error::NetesaeError;
 use ncm_api::{CookieJar, LoginInfo, MusicApi};
 
-pub mod errors;
+pub mod error;
 
 pub enum CheckQrCode {
     Timeout,
@@ -74,12 +74,8 @@ impl Client for NeteaseClient {
             CheckQrCode::WaitConfirm => Err(NetesaeError::QrWaitConfirm.anyhow_err()),
             CheckQrCode::LoginSuccess => {
                 let msg = self.api.login_status().await?;
-                let cookie = if msg.code == 200 {
-                    let Some(cookie) = self.api.cookie_jar() else {
-                        return Err(NetesaeError::CookieIsNull.anyhow_err());
-                    };
-
-                    cookie.clone()
+                let cookie = if msg.code == 200 && self.api.cookie_jar().is_some() {
+                    self.api.cookie_jar().unwrap().clone()
                 } else {
                     return Err(NetesaeError::LoginFail.anyhow_err());
                 };
