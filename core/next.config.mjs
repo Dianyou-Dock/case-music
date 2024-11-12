@@ -1,14 +1,6 @@
 export default {
+  output: 'export',
   experimental: {
     optimizePackageImports: ["@chakra-ui/react"],
-  },
-  async redirects() {
-    return [
-      {
-        source: "/",
-        destination: "/all",
-        permanent: true,
-      },
-    ];
   },
 };
