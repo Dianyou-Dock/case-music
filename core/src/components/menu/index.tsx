@@ -50,7 +50,7 @@ const Menu: React.FC = () => {
           </HStack>
         ))}
         <HStack cursor="pointer">
-          <Image maxH="16px" src="/icons/setting.svg" />
+          <Image maxH="16px" src="/icons/setting.svg" alt="setting" />
           <Text>设置</Text>
         </HStack>
       </VStack>
