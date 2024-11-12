@@ -1,9 +1,10 @@
-use crate::client::resp::GetLoginQrResp;
+use crate::client::types::login_info::{ClientLoginInfo, ClientLoginInfoData, LoginQrInfo};
+use crate::client::types::song_info::{ClientSongInfo, ClientSongInfoData};
 use crate::client::Client;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use error::NetesaeError;
-use ncm_api::{CookieJar, LoginInfo, MusicApi};
+use ncm_api::{CookieJar, MusicApi};
 
 pub mod error;
 
@@ -56,15 +57,15 @@ impl NeteaseClient {
 
 #[async_trait]
 impl Client for NeteaseClient {
-    async fn get_login_qr(&mut self) -> Result<GetLoginQrResp> {
+    async fn login_qr(&mut self) -> Result<LoginQrInfo> {
         let result = self.api.login_qr_create().await?;
-        Ok(GetLoginQrResp {
+        Ok(LoginQrInfo {
             url: result.0,
             unikey: result.1,
         })
     }
 
-    async fn login_by_unikey(&mut self, unikey: String) -> Result<LoginInfo> {
+    async fn login_by_unikey(&mut self, unikey: String) -> Result<ClientLoginInfo> {
         let result = self.api.login_qr_check(unikey).await?;
 
         let check_qr_code = CheckQrCode::from_i32(result.code);
@@ -82,7 +83,9 @@ impl Client for NeteaseClient {
 
                 self.replace_api(cookie.clone());
 
-                Ok(msg)
+                Ok(ClientLoginInfo {
+                    data: ClientLoginInfoData::Netesae(msg),
+                })
             }
             CheckQrCode::Unknown => Err(NetesaeError::QrUnknown.anyhow_err()),
         }
@@ -90,6 +93,25 @@ impl Client for NeteaseClient {
 
     async fn logout(&mut self) -> Result<()> {
         Ok(self.api.logout().await)
+    }
+
+    async fn like_list(&mut self, user_id: u64) -> Result<Vec<u64>> {
+        self.api.user_song_id_list(user_id).await
+    }
+
+    async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<ClientSongInfo>> {
+        let result = self.api.songs_detail(song_id_list).await?;
+
+        let mut song_infos = vec![];
+
+        for si in result {
+            let csi = ClientSongInfo {
+                data: ClientSongInfoData::Netesae(si),
+            };
+            song_infos.push(csi);
+        }
+
+        Ok(song_infos)
     }
 }
 
@@ -112,7 +134,7 @@ mod test {
     fn test_login_by_qr() {
         runtime().block_on(async {
             let mut client = NeteaseClient::new().unwrap();
-            let result = client.get_login_qr().await.unwrap();
+            let result = client.login_qr().await.unwrap();
 
             println!("qr info: {:?}", result);
 

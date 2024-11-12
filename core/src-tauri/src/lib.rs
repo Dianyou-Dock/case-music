@@ -20,6 +20,7 @@ pub async fn run() {
         .invoke_handler(tauri::generate_handler![
             application::system::login::get_qr,
             application::system::login::login_by_qr,
+            application::music::like::like_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
