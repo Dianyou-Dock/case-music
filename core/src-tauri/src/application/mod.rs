@@ -1,4 +1,5 @@
-use crate::client::Client;
+use crate::modules::impls::netesae::NetesaeModule;
+use crate::modules::Module;
 use serde::{Deserialize, Serialize};
 
 pub mod ai;
@@ -17,15 +18,13 @@ pub enum Source {
 }
 
 pub struct Application {
-    client: Box<dyn Client + Sync + Send>,
-    like_list: Vec<u64>,
+    pub netesae: Box<dyn Module>,
 }
 
 impl Application {
-    pub fn new(client: Box<dyn Client>) -> Application {
+    pub fn new(netesae: NetesaeModule) -> Application {
         Application {
-            client,
-            like_list: vec![],
+            netesae: Box::new(netesae),
         }
     }
 }

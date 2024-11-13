@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use strum_macros::{Display, EnumString};
 
 #[derive(Debug, EnumString, Display)]
-pub enum NetesaeError {
+pub enum ClientError {
     #[strum(serialize = "qr code timeout")]
     QrTimeout,
     #[strum(serialize = "qr code not scan")]
@@ -16,9 +16,12 @@ pub enum NetesaeError {
     CookieIsNull,
     #[strum(serialize = "login status not success")]
     LoginFail,
+
+    #[strum(serialize = "user song list is null")]
+    UserSongListIsNull,
 }
 
-impl NetesaeError {
+impl ClientError {
     pub fn anyhow_err(&self) -> anyhow::Error {
         anyhow!("{}", self.to_string())
     }

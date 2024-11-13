@@ -1,9 +1,9 @@
 use crate::application::resp::ApplicationResp;
 use crate::application::Source;
-use crate::client::types::song_info::ClientSongInfo;
+use crate::types::play_list_info::PlayListInfoData;
+use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::INSTANCE;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::fmt::Debug;
 use tauri::ipc::InvokeError;
 
@@ -11,50 +11,68 @@ use tauri::ipc::InvokeError;
 pub struct LikeListReq {
     pub source: Source,
     pub user_id: u64,
-    pub offset: u64,
-    pub limit: u64,
+    pub offset: usize,
+    pub limit: usize,
 }
 
 #[derive(Serialize, Debug, Clone)]
 pub struct LikeListResp<T: Serialize + Clone + Debug> {
-    pub song_info_map: BTreeMap<u64, T>,
+    pub song_infos: Vec<T>,
 }
 
 #[tauri::command]
 pub async fn like_list(
     req: LikeListReq,
-) -> Result<ApplicationResp<LikeListResp<ClientSongInfo>>, InvokeError> {
+) -> Result<ApplicationResp<LikeListResp<SongInfo>>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
-    let song_id_list = if instance.like_list.is_empty() {
-        instance
-            .client
-            .like_list(req.user_id)
-            .await
-            .map_err(InvokeError::from_anyhow)?
-    } else {
-        instance.like_list.clone()
+    let offset = req.offset * req.limit;
+    let limit = req.limit;
+
+    let list = match req.source {
+        Source::Netesae => {
+            let empty = instance.netesae.like_list().is_none();
+
+            if empty {
+                let like_list = instance
+                    .netesae
+                    .client()
+                    .like_list(req.user_id)
+                    .await
+                    .map_err(InvokeError::from_anyhow)?;
+                instance
+                    .netesae
+                    .set_like_list(like_list)
+                    .map_err(InvokeError::from_anyhow)?;
+            }
+
+            let info = instance.netesae.like_list().unwrap();
+            let data = match &info.data {
+                PlayListInfoData::Netesae(v) => v,
+            };
+            let page_list = data
+                .songs
+                .iter()
+                .skip(offset)
+                .take(limit)
+                .map(|v| SongInfo {
+                    data: SongInfoData::Netesae(v.clone()),
+                })
+                .collect::<Vec<_>>();
+            page_list
+        }
+        Source::Spotify => {
+            todo!()
+        }
+        Source::QQ => {
+            todo!()
+        }
+        Source::Apple => {
+            todo!()
+        }
     };
 
-    let song_id_list = song_id_list
-        .iter()
-        .skip(req.offset as usize)
-        .take(req.limit as usize)
-        .cloned()
-        .collect::<Vec<u64>>();
-
-    let song_infos = instance
-        .client
-        .song_infos(&song_id_list)
-        .await
-        .map_err(InvokeError::from_anyhow)?;
-
-    let mut song_info_map = BTreeMap::<u64, ClientSongInfo>::new();
-    for (key, val) in song_id_list.into_iter().zip(song_infos.into_iter()) {
-        song_info_map.insert(key, val);
-    }
-
     Ok(ApplicationResp::success_data(LikeListResp {
-        song_info_map,
+        song_infos: list,
     }))
 }

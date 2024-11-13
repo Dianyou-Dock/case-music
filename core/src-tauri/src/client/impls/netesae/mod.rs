@@ -1,12 +1,11 @@
-use crate::client::types::login_info::{ClientLoginInfo, ClientLoginInfoData, LoginQrInfo};
-use crate::client::types::song_info::{ClientSongInfo, ClientSongInfoData};
+use crate::client::error::ClientError;
 use crate::client::Client;
+use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
+use crate::types::play_list_info::{PlayListInfo, PlayListInfoData};
+use crate::types::song_info::{SongInfo, SongInfoData};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use error::NetesaeError;
 use ncm_api::{CookieJar, MusicApi};
-
-pub mod error;
 
 pub enum CheckQrCode {
     Timeout,
@@ -65,29 +64,29 @@ impl Client for NeteaseClient {
         })
     }
 
-    async fn login_by_unikey(&mut self, unikey: String) -> Result<ClientLoginInfo> {
+    async fn login_by_unikey(&mut self, unikey: String) -> Result<LoginInfo> {
         let result = self.api.login_qr_check(unikey).await?;
 
         let check_qr_code = CheckQrCode::from_i32(result.code);
         match check_qr_code {
-            CheckQrCode::Timeout => Err(NetesaeError::QrTimeout.anyhow_err()),
-            CheckQrCode::WaitScan => Err(NetesaeError::QrWaitScan.anyhow_err()),
-            CheckQrCode::WaitConfirm => Err(NetesaeError::QrWaitConfirm.anyhow_err()),
+            CheckQrCode::Timeout => Err(ClientError::QrTimeout.anyhow_err()),
+            CheckQrCode::WaitScan => Err(ClientError::QrWaitScan.anyhow_err()),
+            CheckQrCode::WaitConfirm => Err(ClientError::QrWaitConfirm.anyhow_err()),
             CheckQrCode::LoginSuccess => {
                 let msg = self.api.login_status().await?;
                 let cookie = if msg.code == 200 && self.api.cookie_jar().is_some() {
                     self.api.cookie_jar().unwrap().clone()
                 } else {
-                    return Err(NetesaeError::LoginFail.anyhow_err());
+                    return Err(ClientError::LoginFail.anyhow_err());
                 };
 
                 self.replace_api(cookie.clone());
 
-                Ok(ClientLoginInfo {
-                    data: ClientLoginInfoData::Netesae(msg),
+                Ok(LoginInfo {
+                    data: LoginInfoData::Netesae(msg),
                 })
             }
-            CheckQrCode::Unknown => Err(NetesaeError::QrUnknown.anyhow_err()),
+            CheckQrCode::Unknown => Err(ClientError::QrUnknown.anyhow_err()),
         }
     }
 
@@ -95,18 +94,27 @@ impl Client for NeteaseClient {
         Ok(self.api.logout().await)
     }
 
-    async fn like_list(&mut self, user_id: u64) -> Result<Vec<u64>> {
-        self.api.user_song_id_list(user_id).await
+    async fn like_list(&mut self, user_id: u64) -> Result<PlayListInfo> {
+        let like_list_infos = self.api.user_song_list(user_id, 0, 1).await?;
+
+        let Some(like_list) = like_list_infos.get(0) else {
+            return Err(ClientError::UserSongListIsNull.anyhow_err());
+        };
+
+        let play_list_info = self.api.song_list_detail(like_list.id).await?;
+        Ok(PlayListInfo {
+            data: PlayListInfoData::Netesae(play_list_info),
+        })
     }
 
-    async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<ClientSongInfo>> {
+    async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<SongInfo>> {
         let result = self.api.songs_detail(song_id_list).await?;
 
         let mut song_infos = vec![];
 
         for si in result {
-            let csi = ClientSongInfo {
-                data: ClientSongInfoData::Netesae(si),
+            let csi = SongInfo {
+                data: SongInfoData::Netesae(si),
             };
             song_infos.push(csi);
         }
@@ -117,8 +125,11 @@ impl Client for NeteaseClient {
 
 #[cfg(test)]
 mod test {
-    use crate::client::impls::netesae_cloud::NeteaseClient;
+    use crate::client::impls::netesae::NeteaseClient;
     use crate::client::Client;
+    use crate::types::login_info::LoginInfo;
+    use anyhow::Result;
+    use qrcode_generator::QrCodeEcc;
     use std::time::Duration;
     use tokio::time::sleep;
 
@@ -128,6 +139,30 @@ mod test {
             .build()
             .unwrap();
         rt
+    }
+
+    async fn login(client: &mut NeteaseClient) -> Result<LoginInfo> {
+        let result = client.login_qr().await.unwrap();
+        qrcode_generator::to_png_to_file(&result.url, QrCodeEcc::Low, 140, "./qr.file")?;
+
+        println!("qr info: {:?}", result);
+
+        loop {
+            sleep(Duration::from_secs(10)).await;
+
+            let resp = client.login_by_unikey(result.unikey.clone()).await;
+
+            match resp {
+                Ok(info) => {
+                    println!("login info: {info:?}");
+                    return Ok(info);
+                }
+                Err(e) => {
+                    println!("login error: {e}");
+                    continue;
+                }
+            }
+        }
     }
 
     #[test]
@@ -155,5 +190,29 @@ mod test {
                 }
             }
         })
+    }
+
+    #[test]
+    fn test_like_list() {
+        runtime().block_on(async {
+            let mut client = NeteaseClient::new().unwrap();
+
+            let like_list = client.like_list(450442025).await.unwrap();
+
+            println!("like list: {:?}", like_list);
+        });
+    }
+
+    #[test]
+    fn test_song_info() {
+        runtime().block_on(async {
+            let mut client = NeteaseClient::new().unwrap();
+
+            let like_list = vec![480097437];
+
+            let like_songs = client.song_infos(&like_list).await.unwrap();
+
+            println!("like songs: {:?}", like_songs);
+        });
     }
 }

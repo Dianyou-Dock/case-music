@@ -1,4 +1,4 @@
-use ncm_api::LoginInfo;
+use ncm_api::LoginInfo as NcLoginInfo;
 use serde::Serialize;
 
 #[derive(Serialize, Debug, Clone)]
@@ -8,13 +8,13 @@ pub struct LoginQrInfo {
 }
 
 #[derive(Serialize, Debug, Clone)]
-#[serde(tag = "type", content = "data")]
-pub enum ClientLoginInfoData {
-    Netesae(LoginInfo),
+#[serde(tag = "type", content = "content")]
+pub enum LoginInfoData {
+    Netesae(NcLoginInfo),
 }
 
 #[derive(Serialize, Debug, Clone)]
-pub struct ClientLoginInfo {
+pub struct LoginInfo {
     #[serde(flatten)]
-    pub data: ClientLoginInfoData,
+    pub data: LoginInfoData,
 }
