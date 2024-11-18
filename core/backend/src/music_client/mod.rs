@@ -1,4 +1,3 @@
-pub mod error;
 pub mod impls;
 
 use crate::types::login_info::{LoginInfo, LoginQrInfo};
@@ -18,4 +17,6 @@ pub trait Client: Sync + Send {
     async fn like_list(&mut self, user_id: u64) -> Result<PlayListInfo>;
 
     async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<SongInfo>>;
+
+    async fn search_song(&mut self, song: &str, singer: &str) -> Result<Option<SongInfo>>;
 }

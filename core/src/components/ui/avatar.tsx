@@ -1,4 +1,4 @@
-"use client"
+"use music_client"
 
 import type { GroupProps, SlotRecipeProps } from "@chakra-ui/react"
 import { Avatar as ChakraAvatar, Group } from "@chakra-ui/react"

@@ -1,5 +1,5 @@
 use crate::application::resp::ApplicationResp;
-use crate::application::Source;
+use crate::application::MusicSource;
 use crate::types::play_list_info::PlayListInfoData;
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::INSTANCE;
@@ -9,7 +9,7 @@ use tauri::ipc::InvokeError;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LikeListReq {
-    pub source: Source,
+    pub source: MusicSource,
     pub user_id: u64,
     pub offset: usize,
     pub limit: usize,
@@ -30,7 +30,7 @@ pub async fn like_list(
     let limit = req.limit;
 
     let list = match req.source {
-        Source::Netesae => {
+        MusicSource::Netesae => {
             let empty = instance.netesae.like_list().is_none();
 
             if empty {
@@ -61,13 +61,13 @@ pub async fn like_list(
                 .collect::<Vec<_>>();
             page_list
         }
-        Source::Spotify => {
+        MusicSource::Spotify => {
             todo!()
         }
-        Source::QQ => {
+        MusicSource::QQ => {
             todo!()
         }
-        Source::Apple => {
+        MusicSource::Apple => {
             todo!()
         }
     };

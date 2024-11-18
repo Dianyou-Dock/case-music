@@ -1,4 +1,4 @@
-"use client"
+"use music_client"
 
 import type { IconButtonProps } from "@chakra-ui/react"
 import { ClientOnly, IconButton, Skeleton } from "@chakra-ui/react"

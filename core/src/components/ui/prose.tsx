@@ -1,4 +1,4 @@
-"use client"
+"use music_client"
 
 import { chakra } from "@chakra-ui/react"
 

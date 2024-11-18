@@ -3,15 +3,18 @@ use crate::application::Application;
 use crate::modules::impls::netesae::NetesaeModule;
 use once_cell::sync::Lazy;
 use tokio::sync::RwLock;
+use crate::ai_client::impls::kimi;
 
-pub mod client;
+pub mod music_client;
 
 pub mod application;
 pub mod modules;
 pub mod types;
+pub mod ai_client;
 
 pub static INSTANCE: Lazy<RwLock<Application>> = Lazy::new(|| {
     let netesae_module = NetesaeModule::new().unwrap();
+
     let app = Application::new(netesae_module);
     RwLock::new(app)
 });

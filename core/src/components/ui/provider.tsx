@@ -1,4 +1,4 @@
-"use client"
+"use music_client"
 
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react"
 import {

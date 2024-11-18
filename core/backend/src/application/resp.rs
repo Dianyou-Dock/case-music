@@ -35,4 +35,12 @@ where
             data: Some(data),
         }
     }
+
+    pub fn success() -> ApplicationResp<T> {
+        ApplicationResp{
+            code: 0,
+            msg: "".to_string(),
+            data: None,
+        }
+    }
 }

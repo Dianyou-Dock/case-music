@@ -1,4 +1,4 @@
-"use client"
+"use music_client"
 
 import { For, SegmentGroup } from "@chakra-ui/react"
 import { forwardRef, useMemo } from "react"

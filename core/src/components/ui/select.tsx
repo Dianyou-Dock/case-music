@@ -1,4 +1,4 @@
-"use client"
+"use music_client"
 
 import type { CollectionItem } from "@chakra-ui/react"
 import { Select as ChakraSelect, Portal } from "@chakra-ui/react"
