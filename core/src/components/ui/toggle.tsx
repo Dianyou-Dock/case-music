@@ -1,4 +1,4 @@
-"use music_client"
+"use client"
 
 import type { ButtonProps } from "@chakra-ui/react"
 import {

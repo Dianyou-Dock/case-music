@@ -1,4 +1,4 @@
-"use music_client"
+"use client"
 
 import { AbsoluteCenter, Menu as ChakraMenu, Portal } from "@chakra-ui/react"
 import { forwardRef } from "react"

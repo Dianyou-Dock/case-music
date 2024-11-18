@@ -1,4 +1,4 @@
-"use music_client"
+"use client"
 
 import { NativeSelect as Select } from "@chakra-ui/react"
 import { forwardRef, useMemo } from "react"

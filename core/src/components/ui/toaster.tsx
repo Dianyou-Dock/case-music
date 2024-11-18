@@ -1,4 +1,4 @@
-"use music_client"
+"use client"
 
 import {
   Toaster as ChakraToaster,

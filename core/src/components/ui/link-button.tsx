@@ -1,4 +1,4 @@
-"use music_client"
+"use client"
 
 import type { HTMLChakraProps, RecipeProps } from "@chakra-ui/react"
 import { createRecipeContext } from "@chakra-ui/react"
