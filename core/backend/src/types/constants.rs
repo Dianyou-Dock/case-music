@@ -1,15 +1,15 @@
-pub static KIMI_URL: &str = "https://api.moonshot.cn";
+pub static KIMI_URL: &str = "https://api.moonshot.cn/v1/chat/completions";
 
 pub static AI_SONG_RESP_TEMPLATE: &str = r#"
 return format should be like this:
 [
     {
         "name": "song name",
-        "signer": "singer name"
+        "singer": "singer name"
     },
     {
         "name": "song name",
-        "signer": "singer name"
+        "singer": "singer name"
     }
 ]
 "#;
@@ -20,21 +20,21 @@ return format should be like this:
     "singer name": [
         {
             "name": "song name",
-            "signer": "singer name"
+            "singer": "singer name"
         },
         {
             "name": "song name",
-            "signer": "singer name"
+            "singer": "singer name"
         }
     ],
     "singer name": [
         {
             "name": "song name",
-            "signer": "singer name"
+            "singer": "singer name"
         },
         {
             "name": "song name",
-            "signer": "singer name"
+            "singer": "singer name"
         }
     ]
 }
@@ -42,7 +42,7 @@ return format should be like this:
 
 pub static AI_RECOMMEND_SONG: &str = r#"recommend songs similar to this for me"#;
 
-pub static AI_RECOMMEND_SINGER: &str = r#"recommend artists similar to this for me"#;
+pub static AI_RECOMMEND_SINGER: &str = r#"recommend other artists similar to this one for me"#;
 
 pub static AI_RECOMMEND_STYLE: &str = r#"recommend songs with a similar style for me"#;
 

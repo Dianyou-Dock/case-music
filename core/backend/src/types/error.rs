@@ -45,3 +45,17 @@ impl ErrorHandle for ApplicationError {
         anyhow!("{}", self.to_string())
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, EnumString, Display)]
+pub enum AiError {
+    #[strum(serialize = "Kimi's return has no content")]
+    KimiRespNotExistContent,
+}
+
+impl ErrorHandle for AiError {
+    fn anyhow_err(&self) -> Error {
+        anyhow!("{}", self.to_string())
+    }
+}

@@ -20,7 +20,7 @@ pub struct RecommendReq {
 
 #[derive(Serialize, Debug, Clone)]
 pub struct RecommendSongResp<T: Serialize + Clone + Debug> {
-    pub data: Vec<T>,
+    pub song_infos: Vec<T>,
 }
 
 #[tauri::command]
@@ -72,7 +72,7 @@ pub async fn recommend_song(
     }
 
     Ok(ApplicationResp::success_data(RecommendSongResp {
-        data: list,
+        song_infos: list,
     }))
 }
 
@@ -125,7 +125,7 @@ pub async fn recommend_style(
     }
 
     Ok(ApplicationResp::success_data(RecommendSongResp {
-        data: list,
+        song_infos: list,
     }))
 }
 
@@ -184,6 +184,6 @@ pub async fn recommend_singer(
     }
 
     Ok(ApplicationResp::success_data(RecommendSongResp {
-        data: list,
+        song_infos: list,
     }))
 }
