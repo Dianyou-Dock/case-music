@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Error};
 use strum_macros::{Display, EnumString};
 
-
 pub trait ErrorHandle {
     fn anyhow_err(&self) -> anyhow::Error;
 }

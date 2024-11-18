@@ -1,20 +1,19 @@
-use std::collections::BTreeMap;
-use async_trait::async_trait;
 use crate::ai_client::Client;
 use crate::types::ai_recommend_info::AiRecommendSongInfo;
-use crate::types::song_info::SongInfoData;
+use crate::types::constants::{
+    gen_recommend_singer_content, gen_recommend_song_content, gen_recommend_style_content, KIMI_URL,
+};
 use anyhow::Result;
+use async_trait::async_trait;
+use reqwest::header::CONTENT_TYPE;
 use reqwest::{Method, Request};
-use reqwest::header::{CONTENT_TYPE};
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
-use crate::types::constants::KIMI_URL;
+use std::collections::BTreeMap;
 
 pub struct Kimi {
     client: reqwest::Client,
     api_key: String,
 }
-
 
 impl Kimi {
     pub fn new(api_key: String) -> Result<Kimi> {
@@ -25,7 +24,8 @@ impl Kimi {
     pub fn gen_req(&self, data: &str) -> Result<Request> {
         let req = self.client.request(Method::POST, KIMI_URL);
 
-        let req = req.header(CONTENT_TYPE, "application/json")
+        let req = req
+            .header(CONTENT_TYPE, "application/json")
             .bearer_auth(self.api_key.as_str())
             .body(data.to_string())
             .build()?;
@@ -40,7 +40,11 @@ impl Kimi {
             let code = resp.status();
             let bytes = resp.bytes().await?;
             let msg = String::from_utf8(bytes.to_vec())?;
-            return Err(anyhow::anyhow!("Kimi server responded with code: {}, error: {}", code, msg));
+            return Err(anyhow::anyhow!(
+                "Kimi server responded with code: {}, error: {}",
+                code,
+                msg
+            ));
         }
 
         let data = resp.json::<T>().await?;
@@ -51,15 +55,46 @@ impl Kimi {
 
 #[async_trait]
 impl Client for Kimi {
-    async fn recommend_song(&self, data: AiRecommendSongInfo, count: u64) -> Result<Vec<AiRecommendSongInfo>> {
-        todo!()
+    async fn recommend_song(
+        &self,
+        data: AiRecommendSongInfo,
+        count: u64,
+    ) -> Result<Vec<AiRecommendSongInfo>> {
+        let content = gen_recommend_song_content(&data.name, count);
+
+        let req = self.gen_req(&content)?;
+
+        let resp = self.send(req).await?;
+
+        Ok(resp)
     }
 
-    async fn recommend_style(&self, data: AiRecommendSongInfo, count: u64) -> Result<Vec<AiRecommendSongInfo>> {
-        todo!()
+    async fn recommend_style(
+        &self,
+        data: AiRecommendSongInfo,
+        count: u64,
+    ) -> Result<Vec<AiRecommendSongInfo>> {
+        let content = gen_recommend_style_content(&data.name, count);
+
+        let req = self.gen_req(&content)?;
+
+        let resp = self.send(req).await?;
+
+        Ok(resp)
     }
 
-    async fn recommend_singer(&self, data: AiRecommendSongInfo, singer_count: u64, song_count: u64) -> Result<BTreeMap<String, Vec<AiRecommendSongInfo>>> {
-        todo!()
+    async fn recommend_singer(
+        &self,
+        data: AiRecommendSongInfo,
+        singer_count: u64,
+        song_count: u64,
+    ) -> Result<BTreeMap<String, Vec<AiRecommendSongInfo>>> {
+        let content = gen_recommend_singer_content(&data.name, song_count, singer_count);
+
+        let req = self.gen_req(&content)?;
+
+        let resp = self.send(req).await?;
+
+        Ok(resp)
     }
 }

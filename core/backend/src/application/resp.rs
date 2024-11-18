@@ -37,7 +37,7 @@ where
     }
 
     pub fn success() -> ApplicationResp<T> {
-        ApplicationResp{
+        ApplicationResp {
             code: 0,
             msg: "".to_string(),
             data: None,

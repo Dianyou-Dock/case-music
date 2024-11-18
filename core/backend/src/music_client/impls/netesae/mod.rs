@@ -1,5 +1,5 @@
-use crate::types::error::{ErrorHandle, MusicClientError};
 use crate::music_client::Client;
+use crate::types::error::{ErrorHandle, MusicClientError};
 use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
 use crate::types::play_list_info::{PlayListInfo, PlayListInfoData};
 use crate::types::song_info::{SongInfo, SongInfoData};
@@ -129,30 +129,32 @@ impl Client for NeteaseClient {
         let mut song_info = None;
 
         loop {
-
-            let result = self.api.search_song(search_info.clone(), offset, limit).await?;
+            let result = self
+                .api
+                .search_song(search_info.clone(), offset, limit)
+                .await?;
 
             if result.len() == 0 {
                 break;
             }
 
             for x in result {
-                if x.singer.eq(singer) &&  x.name.eq(song) {
+                if x.singer.eq(singer) && x.name.eq(song) {
                     song_info = Some(x);
                     break;
                 }
             }
 
             offset += limit;
-
         }
 
         if let Some(song_info) = song_info {
-            Ok(Some(SongInfo{ data: SongInfoData::Netesae(song_info) }))
+            Ok(Some(SongInfo {
+                data: SongInfoData::Netesae(song_info),
+            }))
         } else {
             Ok(None)
         }
-
     }
 }
 

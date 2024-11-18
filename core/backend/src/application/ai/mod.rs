@@ -1,14 +1,14 @@
-mod recommend;
+pub(crate) mod recommend;
 
+use crate::ai_client::impls::kimi::Kimi;
+use crate::application::resp::ApplicationResp;
+use crate::application::AiSource;
+use crate::INSTANCE;
 use serde::{Deserialize, Serialize};
 use tauri::ipc::InvokeError;
-use crate::ai_client::impls::kimi::Kimi;
-use crate::application::AiSource;
-use crate::application::resp::ApplicationResp;
-use crate::INSTANCE;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AiSetApiKeyReq{
+pub struct AiSetApiKeyReq {
     pub source: AiSource,
     pub api_key: String,
 }
@@ -25,7 +25,5 @@ pub async fn set_api_key(req: AiSetApiKeyReq) -> Result<ApplicationResp<()>, Inv
         }
     }
 
-
     Ok(ApplicationResp::success())
 }
-

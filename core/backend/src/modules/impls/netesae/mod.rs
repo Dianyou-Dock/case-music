@@ -1,9 +1,9 @@
 use crate::application::MusicSource;
+use crate::modules::MusicModule;
 use crate::music_client::impls::netesae::NeteaseClient;
 use crate::music_client::Client;
-use crate::modules::MusicModule;
 use crate::types::play_list_info::PlayListInfo;
-use anyhow::{Result};
+use anyhow::Result;
 use async_trait::async_trait;
 
 pub struct NetesaeModule {

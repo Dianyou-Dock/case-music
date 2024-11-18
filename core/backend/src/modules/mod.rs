@@ -1,4 +1,3 @@
-mod error;
 pub mod impls;
 
 use crate::application::MusicSource;

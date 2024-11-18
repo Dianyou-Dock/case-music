@@ -1,6 +1,6 @@
 pub static KIMI_URL: &str = "https://api.moonshot.cn";
 
-pub static AI_SONG_RESP_TEMPLATE : &str = r#"
+pub static AI_SONG_RESP_TEMPLATE: &str = r#"
 return format should be like this:
 [
     {
@@ -14,7 +14,7 @@ return format should be like this:
 ]
 "#;
 
-pub static AI_RESP_SINGER_TEMPLATE : &str = r#"
+pub static AI_RESP_SINGER_TEMPLATE: &str = r#"
 return format should be like this:
 {
     "singer name": [
@@ -61,10 +61,10 @@ pub fn gen_recommend_song_content(song: &str, count: u64) -> String {
     format!("song: '{song}', {AI_RECOMMEND_SONG}, {AI_RECOMMEND_SONG_COUNT} {count}, {AI_RECOMMEND_RULES}, {AI_SONG_RESP_TEMPLATE}")
 }
 
-pub fn gen_recommend_style(song: &str, count: u64) -> String {
+pub fn gen_recommend_style_content(song: &str, count: u64) -> String {
     format!("song: '{song}', {AI_RECOMMEND_STYLE}, {AI_RECOMMEND_SONG_COUNT} {count}, {AI_RECOMMEND_RULES}, {AI_SONG_RESP_TEMPLATE}")
 }
 
-pub fn gen_recommend_singer(singer: &str, song_count: u64, singer_count: u64) -> String {
+pub fn gen_recommend_singer_content(singer: &str, song_count: u64, singer_count: u64) -> String {
     format!("artist: '{singer}', {AI_RECOMMEND_SINGER}, {AI_RECOMMEND_SONG_COUNT} {song_count}, {AI_RECOMMEND_SINGER_COUNT} {singer_count} ,{AI_RECOMMEND_RULES}, {AI_RESP_SINGER_TEMPLATE}")
 }

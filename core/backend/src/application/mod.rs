@@ -1,8 +1,7 @@
-use crate::modules::impls::netesae::NetesaeModule;
-use crate::modules::{MusicModule};
-use serde::{Deserialize, Serialize};
 use crate::ai_client::Client as AiClient;
-use crate::ai_client::impls::kimi::Kimi;
+use crate::modules::impls::netesae::NetesaeModule;
+use crate::modules::MusicModule;
+use serde::{Deserialize, Serialize};
 
 pub mod ai;
 
@@ -30,9 +29,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(
-        netesae: NetesaeModule,
-    ) -> Application {
+    pub fn new(netesae: NetesaeModule) -> Application {
         Application {
             netesae: Box::new(netesae),
             ai: None,
