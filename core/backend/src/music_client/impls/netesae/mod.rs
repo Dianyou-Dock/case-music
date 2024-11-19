@@ -1,5 +1,5 @@
-use crate::client::error::ClientError;
-use crate::client::Client;
+use crate::music_client::Client;
+use crate::types::error::{ErrorHandle, MusicClientError};
 use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
 use crate::types::play_list_info::{PlayListInfo, PlayListInfoData};
 use crate::types::song_info::{SongInfo, SongInfoData};
@@ -69,15 +69,15 @@ impl Client for NeteaseClient {
 
         let check_qr_code = CheckQrCode::from_i32(result.code);
         match check_qr_code {
-            CheckQrCode::Timeout => Err(ClientError::QrTimeout.anyhow_err()),
-            CheckQrCode::WaitScan => Err(ClientError::QrWaitScan.anyhow_err()),
-            CheckQrCode::WaitConfirm => Err(ClientError::QrWaitConfirm.anyhow_err()),
+            CheckQrCode::Timeout => Err(MusicClientError::QrTimeout.anyhow_err()),
+            CheckQrCode::WaitScan => Err(MusicClientError::QrWaitScan.anyhow_err()),
+            CheckQrCode::WaitConfirm => Err(MusicClientError::QrWaitConfirm.anyhow_err()),
             CheckQrCode::LoginSuccess => {
                 let msg = self.api.login_status().await?;
                 let cookie = if msg.code == 200 && self.api.cookie_jar().is_some() {
                     self.api.cookie_jar().unwrap().clone()
                 } else {
-                    return Err(ClientError::LoginFail.anyhow_err());
+                    return Err(MusicClientError::LoginFail.anyhow_err());
                 };
 
                 self.replace_api(cookie.clone());
@@ -86,7 +86,7 @@ impl Client for NeteaseClient {
                     data: LoginInfoData::Netesae(msg),
                 })
             }
-            CheckQrCode::Unknown => Err(ClientError::QrUnknown.anyhow_err()),
+            CheckQrCode::Unknown => Err(MusicClientError::QrUnknown.anyhow_err()),
         }
     }
 
@@ -98,7 +98,7 @@ impl Client for NeteaseClient {
         let like_list_infos = self.api.user_song_list(user_id, 0, 1).await?;
 
         let Some(like_list) = like_list_infos.get(0) else {
-            return Err(ClientError::UserSongListIsNull.anyhow_err());
+            return Err(MusicClientError::UserSongListIsNull.anyhow_err());
         };
 
         let play_list_info = self.api.song_list_detail(like_list.id).await?;
@@ -121,12 +121,47 @@ impl Client for NeteaseClient {
 
         Ok(song_infos)
     }
+
+    async fn search_song(&mut self, song: &str, singer: &str) -> Result<Option<SongInfo>> {
+        let search_info = format!("{song} {singer}");
+        let limit = 50;
+        let mut offset = 0;
+        let mut song_info = None;
+
+        loop {
+            let result = self
+                .api
+                .search_song(search_info.clone(), offset, limit)
+                .await?;
+
+            if result.len() == 0 {
+                break;
+            }
+
+            for x in result {
+                if x.singer.eq(singer) && x.name.eq(song) {
+                    song_info = Some(x);
+                    break;
+                }
+            }
+
+            offset += limit;
+        }
+
+        if let Some(song_info) = song_info {
+            Ok(Some(SongInfo {
+                data: SongInfoData::Netesae(song_info),
+            }))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::client::impls::netesae::NeteaseClient;
-    use crate::client::Client;
+    use crate::music_client::impls::netesae::NeteaseClient;
+    use crate::music_client::Client;
     use crate::types::login_info::LoginInfo;
     use anyhow::Result;
     use qrcode_generator::QrCodeEcc;

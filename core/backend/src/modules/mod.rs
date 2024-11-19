@@ -1,15 +1,14 @@
-mod error;
 pub mod impls;
 
-use crate::application::Source;
-use crate::client::Client;
+use crate::application::MusicSource;
+use crate::music_client::Client;
 use crate::types::play_list_info::PlayListInfo;
 use anyhow::Result;
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait Module: Sync + Send {
-    fn source(&mut self) -> Source;
+pub trait MusicModule: Sync + Send {
+    fn source(&mut self) -> MusicSource;
 
     fn client(&mut self) -> &mut dyn Client;
 
