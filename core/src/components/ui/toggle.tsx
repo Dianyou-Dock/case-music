@@ -1,56 +1,45 @@
-"use client"
+'use client';
 
-import type { ButtonProps } from "@chakra-ui/react"
-import {
-  Button,
-  Toggle as ChakraToggle,
-  useToggleContext,
-} from "@chakra-ui/react"
-import { forwardRef } from "react"
+import * as React from 'react';
+import * as TogglePrimitive from '@radix-ui/react-toggle';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-interface ToggleProps extends ChakraToggle.RootProps {
-  variant?: keyof typeof variantMap
-  size?: ButtonProps["size"]
-}
+import { cn } from '@/lib/utils';
 
-const variantMap = {
-  solid: { on: "solid", off: "outline" },
-  surface: { on: "surface", off: "outline" },
-  subtle: { on: "subtle", off: "ghost" },
-  ghost: { on: "subtle", off: "ghost" },
-} as const
+const toggleVariants = cva(
+  'inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground',
+  {
+    variants: {
+      variant: {
+        default: 'bg-transparent',
+        outline:
+          'border border-input bg-transparent hover:bg-accent hover:text-accent-foreground',
+      },
+      size: {
+        default: 'h-10 px-3',
+        sm: 'h-9 px-2.5',
+        lg: 'h-11 px-5',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
 
-export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(
-  function Toggle(props, ref) {
-    const { variant = "subtle", size, children, ...rest } = props
-    const variantConfig = variantMap[variant]
+const Toggle = React.forwardRef<
+  React.ElementRef<typeof TogglePrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> &
+    VariantProps<typeof toggleVariants>
+>(({ className, variant, size, ...props }, ref) => (
+  <TogglePrimitive.Root
+    ref={ref}
+    className={cn(toggleVariants({ variant, size, className }))}
+    {...props}
+  />
+));
 
-    return (
-      <ChakraToggle.Root asChild {...rest}>
-        <ToggleBaseButton size={size} variant={variantConfig} ref={ref}>
-          {children}
-        </ToggleBaseButton>
-      </ChakraToggle.Root>
-    )
-  },
-)
+Toggle.displayName = TogglePrimitive.Root.displayName;
 
-interface ToggleBaseButtonProps extends Omit<ButtonProps, "variant"> {
-  variant: Record<"on" | "off", ButtonProps["variant"]>
-}
-
-const ToggleBaseButton = forwardRef<HTMLButtonElement, ToggleBaseButtonProps>(
-  function ToggleBaseButton(props, ref) {
-    const toggle = useToggleContext()
-    const { variant, ...rest } = props
-    return (
-      <Button
-        variant={toggle.pressed ? variant.on : variant.off}
-        ref={ref}
-        {...rest}
-      />
-    )
-  },
-)
-
-export const ToggleIndicator = ChakraToggle.Indicator
+export { Toggle, toggleVariants };

@@ -1,60 +1,28 @@
-import { Slider as ChakraSlider, HStack } from "@chakra-ui/react"
-import { forwardRef } from "react"
+'use client';
 
-export interface SliderProps extends ChakraSlider.RootProps {
-  marks?: Array<number | { value: number; label: React.ReactNode }>
-  label?: React.ReactNode
-  showValue?: boolean
-}
+import * as React from 'react';
+import * as SliderPrimitive from '@radix-ui/react-slider';
 
-export const Slider = forwardRef<HTMLDivElement, SliderProps>(
-  function Slider(props, ref) {
-    const { marks: marksProp, label, showValue, ...rest } = props
-    const value = props.defaultValue ?? props.value
+import { cn } from '@/lib/utils';
 
-    const marks = marksProp?.map((mark) => {
-      if (typeof mark === "number") return { value: mark, label: undefined }
-      return mark
-    })
+const Slider = React.forwardRef<
+  React.ElementRef<typeof SliderPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <SliderPrimitive.Root
+    ref={ref}
+    className={cn(
+      'relative flex w-full touch-none select-none items-center',
+      className
+    )}
+    {...props}
+  >
+    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
+      <SliderPrimitive.Range className="absolute h-full bg-primary" />
+    </SliderPrimitive.Track>
+    <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+  </SliderPrimitive.Root>
+));
+Slider.displayName = SliderPrimitive.Root.displayName;
 
-    const hasMarkLabel = !!marks?.some((mark) => mark.label)
-
-    return (
-      <ChakraSlider.Root ref={ref} thumbAlignment="center" {...rest}>
-        {label && !showValue && (
-          <ChakraSlider.Label fontWeight="medium">{label}</ChakraSlider.Label>
-        )}
-        {label && showValue && (
-          <HStack justify="space-between">
-            <ChakraSlider.Label fontWeight="medium">{label}</ChakraSlider.Label>
-            <ChakraSlider.ValueText />
-          </HStack>
-        )}
-        <ChakraSlider.Control mb={hasMarkLabel ? "4" : undefined}>
-          <ChakraSlider.Track>
-            <ChakraSlider.Range />
-          </ChakraSlider.Track>
-          {value?.map((_, index) => (
-            <ChakraSlider.Thumb key={index} index={index}>
-              <ChakraSlider.HiddenInput />
-            </ChakraSlider.Thumb>
-          ))}
-        </ChakraSlider.Control>
-        {marks?.length && (
-          <ChakraSlider.MarkerGroup>
-            {marks.map((mark, index) => {
-              const value = typeof mark === "number" ? mark : mark.value
-              const label = typeof mark === "number" ? undefined : mark.label
-              return (
-                <ChakraSlider.Marker key={index} value={value}>
-                  <ChakraSlider.MarkerIndicator />
-                  {label}
-                </ChakraSlider.Marker>
-              )
-            })}
-          </ChakraSlider.MarkerGroup>
-        )}
-      </ChakraSlider.Root>
-    )
-  },
-)
+export { Slider };
