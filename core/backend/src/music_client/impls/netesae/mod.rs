@@ -156,6 +156,11 @@ impl Client for NeteaseClient {
             Ok(None)
         }
     }
+
+    async fn like_song(&mut self, song_id: u64, is_like: bool) -> Result<bool> {
+        let result = self.api.like(is_like, song_id).await;
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
