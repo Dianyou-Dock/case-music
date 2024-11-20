@@ -19,4 +19,6 @@ pub trait Client: Sync + Send {
     async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<SongInfo>>;
 
     async fn search_song(&mut self, song: &str, singer: &str) -> Result<Option<SongInfo>>;
+
+    async fn like_song(&mut self, song_id: u64, is_like: bool) -> Result<bool>;
 }
