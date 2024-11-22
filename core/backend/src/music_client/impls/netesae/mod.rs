@@ -3,6 +3,7 @@ use crate::types::error::{ErrorHandle, MusicClientError};
 use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
 use crate::types::play_list_info::{PlayListInfo, PlayListInfoData};
 use crate::types::song_info::{SongInfo, SongInfoData};
+use crate::types::song_url::{SongRate, SongUrl, SongUrlData};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use ncm_api::{CookieJar, MusicApi};
@@ -161,6 +162,20 @@ impl Client for NeteaseClient {
         let result = self.api.like(is_like, song_id).await;
         Ok(result)
     }
+
+    async fn songs_url(&mut self, songs: &[u64], song_rate: SongRate) -> Result<Vec<SongUrl>> {
+        let result = self.api.songs_url(songs, &song_rate.to_string()).await?;
+
+        let mut list = vec![];
+        for x in result {
+            let song_url = SongUrl {
+                data: SongUrlData::Netesae(x),
+            };
+            list.push(song_url);
+        }
+
+        Ok(list)
+    }
 }
 
 #[cfg(test)]
@@ -168,6 +183,7 @@ mod test {
     use crate::music_client::impls::netesae::NeteaseClient;
     use crate::music_client::Client;
     use crate::types::login_info::LoginInfo;
+    use crate::types::song_url::SongRate;
     use anyhow::Result;
     use qrcode_generator::QrCodeEcc;
     use std::time::Duration;
@@ -253,6 +269,21 @@ mod test {
             let like_songs = client.song_infos(&like_list).await.unwrap();
 
             println!("like songs: {:?}", like_songs);
+        });
+    }
+
+    #[test]
+    fn test_song_url() {
+        runtime().block_on(async {
+            let mut client = NeteaseClient::new().unwrap();
+
+            // login(&mut client).await.unwrap();
+
+            let song_list = vec![480097437];
+
+            let songs_url = client.songs_url(&song_list, SongRate::L).await.unwrap();
+
+            println!("songs url: {:?}", songs_url);
         });
     }
 }

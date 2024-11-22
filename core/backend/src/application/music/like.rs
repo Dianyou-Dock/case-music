@@ -77,7 +77,6 @@ pub async fn like_list(
     }))
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LikeSongReq {
     pub source: MusicSource,
@@ -86,18 +85,27 @@ pub struct LikeSongReq {
 }
 
 #[tauri::command]
-pub async fn like_song(
-    req: LikeSongReq,
-) -> Result<ApplicationResp<bool>, InvokeError> {
+pub async fn like_song(req: LikeSongReq) -> Result<ApplicationResp<bool>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
     match req.source {
         MusicSource::Netesae => {
-            let result = instance.netesae.client().like_song(req.song_id, req.is_like).await.map_err(InvokeError::from_anyhow)?;
+            let result = instance
+                .netesae
+                .client()
+                .like_song(req.song_id, req.is_like)
+                .await
+                .map_err(InvokeError::from_anyhow)?;
             Ok(ApplicationResp::success_data(result))
         }
-        MusicSource::Spotify => {todo!()}
-        MusicSource::QQ => {todo!()}
-        MusicSource::Apple => {todo!()}
+        MusicSource::Spotify => {
+            todo!()
+        }
+        MusicSource::QQ => {
+            todo!()
+        }
+        MusicSource::Apple => {
+            todo!()
+        }
     }
 }
