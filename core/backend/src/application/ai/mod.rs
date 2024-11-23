@@ -2,7 +2,7 @@ pub(crate) mod recommend;
 
 use crate::ai_client::impls::kimi::Kimi;
 use crate::application::resp::ApplicationResp;
-use crate::application::AiSource;
+use crate::types::constants::AiSource;
 use crate::INSTANCE;
 use serde::{Deserialize, Serialize};
 use tauri::ipc::InvokeError;

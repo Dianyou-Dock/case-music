@@ -1,7 +1,7 @@
 pub mod impls;
 
-use crate::application::MusicSource;
 use crate::music_client::Client;
+use crate::types::constants::MusicSource;
 use crate::types::play_list_info::PlayListInfo;
 use anyhow::Result;
 use async_trait::async_trait;

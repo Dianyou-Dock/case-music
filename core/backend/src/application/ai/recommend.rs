@@ -1,6 +1,6 @@
 use crate::application::resp::ApplicationResp;
-use crate::application::MusicSource;
 use crate::types::ai_recommend_info::AiRecommendSongInfo;
+use crate::types::constants::MusicSource;
 use crate::types::error::ApplicationError::AiNotUse;
 use crate::types::error::ErrorHandle;
 use crate::types::song_info::SongInfo;

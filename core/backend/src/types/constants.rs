@@ -1,3 +1,10 @@
+use dirs_next::home_dir;
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::PathBuf;
+use strum_macros::{Display, EnumString};
+
 pub static KIMI_URL: &str = "https://api.moonshot.cn/v1/chat/completions";
 
 pub static AI_SONG_RESP_TEMPLATE: &str = r#"
@@ -57,6 +64,45 @@ resp rule:
 1. no text outside the template
 "#;
 
+pub static DATA_DIR: &str = ".fma";
+pub static AUTH_DIR: &str = "auth";
+pub static AUTH_FILE: &str = "auth.json";
+
+pub static DATA_PATH: Lazy<PathBuf> = Lazy::new(|| {
+    if let Some(home_dir) = home_dir() {
+        let data_dir = home_dir.join(DATA_DIR);
+        if !data_dir.exists() {
+            fs::create_dir_all(&data_dir).unwrap();
+        }
+
+        let cookie_dir = home_dir.join(AUTH_DIR);
+        if !cookie_dir.exists() {
+            fs::create_dir_all(&cookie_dir).unwrap();
+        }
+
+        data_dir
+    } else {
+        panic!("Home directory not found");
+    }
+});
+
+pub const BASE_NETESAE_URL_LIST: [&str; 12] = [
+    "https://music.163.com/",
+    "https://music.163.com/eapi/clientlog",
+    "https://music.163.com/eapi/feedback",
+    "https://music.163.com/api/clientlog",
+    "https://music.163.com/api/feedback",
+    "https://music.163.com/neapi/clientlog",
+    "https://music.163.com/neapi/feedback",
+    "https://music.163.com/weapi/clientlog",
+    "https://music.163.com/weapi/feedback",
+    "https://music.163.com/wapi/clientlog",
+    "https://music.163.com/wapi/feedback",
+    "https://music.163.com/openapi/clientlog",
+];
+
+pub static NETEASE_DOMAIN: &str = "music.163.com";
+
 pub fn gen_recommend_song_content(song: &str, count: u64) -> String {
     format!("song: '{song}', {AI_RECOMMEND_SONG}, {AI_RECOMMEND_SONG_COUNT} {count}, {AI_RECOMMEND_RULES}, {AI_SONG_RESP_TEMPLATE}")
 }
@@ -67,4 +113,21 @@ pub fn gen_recommend_style_content(song: &str, count: u64) -> String {
 
 pub fn gen_recommend_singer_content(singer: &str, song_count: u64, singer_count: u64) -> String {
     format!("artist: '{singer}', {AI_RECOMMEND_SINGER}, {AI_RECOMMEND_SONG_COUNT} {song_count}, {AI_RECOMMEND_SINGER_COUNT} {singer_count} ,{AI_RECOMMEND_RULES}, {AI_RESP_SINGER_TEMPLATE}")
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, EnumString, Display)]
+pub enum MusicSource {
+    #[strum(serialize = "Netesae")]
+    Netesae,
+    #[strum(serialize = "Spotify")]
+    Spotify,
+    #[strum(serialize = "QQ")]
+    QQ,
+    #[strum(serialize = "Apple")]
+    Apple,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum AiSource {
+    Kimi,
 }

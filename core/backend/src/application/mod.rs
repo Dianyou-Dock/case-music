@@ -1,7 +1,8 @@
 use crate::ai_client::Client as AiClient;
 use crate::modules::impls::netesae::NetesaeModule;
 use crate::modules::MusicModule;
-use serde::{Deserialize, Serialize};
+use crate::types::constants::DATA_PATH;
+use std::path::PathBuf;
 
 pub mod ai;
 
@@ -10,22 +11,10 @@ pub mod music;
 mod resp;
 pub mod system;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum MusicSource {
-    Netesae,
-    Spotify,
-    QQ,
-    Apple,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum AiSource {
-    Kimi,
-}
-
 pub struct Application {
     pub netesae: Box<dyn MusicModule>,
     pub ai: Option<Box<dyn AiClient>>,
+    pub data_path: PathBuf,
 }
 
 impl Application {
@@ -33,6 +22,7 @@ impl Application {
         Application {
             netesae: Box::new(netesae),
             ai: None,
+            data_path: DATA_PATH.clone(),
         }
     }
 }
