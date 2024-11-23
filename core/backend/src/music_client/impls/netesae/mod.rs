@@ -1,4 +1,7 @@
 use crate::music_client::Client;
+use crate::types::constants::{
+    MusicSource, AUTH_DIR, AUTH_FILE, BASE_NETESAE_URL_LIST, DATA_PATH, NETEASE_DOMAIN,
+};
 use crate::types::error::{ErrorHandle, MusicClientError};
 use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
 use crate::types::play_list_info::{PlayListInfo, PlayListInfoData};
@@ -6,7 +9,11 @@ use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::types::song_url::{SongRate, SongUrl, SongUrlData};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use ncm_api::{CookieJar, MusicApi};
+use cookie_store::CookieStore;
+use ncm_api::{CookieBuilder, CookieJar, MusicApi};
+use std::fs;
+use std::path::PathBuf;
+use tokio::io::AsyncWriteExt;
 
 pub enum CheckQrCode {
     Timeout,
@@ -40,18 +47,78 @@ impl CheckQrCode {
 
 pub struct NeteaseClient {
     api: MusicApi,
+    auth_file: PathBuf,
 }
 
 impl NeteaseClient {
     pub fn new() -> Result<NeteaseClient> {
-        let api = MusicApi::new(100);
+        let auth_data = DATA_PATH
+            .join(AUTH_DIR)
+            .join(MusicSource::Netesae.to_string());
+        if !auth_data.exists() {
+            fs::create_dir_all(&auth_data)?;
+        }
 
-        Ok(NeteaseClient { api })
+        let auth_file = auth_data.join(AUTH_FILE);
+
+        let api = if auth_file.exists() {
+            let auth_str = fs::read_to_string(&auth_file)?;
+            let cookie_store = serde_json::from_str::<CookieStore>(&auth_str)?;
+            let cookie_jar = CookieJar::default();
+            for base_url in BASE_NETESAE_URL_LIST {
+                let url = base_url.parse()?;
+                for c in cookie_store.matches(&url) {
+                    let cookie = CookieBuilder::new(c.name(), c.value())
+                        .domain(NETEASE_DOMAIN)
+                        .path(c.path().unwrap_or("/"))
+                        .build()?;
+                    cookie_jar.set(cookie, &base_url.parse()?)?;
+                }
+            }
+            MusicApi::from_cookie_jar(cookie_jar, 100)
+        } else {
+            MusicApi::new(100)
+        };
+
+        Ok(Self { api, auth_file })
     }
 
-    fn replace_api(&mut self, cookie: CookieJar) {
-        let api = MusicApi::from_cookie_jar(cookie, 100);
+    async fn replace_api(&mut self, cookie_jar: CookieJar) -> Result<()> {
+        self.save_auth(&cookie_jar).await?;
+        let api = MusicApi::from_cookie_jar(cookie_jar, 100);
         self.api = api;
+        Ok(())
+    }
+
+    async fn save_auth(&self, cookie_jar: &CookieJar) -> Result<()> {
+        let mut file = if !self.auth_file.exists() {
+            tokio::fs::File::create(&self.auth_file).await?
+        } else {
+            tokio::fs::File::open(&self.auth_file).await?
+        };
+
+        let mut cookie_store = CookieStore::default();
+
+        for base_url in BASE_NETESAE_URL_LIST {
+            let uri = &base_url.parse()?;
+            let url = &base_url.parse()?;
+            for c in cookie_jar.get_for_uri(url) {
+                let cookie = cookie_store::Cookie::parse(
+                    format!(
+                        "{}={}; Path={}; Domain={NETEASE_DOMAIN}; Max-Age=31536000",
+                        c.name(),
+                        c.value(),
+                        url.path()
+                    ),
+                    uri,
+                )?;
+                cookie_store.insert(cookie, uri)?;
+            }
+        }
+        let json = serde_json::to_vec(&cookie_store)?;
+        file.write_all(&json).await?;
+
+        Ok(())
     }
 }
 
@@ -81,7 +148,7 @@ impl Client for NeteaseClient {
                     return Err(MusicClientError::LoginFail.anyhow_err());
                 };
 
-                self.replace_api(cookie.clone());
+                self.replace_api(cookie.clone()).await?;
 
                 Ok(LoginInfo {
                     data: LoginInfoData::Netesae(msg),
@@ -226,7 +293,8 @@ mod test {
         runtime().block_on(async {
             let mut client = NeteaseClient::new().unwrap();
             let result = client.login_qr().await.unwrap();
-
+            qrcode_generator::to_png_to_file(&result.url, QrCodeEcc::Low, 140, "./qr.file")
+                .unwrap();
             println!("qr info: {:?}", result);
 
             loop {
@@ -246,6 +314,15 @@ mod test {
                 }
             }
         })
+    }
+
+    #[test]
+    fn test_login_status() {
+        runtime().block_on(async {
+            let mut client = NeteaseClient::new().unwrap();
+            let info = client.api.login_status().await.unwrap();
+            println!("{info:?}");
+        });
     }
 
     #[test]

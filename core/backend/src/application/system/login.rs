@@ -1,5 +1,5 @@
 use crate::application::resp::ApplicationResp;
-use crate::application::MusicSource;
+use crate::types::constants::MusicSource;
 use crate::types::login_info::{LoginInfo, LoginQrInfo};
 use crate::INSTANCE;
 use anyhow::Result;

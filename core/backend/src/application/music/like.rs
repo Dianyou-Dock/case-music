@@ -1,5 +1,5 @@
 use crate::application::resp::ApplicationResp;
-use crate::application::MusicSource;
+use crate::types::constants::MusicSource;
 use crate::types::play_list_info::PlayListInfoData;
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::INSTANCE;
