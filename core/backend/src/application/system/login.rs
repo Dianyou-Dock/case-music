@@ -78,9 +78,7 @@ pub async fn login_by_qr(
 }
 
 #[tauri::command]
-pub async fn logged(
-    source: MusicSource,
-) -> Result<ApplicationResp<LoginResp<bool>>, InvokeError> {
+pub async fn logged(source: MusicSource) -> Result<ApplicationResp<LoginResp<bool>>, InvokeError> {
     match source {
         MusicSource::Netesae => {
             let mut instance = INSTANCE.write().await;
