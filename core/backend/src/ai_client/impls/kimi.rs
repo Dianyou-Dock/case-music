@@ -1,7 +1,9 @@
 use crate::ai_client::Client;
 use crate::types::ai_recommend_info::AiRecommendSongInfo;
+use crate::types::apikey::AiApiKey;
 use crate::types::constants::{
-    gen_recommend_singer_content, gen_recommend_song_content, gen_recommend_style_content, KIMI_URL,
+    gen_recommend_singer_content, gen_recommend_song_content, gen_recommend_style_content,
+    AiSource, APIKEY_DIR, APIKEY_FILE, DATA_PATH, KIMI_URL,
 };
 use crate::types::error::{AiError, ErrorHandle};
 use anyhow::Result;
@@ -11,6 +13,8 @@ use reqwest::{Method, Request};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::path::PathBuf;
+use tokio::fs;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Message {
@@ -48,15 +52,32 @@ struct ChatResp {
     usage: Usage,
 }
 
+#[allow(dead_code)]
 pub struct Kimi {
     client: reqwest::Client,
-    api_key: String,
+    apikey: AiApiKey,
+    apikey_path: Option<PathBuf>,
 }
 
 impl Kimi {
-    pub fn new(api_key: String) -> Result<Kimi> {
+    pub async fn new(api_key: String) -> Result<Kimi> {
         let client = reqwest::Client::new();
-        Ok(Kimi { client, api_key })
+        let apikey_dir = DATA_PATH.join(APIKEY_DIR).join(AiSource::Kimi.to_string());
+        let apikey_file = apikey_dir.join(APIKEY_FILE);
+
+        if !apikey_dir.exists() {
+            fs::create_dir_all(&apikey_dir).await?;
+        }
+
+        let apikey = AiApiKey { key: api_key };
+        let json = serde_json::to_string_pretty(&apikey)?;
+        fs::write(&apikey_file, &json).await?;
+
+        Ok(Kimi {
+            client,
+            apikey,
+            apikey_path: Some(apikey_file),
+        })
     }
 
     pub fn gen_req(&self, content: &str) -> Result<Request> {
@@ -73,11 +94,30 @@ impl Kimi {
 
         let req = req
             .header(CONTENT_TYPE, "application/json")
-            .bearer_auth(self.api_key.as_str())
+            .bearer_auth(self.apikey.key.as_str())
             .json(&chat_req)
             .build()?;
 
         Ok(req)
+    }
+
+    pub(crate) fn load() -> Result<Option<Kimi>> {
+        let apikey_dir = DATA_PATH.join(APIKEY_DIR).join(AiSource::Kimi.to_string());
+        let apikey_file = apikey_dir.join(APIKEY_FILE);
+
+        if !apikey_file.exists() {
+            return Ok(None);
+        }
+
+        let key_str = std::fs::read_to_string(&apikey_file)?;
+        let apikey = serde_json::from_str::<AiApiKey>(&key_str)?;
+        let kimi = Self {
+            client: reqwest::Client::new(),
+            apikey,
+            apikey_path: Some(apikey_file),
+        };
+
+        Ok(Some(kimi))
     }
 
     pub async fn send<T: DeserializeOwned>(&self, req: Request) -> Result<T> {

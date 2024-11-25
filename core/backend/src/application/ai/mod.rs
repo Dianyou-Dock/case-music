@@ -19,7 +19,9 @@ pub async fn set_api_key(req: AiSetApiKeyReq) -> Result<ApplicationResp<()>, Inv
 
     match req.source {
         AiSource::Kimi => {
-            let kimi = Kimi::new(req.api_key).map_err(InvokeError::from_anyhow)?;
+            let kimi = Kimi::new(req.api_key)
+                .await
+                .map_err(InvokeError::from_anyhow)?;
 
             instance.ai.replace(Box::new(kimi));
         }

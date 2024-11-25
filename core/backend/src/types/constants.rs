@@ -66,7 +66,12 @@ resp rule:
 
 pub static DATA_DIR: &str = ".fma";
 pub static AUTH_DIR: &str = "auth";
+
+pub static APIKEY_DIR: &str = "apikey";
+
 pub static AUTH_FILE: &str = "auth.json";
+
+pub static APIKEY_FILE: &str = "apikey.json";
 
 pub static DATA_PATH: Lazy<PathBuf> = Lazy::new(|| {
     if let Some(home_dir) = home_dir() {
@@ -127,7 +132,8 @@ pub enum MusicSource {
     Apple,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, EnumString, Display)]
 pub enum AiSource {
+    #[strum(serialize = "Kimi")]
     Kimi,
 }

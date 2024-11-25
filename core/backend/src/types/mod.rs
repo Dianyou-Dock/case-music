@@ -1,4 +1,5 @@
 pub mod ai_recommend_info;
+pub mod apikey;
 pub mod auth;
 pub mod constants;
 pub mod error;
