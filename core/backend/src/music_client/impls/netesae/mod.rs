@@ -243,6 +243,10 @@ impl Client for NeteaseClient {
 
         Ok(list)
     }
+
+    fn logged(&mut self) -> bool {
+        self.api.cookie_jar().is_some()
+    }
 }
 
 #[cfg(test)]

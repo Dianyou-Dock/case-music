@@ -76,3 +76,25 @@ pub async fn login_by_qr(
 
     Ok(ApplicationResp::success_data(LoginResp { data: result }))
 }
+
+#[tauri::command]
+pub async fn logged(
+    source: MusicSource,
+) -> Result<ApplicationResp<LoginResp<bool>>, InvokeError> {
+    match source {
+        MusicSource::Netesae => {
+            let mut instance = INSTANCE.write().await;
+            let result = instance.netesae.client().logged();
+            Ok(ApplicationResp::success_data(LoginResp { data: result }))
+        }
+        MusicSource::Spotify => {
+            todo!()
+        }
+        MusicSource::QQ => {
+            todo!()
+        }
+        MusicSource::Apple => {
+            todo!()
+        }
+    }
+}
