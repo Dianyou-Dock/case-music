@@ -15,8 +15,10 @@ const playlists = [
 export default function Sidebar() {
   return (
     <div className="flex h-full w-64 flex-col gap-6 border-r bg-card p-4">
-      <div className="flex items-center gap-2 text-lg font-semibold">
-        <span className="text-primary">♪</span> Fuck Music
+      <div className="flex items-center">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <span className="text-primary">♪</span> Fuck Music
+        </div>
       </div>
 
       <nav className="flex flex-col gap-2">
