@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/hooks/use-auth';
 import Player from '@/components/player';
 import Sidebar from '@/components/sidebar';
 
@@ -26,13 +27,15 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex h-screen flex-col">
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar />
-              <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+          <AuthProvider>
+            <div className="flex h-screen flex-col">
+              <div className="flex flex-1 overflow-hidden">
+                <Sidebar />
+                <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+              </div>
+              <Player />
             </div>
-            <Player />
-          </div>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -9,15 +9,9 @@
     ],
     "baseUrl": "src/",
     "paths": {
-      "@/styles/*": [
-        "styles/*"
-      ],
-      "@/components/*": [
-        "components/*"
-      ],
-      "@/lib/*": [
-        "lib/*"
-      ],
+      "@/*": [
+        "./*"
+      ]
     },
     "module": "ESNext",
     "skipLibCheck": true,
