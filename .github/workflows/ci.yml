@@ -3,8 +3,8 @@ name: Conditional CI Workflow
 on:
   push:
     paths:
-      - 'core/src/**'       # 如果 core/src 文件夹发生变更
-      - 'core/backend/**'        # 如果 backend 文件夹发生变更
+      - 'core/src/**'
+      - 'core/backend/**'
   pull_request:
     paths:
       - 'core/src/**'
