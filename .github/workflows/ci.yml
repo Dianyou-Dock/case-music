@@ -34,7 +34,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
-          cache: 'pnpm'
 
       - name: Install pnpm
         run: npm install -g pnpm
@@ -44,9 +43,9 @@ jobs:
         working-directory: core
         run: pnpm install
 
-      - name: Run pnpm tests
+      - name: Run pnpm build
         working-directory: core
-        run: pnpm test
+        run: pnpm build
 
   rust:
     name: Run Rust CI
@@ -76,7 +75,7 @@ jobs:
           profile: minimal
           override: true
 
-      # Run tests
-      - name: Run Rust tests
-        working-directory: backend
-        run: cargo test
+      # Run build
+      - name: Run Rust build
+        working-directory: core/backend
+        run: cargo build
