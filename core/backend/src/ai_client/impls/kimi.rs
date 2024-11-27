@@ -1,5 +1,7 @@
 use crate::ai_client::Client;
-use crate::types::ai_recommend_info::AiRecommendSongInfo;
+use crate::types::ai_recommend_info::{
+    AiRecommendInfo, AiRecommendSingerInfo, AiRecommendSongInfo,
+};
 use crate::types::apikey::AiApiKey;
 use crate::types::constants::{
     gen_recommend_singer_content, gen_recommend_song_content, gen_recommend_style_content,
@@ -12,7 +14,6 @@ use reqwest::header::CONTENT_TYPE;
 use reqwest::{Method, Request};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tokio::fs;
 
@@ -153,8 +154,15 @@ impl Client for Kimi {
         &self,
         data: AiRecommendSongInfo,
         count: u64,
-    ) -> Result<Vec<AiRecommendSongInfo>> {
-        let content = gen_recommend_song_content(&data.name, count);
+        previous: Option<Vec<AiRecommendSongInfo>>,
+    ) -> Result<AiRecommendInfo> {
+        let pre = if let Some(pre) = previous {
+            Some(serde_json::to_string(&pre)?)
+        } else {
+            None
+        };
+
+        let content = gen_recommend_song_content(&data.name, count, pre);
 
         let req = self.gen_req(&content)?;
 
@@ -167,8 +175,15 @@ impl Client for Kimi {
         &self,
         data: AiRecommendSongInfo,
         count: u64,
-    ) -> Result<Vec<AiRecommendSongInfo>> {
-        let content = gen_recommend_style_content(&data.name, count);
+        previous: Option<Vec<AiRecommendSongInfo>>,
+    ) -> Result<AiRecommendInfo> {
+        let pre = if let Some(pre) = previous {
+            Some(serde_json::to_string(&pre)?)
+        } else {
+            None
+        };
+
+        let content = gen_recommend_style_content(&data.name, count, pre);
 
         let req = self.gen_req(&content)?;
 
@@ -182,8 +197,15 @@ impl Client for Kimi {
         data: AiRecommendSongInfo,
         singer_count: u64,
         song_count: u64,
-    ) -> Result<BTreeMap<String, Vec<AiRecommendSongInfo>>> {
-        let content = gen_recommend_singer_content(&data.singer, song_count, singer_count);
+        previous: Option<Vec<String>>,
+    ) -> Result<AiRecommendSingerInfo> {
+        let pre = if let Some(pre) = previous {
+            Some(serde_json::to_string(&pre)?)
+        } else {
+            None
+        };
+
+        let content = gen_recommend_singer_content(&data.singer, song_count, singer_count, pre);
 
         let req = self.gen_req(&content)?;
 
@@ -196,6 +218,7 @@ impl Client for Kimi {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::env;
 
     fn runtime() -> tokio::runtime::Runtime {
         let rt = tokio::runtime::Builder::new_current_thread()
@@ -210,9 +233,11 @@ mod test {
         runtime().block_on(async {
             let song = "I Stay In Love";
             let singer = "Mariah Carey";
-            let api_key = "";
+            let api_key = env::var("API_KEY").unwrap();
 
-            let ai_client = Kimi::new(api_key.to_string()).unwrap();
+            let ai_client = Kimi::new(api_key.to_string()).await.unwrap();
+
+            // round1
             let result = ai_client
                 .recommend_song(
                     AiRecommendSongInfo {
@@ -220,22 +245,40 @@ mod test {
                         singer: singer.to_string(),
                     },
                     10,
+                    None,
                 )
                 .await
                 .unwrap();
 
-            println!("{:?}", result);
+            println!("round1: {:?}", result);
+
+            // round2
+            let result = ai_client
+                .recommend_song(
+                    AiRecommendSongInfo {
+                        name: song.to_string(),
+                        singer: singer.to_string(),
+                    },
+                    10,
+                    Some(result.recommends),
+                )
+                .await
+                .unwrap();
+
+            println!("round2: {:?}", result);
         });
     }
 
     #[test]
     fn test_recommend_style() {
         runtime().block_on(async {
-            let song = "我们都有问题";
-            let singer = "蛋堡";
-            let api_key = "";
+            let song = "孤独患者";
+            let singer = "陈奕迅";
+            let api_key = env::var("API_KEY").unwrap();
 
-            let ai_client = Kimi::new(api_key.to_string()).unwrap();
+            let ai_client = Kimi::new(api_key.to_string()).await.unwrap();
+
+            // round1
             let result = ai_client
                 .recommend_style(
                     AiRecommendSongInfo {
@@ -243,11 +286,27 @@ mod test {
                         singer: singer.to_string(),
                     },
                     3,
+                    None,
                 )
                 .await
                 .unwrap();
 
-            println!("{:?}", result);
+            println!("round1: {:?}", result);
+
+            // round2
+            let result = ai_client
+                .recommend_style(
+                    AiRecommendSongInfo {
+                        name: song.to_string(),
+                        singer: singer.to_string(),
+                    },
+                    3,
+                    Some(result.recommends),
+                )
+                .await
+                .unwrap();
+
+            println!("round2: {:?}", result);
         });
     }
 
@@ -256,9 +315,11 @@ mod test {
         runtime().block_on(async {
             let song = "Luv(sic.) part 3";
             let singer = "Nujabes";
-            let api_key = "";
+            let api_key = env::var("API_KEY").unwrap();
 
-            let ai_client = Kimi::new(api_key.to_string()).unwrap();
+            let ai_client = Kimi::new(api_key.to_string()).await.unwrap();
+
+            // round1
             let result = ai_client
                 .recommend_singer(
                     AiRecommendSongInfo {
@@ -267,11 +328,29 @@ mod test {
                     },
                     2,
                     3,
+                    None,
                 )
                 .await
                 .unwrap();
 
-            println!("{:?}", result);
+            println!("round1: {:?}", result);
+
+            // round2
+            let pre = result.recommends.iter().map(|(k, _v)| k.clone()).collect();
+            let result = ai_client
+                .recommend_singer(
+                    AiRecommendSongInfo {
+                        name: song.to_string(),
+                        singer: singer.to_string(),
+                    },
+                    2,
+                    3,
+                    Some(pre),
+                )
+                .await
+                .unwrap();
+
+            println!("round2: {:?}", result);
         });
     }
 }
