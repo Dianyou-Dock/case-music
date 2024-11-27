@@ -1,5 +1,5 @@
 use crate::application::resp::ApplicationResp;
-use crate::types::ai_recommend_info::AiRecommendSongInfo;
+use crate::types::ai_recommend_info::{AiBenchmarkInfo, AiRecommendSongInfo};
 use crate::types::constants::MusicSource;
 use crate::types::error::ApplicationError::AiNotUse;
 use crate::types::error::ErrorHandle;
@@ -16,11 +16,13 @@ pub struct RecommendReq {
     pub singer: String,
     pub recommend_song_count: u64,
     pub recommend_singer_count: u64,
+    pub previous: Option<Vec<AiRecommendSongInfo>>,
 }
 
 #[derive(Serialize, Debug, Clone)]
 pub struct RecommendSongResp<T: Serialize + Clone + Debug> {
     pub song_infos: Vec<T>,
+    pub benchmark_info: AiBenchmarkInfo,
 }
 
 #[tauri::command]
@@ -40,7 +42,7 @@ pub async fn recommend_song(
     };
 
     let recommend_result = ai
-        .recommend_song(recommend_param, req.recommend_song_count)
+        .recommend_song(recommend_param, req.recommend_song_count, req.previous)
         .await
         .map_err(InvokeError::from_anyhow)?;
 
@@ -48,7 +50,7 @@ pub async fn recommend_song(
 
     match req.source {
         MusicSource::Netesae => {
-            for x in recommend_result {
+            for x in recommend_result.recommends {
                 if let Some(info) = instance
                     .netesae
                     .client()
@@ -73,6 +75,7 @@ pub async fn recommend_song(
 
     Ok(ApplicationResp::success_data(RecommendSongResp {
         song_infos: list,
+        benchmark_info: recommend_result.benchmark,
     }))
 }
 
@@ -93,7 +96,7 @@ pub async fn recommend_style(
     };
 
     let recommend_result = ai
-        .recommend_style(recommend_param, req.recommend_song_count)
+        .recommend_style(recommend_param, req.recommend_song_count, req.previous)
         .await
         .map_err(InvokeError::from_anyhow)?;
 
@@ -101,7 +104,7 @@ pub async fn recommend_style(
 
     match req.source {
         MusicSource::Netesae => {
-            for x in recommend_result {
+            for x in recommend_result.recommends {
                 if let Some(info) = instance
                     .netesae
                     .client()
@@ -126,6 +129,7 @@ pub async fn recommend_style(
 
     Ok(ApplicationResp::success_data(RecommendSongResp {
         song_infos: list,
+        benchmark_info: recommend_result.benchmark,
     }))
 }
 
@@ -145,11 +149,19 @@ pub async fn recommend_singer(
         singer: req.singer,
     };
 
+    let previous = if let Some(pre) = req.previous {
+        let singers = pre.iter().map(|v| v.singer.clone()).collect();
+        Some(singers)
+    } else {
+        None
+    };
+
     let recommend_result = ai
         .recommend_singer(
             recommend_param,
             req.recommend_singer_count,
             req.recommend_song_count,
+            previous,
         )
         .await
         .map_err(InvokeError::from_anyhow)?;
@@ -158,7 +170,7 @@ pub async fn recommend_singer(
 
     match req.source {
         MusicSource::Netesae => {
-            for (_singer, songs) in recommend_result {
+            for (_singer, songs) in recommend_result.recommends {
                 for x in songs {
                     if let Some(info) = instance
                         .netesae
@@ -185,5 +197,6 @@ pub async fn recommend_singer(
 
     Ok(ApplicationResp::success_data(RecommendSongResp {
         song_infos: list,
+        benchmark_info: recommend_result.benchmark,
     }))
 }

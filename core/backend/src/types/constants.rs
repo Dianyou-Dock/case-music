@@ -9,22 +9,8 @@ pub static KIMI_URL: &str = "https://api.moonshot.cn/v1/chat/completions";
 
 pub static AI_SONG_RESP_TEMPLATE: &str = r#"
 return format should be like this:
-[
-    {
-        "name": "song name",
-        "singer": "singer name"
-    },
-    {
-        "name": "song name",
-        "singer": "singer name"
-    }
-]
-"#;
-
-pub static AI_RESP_SINGER_TEMPLATE: &str = r#"
-return format should be like this:
 {
-    "singer name": [
+    "recommends": [
         {
             "name": "song name",
             "singer": "singer name"
@@ -34,16 +20,46 @@ return format should be like this:
             "singer": "singer name"
         }
     ],
-    "singer name": [
-        {
-            "name": "song name",
-            "singer": "singer name"
-        },
-        {
-            "name": "song name",
-            "singer": "singer name"
-        }
-    ]
+    "benchmark": {
+        "song_type": "Song type, at least 3 types",
+        "song_detail": "Describe this song in a little more detail",
+        "recommend_detail": "Briefly describe the playlist you want to recommend"
+    }
+}
+
+"#;
+
+pub static AI_RESP_SINGER_TEMPLATE: &str = r#"
+return format should be like this:
+{
+    "benchmark": {
+        "song_type": "Song type, at least 3 types",
+        "song_detail": "Describe this song in a little more detail",
+        "recommend_detail": "Briefly describe the playlist you want to recommend"
+    },
+    "recommends": {
+        "singer name": [
+            {
+                "name": "song name",
+                "singer": "singer name"
+            },
+            {
+                "name": "song name",
+                "singer": "singer name"
+            }
+        ],
+        "singer name": [
+            {
+                "name": "song name",
+                "singer": "singer name"
+            },
+            {
+                "name": "song name",
+                "singer": "singer name"
+            }
+        ]
+    }
+
 }
 "#;
 
@@ -61,7 +77,10 @@ pub static AI_RECOMMEND_SINGER_SONG_COUNT: &str = r#"recommend each artists song
 
 pub static AI_RECOMMEND_RULES: &str = r#"
 resp rule:
-1. no text outside the template
+1. no text outside the template,
+2. `song_type` reply in english,
+3. `song_detail` reply in chinese,
+4. `recommend_detail` reply in chinese,
 "#;
 
 pub static DATA_DIR: &str = ".fma";
@@ -108,16 +127,58 @@ pub const BASE_NETESAE_URL_LIST: [&str; 12] = [
 
 pub static NETEASE_DOMAIN: &str = "music.163.com";
 
-pub fn gen_recommend_song_content(song: &str, count: u64) -> String {
-    format!("song: '{song}', {AI_RECOMMEND_SONG}, {AI_RECOMMEND_SONG_COUNT} {count}, {AI_RECOMMEND_RULES}, {AI_SONG_RESP_TEMPLATE}")
+pub fn gen_recommend_song_content(song: &str, count: u64, previous: Option<String>) -> String {
+    let template = format!(
+        "song: '{song}', \
+        {AI_RECOMMEND_SONG}, \
+        {AI_RECOMMEND_SONG_COUNT} {count}, \
+        {AI_RECOMMEND_RULES}, \
+        {AI_SONG_RESP_TEMPLATE}"
+    );
+
+    if let Some(previous) = previous {
+        format!("{template}, exclude: {previous}")
+    } else {
+        template
+    }
 }
 
-pub fn gen_recommend_style_content(song: &str, count: u64) -> String {
-    format!("song: '{song}', {AI_RECOMMEND_STYLE}, {AI_RECOMMEND_SONG_COUNT} {count}, {AI_RECOMMEND_RULES}, {AI_SONG_RESP_TEMPLATE}")
+pub fn gen_recommend_style_content(song: &str, count: u64, previous: Option<String>) -> String {
+    let template = format!(
+        "song: '{song}', \
+        {AI_RECOMMEND_STYLE}, \
+        {AI_RECOMMEND_SONG_COUNT} {count}, \
+        {AI_RECOMMEND_RULES}, \
+        {AI_SONG_RESP_TEMPLATE}"
+    );
+
+    if let Some(previous) = previous {
+        format!("{template}, exclude: {previous}")
+    } else {
+        template
+    }
 }
 
-pub fn gen_recommend_singer_content(singer: &str, song_count: u64, singer_count: u64) -> String {
-    format!("artist: '{singer}', {AI_RECOMMEND_SINGER}, {AI_RECOMMEND_SONG_COUNT} {song_count}, {AI_RECOMMEND_SINGER_COUNT} {singer_count} ,{AI_RECOMMEND_RULES}, {AI_RESP_SINGER_TEMPLATE}")
+pub fn gen_recommend_singer_content(
+    singer: &str,
+    song_count: u64,
+    singer_count: u64,
+    previous: Option<String>,
+) -> String {
+    let template = format!(
+        "artist: '{singer}', \
+        {AI_RECOMMEND_SINGER}, \
+        {AI_RECOMMEND_SONG_COUNT} {song_count}, \
+        {AI_RECOMMEND_SINGER_COUNT} {singer_count} ,\
+        {AI_RECOMMEND_RULES}, \
+        {AI_RESP_SINGER_TEMPLATE}"
+    );
+
+    if let Some(previous) = previous {
+        format!("{template}, exclude artist: {previous}")
+    } else {
+        template
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, EnumString, Display)]

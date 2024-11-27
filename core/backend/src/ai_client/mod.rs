@@ -1,9 +1,10 @@
 pub mod impls;
 
-use crate::types::ai_recommend_info::AiRecommendSongInfo;
+use crate::types::ai_recommend_info::{
+    AiRecommendInfo, AiRecommendSingerInfo, AiRecommendSongInfo,
+};
 use anyhow::Result;
 use async_trait::async_trait;
-use std::collections::BTreeMap;
 
 #[async_trait]
 pub trait Client: Sync + Send {
@@ -11,18 +12,23 @@ pub trait Client: Sync + Send {
         &self,
         data: AiRecommendSongInfo,
         count: u64,
-    ) -> Result<Vec<AiRecommendSongInfo>>;
+        previous: Option<Vec<AiRecommendSongInfo>>,
+    ) -> Result<AiRecommendInfo>;
 
+    /// This recommendation doesn't seem very accurate.
+    /// It may be related to different AI platforms and computing models.
     async fn recommend_style(
         &self,
         data: AiRecommendSongInfo,
         count: u64,
-    ) -> Result<Vec<AiRecommendSongInfo>>;
+        previous: Option<Vec<AiRecommendSongInfo>>,
+    ) -> Result<AiRecommendInfo>;
 
     async fn recommend_singer(
         &self,
         data: AiRecommendSongInfo,
         singer_count: u64,
         song_count: u64,
-    ) -> Result<BTreeMap<String, Vec<AiRecommendSongInfo>>>;
+        previous: Option<Vec<String>>,
+    ) -> Result<AiRecommendSingerInfo>;
 }
