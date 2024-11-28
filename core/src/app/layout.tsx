@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/hooks/use-auth';
+import { AudioSourceProvider } from '@/hooks/use-audio-source';
 import Player from '@/components/player';
 import Sidebar from '@/components/sidebar';
 
@@ -28,13 +29,15 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <div className="flex h-screen flex-col">
-              <div className="flex flex-1 overflow-hidden">
-                <Sidebar />
-                <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+            <AudioSourceProvider>
+              <div className="flex h-screen flex-col">
+                <div className="flex flex-1 overflow-hidden">
+                  <Sidebar />
+                  <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+                </div>
+                <Player />
               </div>
-              <Player />
-            </div>
+            </AudioSourceProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
