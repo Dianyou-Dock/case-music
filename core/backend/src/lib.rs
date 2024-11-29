@@ -26,12 +26,16 @@ pub async fn run() {
             // system api
             application::system::login::get_qr,
             application::system::login::login_by_qr,
+            application::system::login::logged,
             // music api
             application::music::like::like_list,
+            application::music::song::songs_url,
             // ai api
             application::ai::recommend::recommend_song,
             application::ai::recommend::recommend_style,
             application::ai::recommend::recommend_singer,
+            application::ai::recommend::history_recommends,
+            application::ai::recommend::current_recommends,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
