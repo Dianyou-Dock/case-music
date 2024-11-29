@@ -3,9 +3,10 @@ use crate::types::ai_recommend_info::{AiBenchmarkInfo, AiRecommendSongInfo};
 use crate::types::constants::MusicSource;
 use crate::types::error::ApplicationError::AiNotUse;
 use crate::types::error::ErrorHandle;
-use crate::types::song_info::SongInfo;
+use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::INSTANCE;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use tauri::ipc::InvokeError;
 
@@ -47,6 +48,7 @@ pub async fn recommend_song(
         .map_err(InvokeError::from_anyhow)?;
 
     let mut list = vec![];
+    let mut map = BTreeMap::new();
 
     match req.source {
         MusicSource::Netesae => {
@@ -58,6 +60,10 @@ pub async fn recommend_song(
                     .await
                     .map_err(InvokeError::from_anyhow)?
                 {
+                    let song_id = match &info.data {
+                        SongInfoData::Netesae(d) => d.id,
+                    };
+                    map.insert(song_id, info.clone());
                     list.push(info);
                 }
             }
@@ -72,6 +78,13 @@ pub async fn recommend_song(
             todo!()
         }
     }
+
+    if !map.is_empty() {
+        instance.history_recommends.append(&mut map);
+
+        instance.current_recommends.clear();
+        instance.current_recommends.append(&mut map);
+    };
 
     Ok(ApplicationResp::success_data(RecommendSongResp {
         song_infos: list,
@@ -101,6 +114,7 @@ pub async fn recommend_style(
         .map_err(InvokeError::from_anyhow)?;
 
     let mut list = vec![];
+    let mut map = BTreeMap::new();
 
     match req.source {
         MusicSource::Netesae => {
@@ -112,6 +126,10 @@ pub async fn recommend_style(
                     .await
                     .map_err(InvokeError::from_anyhow)?
                 {
+                    let song_id = match &info.data {
+                        SongInfoData::Netesae(d) => d.id,
+                    };
+                    map.insert(song_id, info.clone());
                     list.push(info);
                 }
             }
@@ -126,6 +144,13 @@ pub async fn recommend_style(
             todo!()
         }
     }
+
+    if !map.is_empty() {
+        instance.history_recommends.append(&mut map);
+
+        instance.current_recommends.clear();
+        instance.current_recommends.append(&mut map);
+    };
 
     Ok(ApplicationResp::success_data(RecommendSongResp {
         song_infos: list,
@@ -167,6 +192,7 @@ pub async fn recommend_singer(
         .map_err(InvokeError::from_anyhow)?;
 
     let mut list = vec![];
+    let mut map = BTreeMap::new();
 
     match req.source {
         MusicSource::Netesae => {
@@ -179,6 +205,10 @@ pub async fn recommend_singer(
                         .await
                         .map_err(InvokeError::from_anyhow)?
                     {
+                        let song_id = match &info.data {
+                            SongInfoData::Netesae(d) => d.id,
+                        };
+                        map.insert(song_id, info.clone());
                         list.push(info);
                     }
                 }
@@ -195,8 +225,33 @@ pub async fn recommend_singer(
         }
     }
 
+    if !map.is_empty() {
+        instance.history_recommends.append(&mut map);
+
+        instance.current_recommends.clear();
+        instance.current_recommends.append(&mut map);
+    };
+
     Ok(ApplicationResp::success_data(RecommendSongResp {
         song_infos: list,
         benchmark_info: recommend_result.benchmark,
     }))
+}
+
+#[tauri::command]
+pub async fn history_recommends() -> Result<ApplicationResp<BTreeMap<u64, SongInfo>>, InvokeError> {
+    let instance = INSTANCE.read().await;
+
+    let map = instance.history_recommends.clone();
+
+    Ok(ApplicationResp::success_data(map))
+}
+
+#[tauri::command]
+pub async fn current_recommends() -> Result<ApplicationResp<BTreeMap<u64, SongInfo>>, InvokeError> {
+    let instance = INSTANCE.read().await;
+
+    let map = instance.history_recommends.clone();
+
+    Ok(ApplicationResp::success_data(map))
 }

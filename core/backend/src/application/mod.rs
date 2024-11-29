@@ -3,6 +3,8 @@ use crate::ai_client::Client as AiClient;
 use crate::modules::impls::netesae::NetesaeModule;
 use crate::modules::MusicModule;
 use crate::types::constants::DATA_PATH;
+use crate::types::song_info::SongInfo;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 pub mod ai;
@@ -16,6 +18,8 @@ pub struct Application {
     pub netesae: Box<dyn MusicModule>,
     pub ai: Option<Box<dyn AiClient>>,
     pub data_path: PathBuf,
+    pub history_recommends: BTreeMap<u64, SongInfo>,
+    pub current_recommends: BTreeMap<u64, SongInfo>,
 }
 
 impl Application {
@@ -24,6 +28,8 @@ impl Application {
             netesae: Box::new(netesae),
             ai: None,
             data_path: DATA_PATH.clone(),
+            history_recommends: BTreeMap::new(),
+            current_recommends: BTreeMap::new(),
         };
 
         // TODO:
