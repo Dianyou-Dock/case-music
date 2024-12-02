@@ -36,3 +36,4 @@ strum = "0.26.3"
 strum_macros = "0.26.3"
 dirs-next = "2.0.0"
 cookie_store = "0.21.1"
+openssl-sys = { version = "0.9", features = ["vendored"] }
