@@ -45,6 +45,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",
     "embla-carousel-react": "^8.5.1",
+    "howler": "^2.2.4",
     "input-otp": "^1.4.1",
     "lucide-react": "^0.460.0",
     "next": "^15.0.3",
@@ -64,6 +65,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
+    "@types/howler": "^2.2.12",
     "@types/node": "^22.9.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
