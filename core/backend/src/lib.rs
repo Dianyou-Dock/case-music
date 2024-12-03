@@ -10,6 +10,7 @@ pub mod ai_client;
 pub mod application;
 pub mod modules;
 pub mod types;
+pub mod utils;
 
 pub static INSTANCE: Lazy<RwLock<Application>> = Lazy::new(|| {
     let netesae_module = NetesaeModule::new().unwrap();
@@ -36,6 +37,7 @@ pub async fn run() {
             application::ai::recommend::recommend_singer,
             application::ai::recommend::history_recommends,
             application::ai::recommend::current_recommends,
+            application::ai::recommend::daily_recommends,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

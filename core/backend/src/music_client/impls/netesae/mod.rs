@@ -247,6 +247,13 @@ impl Client for NeteaseClient {
     fn logged(&mut self) -> bool {
         self.api.cookie_jar().is_some()
     }
+
+    async fn login_info(&mut self) -> Result<LoginInfo> {
+        let info = self.api.login_status().await?;
+        Ok(LoginInfo {
+            data: LoginInfoData::Netesae(info),
+        })
+    }
 }
 
 #[cfg(test)]
