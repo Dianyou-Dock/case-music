@@ -24,6 +24,9 @@ pub enum MusicClientError {
 
     #[strum(serialize = "user song list is null")]
     UserSongListIsNull,
+
+    #[strum(serialize = "like list not exist")]
+    LikeListNotExist,
 }
 
 impl ErrorHandle for MusicClientError {
