@@ -15,6 +15,12 @@ pub trait Client: Sync + Send {
         previous: Option<Vec<AiRecommendSongInfo>>,
     ) -> Result<AiRecommendInfo>;
 
+    async fn rand_recommends(
+        &self,
+        data: &[AiRecommendSongInfo],
+        count: u64,
+    ) -> Result<AiRecommendInfo>;
+
     /// This recommendation doesn't seem very accurate.
     /// It may be related to different AI platforms and computing models.
     async fn recommend_style(

@@ -15,15 +15,10 @@ pub struct LikeListReq {
     pub limit: usize,
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub struct LikeListResp<T: Serialize + Clone + Debug> {
-    pub song_infos: Vec<T>,
-}
-
 #[tauri::command]
 pub async fn like_list(
     req: LikeListReq,
-) -> Result<ApplicationResp<LikeListResp<SongInfo>>, InvokeError> {
+) -> Result<ApplicationResp<Vec<SongInfo>>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
     let offset = req.offset * req.limit;
@@ -72,9 +67,7 @@ pub async fn like_list(
         }
     };
 
-    Ok(ApplicationResp::success_data(LikeListResp {
-        song_infos: list,
-    }))
+    Ok(ApplicationResp::success_data(list))
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

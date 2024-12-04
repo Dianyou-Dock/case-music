@@ -4,7 +4,7 @@ use crate::types::constants::{
 };
 use crate::types::error::{ErrorHandle, MusicClientError};
 use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
-use crate::types::play_list_info::{PlayListInfo, PlayListInfoData};
+use crate::types::play_list_info::{PlayListInfo, PlayListInfoData, SongListData, SongListInfo};
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::types::song_url::{SongRate, SongUrl, SongUrlData};
 use anyhow::{anyhow, Result};
@@ -175,6 +175,25 @@ impl Client for NeteaseClient {
         })
     }
 
+    async fn collect_list(&mut self, user_id: u64) -> Result<Vec<SongListInfo>> {
+        // No one has that many playlists, right?
+        let limit = 10000;
+
+        let list_info = self.api.user_song_list(user_id, 1, limit).await?;
+        let mut song_list_info = vec![];
+
+        for x in list_info {
+            song_list_info.push(SongListInfo{ data: SongListData::Netesae(x) });
+        }
+
+        Ok(song_list_info)
+    }
+
+    async fn list_detail(&mut self, list_id: u64) -> Result<PlayListInfo> {
+        let list_info = self.api.song_list_detail(list_id).await?;
+        Ok(PlayListInfo{data: PlayListInfoData::Netesae(list_info)})
+    }
+
     async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<SongInfo>> {
         let result = self.api.songs_detail(song_id_list).await?;
 
@@ -246,6 +265,13 @@ impl Client for NeteaseClient {
 
     fn logged(&mut self) -> bool {
         self.api.cookie_jar().is_some()
+    }
+
+    async fn login_info(&mut self) -> Result<LoginInfo> {
+        let info = self.api.login_status().await?;
+        Ok(LoginInfo {
+            data: LoginInfoData::Netesae(info),
+        })
     }
 }
 

@@ -69,6 +69,10 @@ pub static AI_RECOMMEND_SINGER: &str = r#"recommend other artists similar to thi
 
 pub static AI_RECOMMEND_STYLE: &str = r#"recommend songs with a similar style for me"#;
 
+pub static AI_RAND_RECOMMEND_SONGS: &str =
+    r#"recommend similar songs but orther artist for each song in the sample list"#;
+pub static AI_RAND_RECOMMEND_EACH_COUNT: &str =
+    "recommend similar songs for each sample song, count:";
 pub static AI_RECOMMEND_SONG_COUNT: &str = r#"recommend song count:"#;
 
 pub static AI_RECOMMEND_SINGER_COUNT: &str = r#"recommend artists count:"#;
@@ -79,8 +83,8 @@ pub static AI_RECOMMEND_RULES: &str = r#"
 resp rule:
 1. no text outside the template,
 2. `song_type` reply in english,
-3. `song_detail` reply in chinese,
-4. `recommend_detail` reply in chinese,
+3. `song_detail` 用中文回复,
+4. `recommend_detail` 用中文回复,
 "#;
 
 pub static DATA_DIR: &str = ".fma";
@@ -181,6 +185,19 @@ pub fn gen_recommend_singer_content(
     }
 }
 
+pub fn gen_rand_recommend_content(song_list: &str, count: u64, exclude_artist: &str) -> String {
+    let template = format!(
+        "song list: '{song_list}', \
+        {AI_RAND_RECOMMEND_SONGS}, \
+        {AI_RECOMMEND_SONG_COUNT} {count}, \
+        {AI_RECOMMEND_RULES}, \
+        {AI_SONG_RESP_TEMPLATE}, \
+        exclude artist: {exclude_artist}"
+    );
+
+    template
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, EnumString, Display)]
 pub enum MusicSource {
     #[strum(serialize = "Netesae")]
@@ -198,3 +215,6 @@ pub enum AiSource {
     #[strum(serialize = "Kimi")]
     Kimi,
 }
+
+pub static RAND_RECOMMENDS_BENCHMARK_COUNT: usize = 3;
+pub static RAND_RECOMMENDS_COUNT: usize = 30;

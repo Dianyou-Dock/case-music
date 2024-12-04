@@ -4,8 +4,8 @@ use crate::types::ai_recommend_info::{
 };
 use crate::types::apikey::AiApiKey;
 use crate::types::constants::{
-    gen_recommend_singer_content, gen_recommend_song_content, gen_recommend_style_content,
-    AiSource, APIKEY_DIR, APIKEY_FILE, DATA_PATH, KIMI_URL,
+    gen_rand_recommend_content, gen_recommend_singer_content, gen_recommend_song_content,
+    gen_recommend_style_content, AiSource, APIKEY_DIR, APIKEY_FILE, DATA_PATH, KIMI_URL,
 };
 use crate::types::error::{AiError, ErrorHandle};
 use anyhow::Result;
@@ -163,6 +163,27 @@ impl Client for Kimi {
         };
 
         let content = gen_recommend_song_content(&data.name, count, pre);
+
+        let req = self.gen_req(&content)?;
+
+        let resp = self.send(req).await?;
+
+        Ok(resp)
+    }
+
+    async fn rand_recommends(
+        &self,
+        data: &[AiRecommendSongInfo],
+        count: u64,
+    ) -> Result<AiRecommendInfo> {
+        let sample_playlist = serde_json::to_string_pretty(data)?;
+
+        let exclude_artist = data.iter().map(|v| v.singer.clone()).collect::<Vec<_>>();
+        let exclude_artist_str = serde_json::to_string_pretty(&exclude_artist)?;
+
+        let content = gen_rand_recommend_content(&sample_playlist, count, &exclude_artist_str);
+
+        println!("content: {content}");
 
         let req = self.gen_req(&content)?;
 
@@ -351,6 +372,46 @@ mod test {
                 .unwrap();
 
             println!("round2: {:?}", result);
+        });
+    }
+
+    #[test]
+    fn test_daily_recommend() {
+        runtime().block_on(async {
+            let song1 = "Luv(sic.) part 3";
+            let singer1 = "Nujabes";
+
+            let song2 = "孤独患者";
+            let singer2 = "陈奕迅";
+
+            let song3 = "I Stay In Love";
+            let singer3 = "Mariah Carey";
+
+            let sample_playlist = vec![
+                AiRecommendSongInfo {
+                    name: song1.to_string(),
+                    singer: singer1.to_string(),
+                },
+                AiRecommendSongInfo {
+                    name: song2.to_string(),
+                    singer: singer2.to_string(),
+                },
+                AiRecommendSongInfo {
+                    name: song3.to_string(),
+                    singer: singer3.to_string(),
+                },
+            ];
+
+            let api_key = env::var("API_KEY").unwrap();
+            let ai_client = Kimi::new(api_key.to_string()).await.unwrap();
+
+            let result = ai_client
+                .rand_recommends(&sample_playlist, 15)
+                .await
+                .unwrap();
+
+            println!("result len: {}", result.recommends.len());
+            println!("result: {}", serde_json::to_string_pretty(&result).unwrap());
         });
     }
 }

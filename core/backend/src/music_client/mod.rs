@@ -1,7 +1,7 @@
 pub mod impls;
 
 use crate::types::login_info::{LoginInfo, LoginQrInfo};
-use crate::types::play_list_info::PlayListInfo;
+use crate::types::play_list_info::{PlayListInfo, SongListInfo};
 use crate::types::song_info::SongInfo;
 use crate::types::song_url::{SongRate, SongUrl};
 use anyhow::Result;
@@ -17,6 +17,10 @@ pub trait Client: Sync + Send {
 
     async fn like_list(&mut self, user_id: u64) -> Result<PlayListInfo>;
 
+    async fn collect_list(&mut self, user_id: u64,) -> Result<Vec<SongListInfo>>;
+
+    async fn list_detail(&mut self, list_id: u64) -> Result<PlayListInfo>;
+
     async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<SongInfo>>;
 
     async fn search_song(&mut self, song: &str, singer: &str) -> Result<Option<SongInfo>>;
@@ -26,4 +30,6 @@ pub trait Client: Sync + Send {
     async fn songs_url(&mut self, songs: &[u64], song_rate: SongRate) -> Result<Vec<SongUrl>>;
 
     fn logged(&mut self) -> bool;
+
+    async fn login_info(&mut self) -> Result<LoginInfo>;
 }
