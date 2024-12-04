@@ -43,7 +43,6 @@ export default function Player() {
       rate: "L",
     };
     invoke<ResponseData>("songs_url", { req: req }).then((res) => {
-      console.log("res: ", res);
       const url = res.data.urls[0].content.url;
       setSongUrl(url);
     });
