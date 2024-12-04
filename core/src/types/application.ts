@@ -20,9 +20,6 @@ export interface LikeListReq {
     limit: number
 }
 
-export interface LikeListResp {
-    song_infos: SongInfo[]
-}
 
 export interface LikeSongReq {
     source: MusicSource
