@@ -31,6 +31,8 @@ pub async fn run() {
             // music api
             application::music::like::like_list,
             application::music::song::songs_url,
+            application::music::list::collect_list,
+            application::music::list::list_songs,
             // ai api
             application::ai::recommend::recommend_song,
             application::ai::recommend::recommend_style,
