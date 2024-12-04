@@ -15,7 +15,7 @@ pub trait Client: Sync + Send {
         previous: Option<Vec<AiRecommendSongInfo>>,
     ) -> Result<AiRecommendInfo>;
 
-    async fn daily_recommends(
+    async fn rand_recommends(
         &self,
         data: &[AiRecommendSongInfo],
         count: u64,

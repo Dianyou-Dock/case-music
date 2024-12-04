@@ -13,12 +13,6 @@ pub struct LoginReq {
     pub unikey: String,
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub struct LoginResp<T: Serialize + Clone + Debug> {
-    #[serde(flatten)]
-    pub data: T,
-}
-
 #[tauri::command]
 pub async fn get_qr(source: MusicSource) -> Result<ApplicationResp<LoginQrInfo>, InvokeError> {
     let result = match source {
@@ -48,9 +42,7 @@ pub async fn get_qr(source: MusicSource) -> Result<ApplicationResp<LoginQrInfo>,
 }
 
 #[tauri::command]
-pub async fn login_by_qr(
-    req: LoginReq,
-) -> Result<ApplicationResp<LoginResp<LoginInfo>>, InvokeError> {
+pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
     let result = match req.source {
@@ -90,11 +82,11 @@ pub async fn login_by_qr(
         }
     };
 
-    Ok(ApplicationResp::success_data(LoginResp { data: result }))
+    Ok(ApplicationResp::success_data(result))
 }
 
 #[tauri::command]
-pub async fn logged(source: MusicSource) -> Result<ApplicationResp<LoginResp<bool>>, InvokeError> {
+pub async fn logged(source: MusicSource) -> Result<ApplicationResp<bool>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
     match source {
@@ -125,7 +117,7 @@ pub async fn logged(source: MusicSource) -> Result<ApplicationResp<LoginResp<boo
                     .map_err(InvokeError::from_anyhow)?;
             }
 
-            Ok(ApplicationResp::success_data(LoginResp { data: result }))
+            Ok(ApplicationResp::success_data(result))
         }
         MusicSource::Spotify => {
             todo!()

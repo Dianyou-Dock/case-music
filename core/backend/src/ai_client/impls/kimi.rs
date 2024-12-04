@@ -4,7 +4,7 @@ use crate::types::ai_recommend_info::{
 };
 use crate::types::apikey::AiApiKey;
 use crate::types::constants::{
-    gen_daily_recommend_content, gen_recommend_singer_content, gen_recommend_song_content,
+    gen_rand_recommend_content, gen_recommend_singer_content, gen_recommend_song_content,
     gen_recommend_style_content, AiSource, APIKEY_DIR, APIKEY_FILE, DATA_PATH, KIMI_URL,
 };
 use crate::types::error::{AiError, ErrorHandle};
@@ -171,7 +171,7 @@ impl Client for Kimi {
         Ok(resp)
     }
 
-    async fn daily_recommends(
+    async fn rand_recommends(
         &self,
         data: &[AiRecommendSongInfo],
         count: u64,
@@ -181,7 +181,7 @@ impl Client for Kimi {
         let exclude_artist = data.iter().map(|v| v.singer.clone()).collect::<Vec<_>>();
         let exclude_artist_str = serde_json::to_string_pretty(&exclude_artist)?;
 
-        let content = gen_daily_recommend_content(&sample_playlist, count, &exclude_artist_str);
+        let content = gen_rand_recommend_content(&sample_playlist, count, &exclude_artist_str);
 
         println!("content: {content}");
 
@@ -406,7 +406,7 @@ mod test {
             let ai_client = Kimi::new(api_key.to_string()).await.unwrap();
 
             let result = ai_client
-                .daily_recommends(&sample_playlist, 15)
+                .rand_recommends(&sample_playlist, 15)
                 .await
                 .unwrap();
 

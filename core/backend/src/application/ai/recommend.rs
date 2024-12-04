@@ -1,7 +1,7 @@
 use crate::application::resp::ApplicationResp;
 use crate::types::ai_recommend_info::{AiBenchmarkInfo, AiRecommendSongInfo};
 use crate::types::constants::{
-    MusicSource, DAILY_RECOMMENDS_BENCHMARK_COUNT, DAILY_RECOMMENDS_COUNT,
+    MusicSource, RAND_RECOMMENDS_BENCHMARK_COUNT, RAND_RECOMMENDS_COUNT,
 };
 use crate::types::error::ApplicationError::AiNotUse;
 use crate::types::error::ErrorHandle;
@@ -262,7 +262,7 @@ pub async fn current_recommends() -> Result<ApplicationResp<BTreeMap<u64, SongIn
 }
 
 #[tauri::command]
-pub async fn daily_recommends(
+pub async fn rand_recommends(
     source: MusicSource,
 ) -> Result<ApplicationResp<Vec<SongUrl>>, InvokeError> {
     if INSTANCE.read().await.ai.is_none() {
@@ -283,7 +283,7 @@ pub async fn daily_recommends(
             };
 
             let len = like_list.len();
-            let bench_mark_idxs = utils::random_num(len, DAILY_RECOMMENDS_BENCHMARK_COUNT);
+            let bench_mark_idxs = utils::random_num(len, RAND_RECOMMENDS_BENCHMARK_COUNT);
 
             let mut bench_mark_list = vec![];
             for idx in bench_mark_idxs {
@@ -304,7 +304,7 @@ pub async fn daily_recommends(
 
             let ai = instance.ai.as_ref().unwrap();
             let recommend_result = ai
-                .daily_recommends(&recommends, DAILY_RECOMMENDS_COUNT as u64)
+                .rand_recommends(&recommends, RAND_RECOMMENDS_COUNT as u64)
                 .await
                 .map_err(InvokeError::from_anyhow)?;
 
