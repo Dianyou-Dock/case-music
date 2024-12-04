@@ -12,7 +12,6 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
-import { Howl } from "howler";
 import ReactHowler from "react-howler";
 
 interface ResponseData {
