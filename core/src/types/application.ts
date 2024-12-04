@@ -78,3 +78,19 @@ export interface LoginReq{
     source: MusicSource
     unikey: string
 }
+
+/*
+* collect list operation
+* */
+
+export interface CollectListReq {
+    source: MusicSource
+    user_id: number
+}
+
+export interface ListSongReq {
+    source: MusicSource
+    list_id: number
+    offset: number
+    limit: number
+}
