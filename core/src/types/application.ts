@@ -1,96 +1,94 @@
-import {MusicSource, SongRate} from "@/types/constants.ts";
-import {SongInfo, SongUrl} from "@/types/song.ts";
+import { MusicSource, SongRate } from "@/types/constants.ts";
+import { SongInfo, SongUrl } from "@/types/song.ts";
 
 /*
-* backend default resp
-* */
+ * backend default resp
+ * */
 export interface ApplicationResp {
-    code: number
-    msg: string
-    data?: object
+  code: number;
+  msg: string;
+  data?: object;
 }
 
 /*
-* like operation
-* */
+ * like operation
+ * */
 export interface LikeListReq {
-    source: MusicSource
-    user_id: number
-    offset: number
-    limit: number
+  source: MusicSource;
+  user_id: number;
+  offset: number;
+  limit: number;
 }
-
 
 export interface LikeSongReq {
-    source: MusicSource
-    song_id: number
-    is_like: boolean
+  source: MusicSource;
+  song_id: number;
+  is_like: boolean;
 }
 
-
 /*
-* recommend operation
-* */
+ * recommend operation
+ * */
 export interface RecommendReq {
-    source: MusicSource
-    song: string
-    singer: string
-    recommend_song_count: number
-    recommend_singer_count: number
-    previous?: RecommendSongInfo[]
+  source: MusicSource;
+  song: string;
+  singer: string;
+  recommend_song_count: number;
+  recommend_singer_count: number;
+  previous?: RecommendSongInfo[];
 }
 
 export interface RecommendSongInfo {
-    name: string
-    singer: string
+  name: string;
+  singer: string;
 }
 
 export interface RecommendSongResp {
-    song_infos: SongInfo
-    benchmark_info: BenchmarkInfo
+  song_infos: SongInfo;
+  benchmark_info: BenchmarkInfo;
 }
 
 export interface BenchmarkInfo {
-    song_type: string
-    song_detail: string
-    recommend_detail: string
+  song_type: string;
+  song_detail: string;
+  recommend_detail: string;
 }
 
 /*
-* song operation
-* */
+ * song operation
+ * */
 
 export interface SongsUrlReq {
-    source: MusicSource
-    songs: number[]
-    rate: SongRate
+  source: MusicSource;
+  songs: number[];
+  rate: SongRate;
 }
 
 export interface SongsUrlResp {
-    urls: SongUrl[]
+  urls: SongUrl[];
 }
 
 /*
-* login operation
-* */
+ * login operation
+ * */
 
-export interface LoginReq{
-    source: MusicSource
-    unikey: string
+export interface LoginReq {
+  source: MusicSource;
+  unikey: string;
 }
 
 /*
-* collect list operation
-* */
+ * collect list operation
+ * */
 
 export interface CollectListReq {
-    source: MusicSource
-    user_id: number
+  source: MusicSource;
+  user_id: number;
 }
 
 export interface ListSongReq {
-    source: MusicSource
-    list_id: number
-    offset: number
-    limit: number
+  source: MusicSource;
+  list_id: number;
+  offset: number;
+  limit: number;
 }
