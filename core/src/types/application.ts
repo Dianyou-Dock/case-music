@@ -7,7 +7,7 @@ import { SongInfo, SongUrl } from "@/types/song.ts";
 export interface ApplicationResp {
   code: number;
   msg: string;
-  data?: object;
+  data?: any;
 }
 
 /*

@@ -13,37 +13,40 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import ReactHowler from "react-howler";
+import {SongInfoProps} from "@/types/song.ts";
+import {ApplicationResp} from "@/types/application.ts";
+import {SongRate} from "@/types/constants.ts";
 
-interface ResponseData {
-  code: number;
-  msg: string;
-  data: {
-    urls: {
-      type: string;
-      content: {
-        id: number;
-        url: string; // 这是我们需要的歌曲链接
-        rate: number;
-      };
-    }[];
-  };
-}
 
-export default function Player() {
+export default function Player({songInfo}: SongInfoProps) {
+
+  console.log(songInfo)
+
   const [volume, setVolume] = useState(75);
   const [isLiked, setIsLiked] = useState(false);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
+  const [pictureUrl, setPictureUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false); // 播放状态
 
   useEffect(() => {
     const req = {
-      source: "Netesae",
-      songs: [26196246],
-      rate: "L",
+      source: songInfo.type,
+      songs: [songInfo.content.id],
+      rate: SongRate.L,
     };
-    invoke<ResponseData>("songs_url", { req: req }).then((res) => {
-      const url = res.data.urls[0].content.url;
-      setSongUrl(url);
+
+    invoke<ApplicationResp>("songs_url", { req: req }).then((res) => {
+      console.log(res)
+
+      if (res.data !== undefined) {
+        const url = res.data.urls[0].content.url;
+        setSongUrl(url);
+
+        setPictureUrl(songInfo.content.pic_url)
+      }
+
+
+
     });
   }, []);
 
@@ -61,7 +64,7 @@ export default function Player() {
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-4">
             <img
-              src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=50&h=50&fit=crop"
+              src={pictureUrl}
               alt="Album art"
               className="h-12 w-12 rounded-lg object-cover"
             />
