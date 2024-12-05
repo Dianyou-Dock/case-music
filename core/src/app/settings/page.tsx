@@ -1,25 +1,28 @@
 "use client";
 
 import { Settings } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { AudioSourceCard } from "@/components/audio-source/audio-source-card";
-import {useEffect, useState} from "react";
-import {invoke} from "@tauri-apps/api/core";
-import {ApplicationResp, DisplayData} from "@/types/application.ts";
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { ApplicationResp, DisplayData } from "@/types/application.ts";
 
 export default function SettingsPage() {
-
   const [audioSources, setAudioSources] = useState<DisplayData[]>([]);
 
   useEffect(() => {
-    invoke<ApplicationResp>("music_source_list",{}).then((res) => {
-      console.log(res)
-
+    invoke<ApplicationResp>("music_source_list", {}).then((res) => {
       if (res.data !== undefined) {
         setAudioSources(res.data as DisplayData[]);
       }
-    })
-  },[]);
+    });
+  }, []);
 
   return (
     <div className="flex flex-col gap-8 p-6">
@@ -34,7 +37,8 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Audio Sources</CardTitle>
           <CardDescription>
-            Configure your preferred music streaming service. Only one source can be connected at a time.
+            Configure your preferred music streaming service. Only one source
+            can be connected at a time.
           </CardDescription>
         </CardHeader>
         <CardContent>

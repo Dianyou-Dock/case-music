@@ -3,15 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { useAudioSource } from "@/hooks/use-audio-source";
 import { cn } from "@/lib/utils";
-import {DisplayDataProps} from "@/types/application.ts";
-import {AuthDialog} from "@/components/auth-dialog.tsx";
-import {useState} from "react";
-import {MusicSource} from "@/types/constants.ts";
+import { DisplayDataProps } from "@/types/application.ts";
+import { AuthDialog } from "@/components/auth-dialog.tsx";
+import { useState } from "react";
 
 export function AudioSourceCard({ source }: DisplayDataProps) {
   const { currentSource } = useAudioSource();
   const isSelected = currentSource?.id === source.id;
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  
   const handleConnectClick = () => {
     // 点击按钮时，打开 AuthDialog
     setIsAuthDialogOpen(true);
@@ -31,12 +31,16 @@ export function AudioSourceCard({ source }: DisplayDataProps) {
         </div>
       </div>
       <Button
-          variant={isSelected ? "default" : "outline"}
+        variant={isSelected ? "default" : "outline"}
         onClick={handleConnectClick}
       >
         {isSelected ? "Connected" : "Connect"}
       </Button>
-      <AuthDialog isOpen={isAuthDialogOpen} setIsOpen={setIsAuthDialogOpen} source={source.id as MusicSource} />
+      <AuthDialog
+        isOpen={isAuthDialogOpen}
+        setIsOpen={setIsAuthDialogOpen}
+        source={source}
+      />
     </div>
   );
 }
