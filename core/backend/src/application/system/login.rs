@@ -6,6 +6,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use tauri::ipc::InvokeError;
+use crate::types::error::MusicClientError;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LoginReq {
@@ -45,31 +46,38 @@ pub async fn get_qr(source: MusicSource) -> Result<ApplicationResp<LoginQrInfo>,
 pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
-    let result = match req.source {
+    let (result, msg, code) = match req.source {
         MusicSource::Netesae => {
-            let result = instance
+            let (code, result) = instance
                 .netesae
                 .client()
                 .login_by_unikey(req.unikey)
                 .await
                 .map_err(InvokeError::from_anyhow)?;
 
-            // login success, get user like list
-            let user_id = match &result.data {
-                LoginInfoData::Netesae(v) => v.uid,
-            };
-            let like_list = instance
-                .netesae
-                .client()
-                .like_list(user_id)
-                .await
-                .map_err(InvokeError::from_anyhow)?;
-            instance
-                .netesae
-                .set_like_list(like_list)
-                .map_err(InvokeError::from_anyhow)?;
+            let msg = if code == 0 {
+                let result = result.clone().unwrap();
 
-            result
+                // login success, get user like list
+                let user_id = match &result.data {
+                    LoginInfoData::Netesae(v) => v.uid,
+                };
+                let like_list = instance
+                    .netesae
+                    .client()
+                    .like_list(user_id)
+                    .await
+                    .map_err(InvokeError::from_anyhow)?;
+                instance
+                    .netesae
+                    .set_like_list(like_list)
+                    .map_err(InvokeError::from_anyhow)?;
+                "".to_string()
+            } else {
+                MusicClientError::from_code(code).map_err(InvokeError::from_anyhow)?.to_string()
+            };
+
+            (result, msg, code)
         }
         MusicSource::Spotify => {
             todo!()
@@ -82,7 +90,13 @@ pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, In
         }
     };
 
-    Ok(ApplicationResp::success_data(result))
+    let resp = if let Some(data) = result {
+        ApplicationResp::success_data(data)
+    } else {
+        ApplicationResp::msg_code(msg, code)
+    };
+
+    Ok(resp)
 }
 
 #[tauri::command]

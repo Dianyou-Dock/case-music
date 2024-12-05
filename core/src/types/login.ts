@@ -7,7 +7,7 @@ export interface LoginQrInfo {
 
 export interface LoginInfoData {
   type: MusicSource;
-  content: object;
+  content: any;
 }
 
 export interface LoginInfo extends LoginInfoData {}

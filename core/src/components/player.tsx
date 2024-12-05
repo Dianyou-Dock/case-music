@@ -43,7 +43,7 @@ export default function Player({songInfo}: SongInfoProps) {
       }
 
     });
-  }, [songInfo.content.id, songInfo.content.pic_url, songInfo.type]);
+  }, []);
 
   return (
     <>

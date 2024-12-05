@@ -27,7 +27,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {MusicSource} from "@/types/constants.ts";
 import {LoginQrInfo} from "@/types/login.ts";
 import {invoke} from "@tauri-apps/api/core";
-import {ApplicationResp} from "@/types/application.ts";
+import {ApplicationResp, LoginReq} from "@/types/application.ts";
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -40,6 +40,7 @@ export function AuthDialog({ isOpen, setIsOpen, source }: { isOpen: boolean; set
   const { signIn, signUp, user } = useAuth();
   const [loginQrInfo, setLoginQrInfo] = useState<LoginQrInfo | undefined>(undefined);
   const [selectedTab, setSelectedTab] = useState("credentials");
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,25 +59,66 @@ export function AuthDialog({ isOpen, setIsOpen, source }: { isOpen: boolean; set
     setIsOpen(false);
   }
 
-  async function fetchQrInfo() {
+  async function fetchQrInfo(): Promise<LoginQrInfo | undefined> {
     try {
       const res = await invoke<ApplicationResp>("get_qr", {source: source});
       console.log("get_qr result:",res);
       if (res.data !== undefined) {
-        setLoginQrInfo(res.data as LoginQrInfo);
+        const info = res.data as LoginQrInfo
+        setLoginQrInfo(info);
+        return info;
       }
-
     } catch (e) {
       console.error(e);
+      return undefined
     }
   }
 
+  async function qrLoginCheck(info: LoginQrInfo) {
+    const req: LoginReq = {
+      source: source,
+      unikey: info.unikey
+    }
+
+    console.log("req: ", req)
+    while (true) {
+
+      await sleep(5000);
+
+      try {
+        const res = await invoke<ApplicationResp>("login_by_qr", {req: req});
+        console.log("login_by_qr result:",res);
+        if (res.code == 0) {
+          console.log("login by qr success")
+          setIsOpen(false)
+          break
+        }
+
+        if (res.code == -100) {
+          break
+        }
+
+      } catch (e) {
+        console.error(e);
+        break
+      }
+
+    }
+  }
 
   useEffect(() => {
     if (selectedTab === "qr") {
-      fetchQrInfo().then(() => {}); // Call fetchQrInfo when the QR tab is selected
-    }
-  }, [selectedTab, fetchQrInfo]); // Trigger effect when selectedTab changes
+      fetchQrInfo().then((info) => {
+        console.log("fetch: ", info)
+        if (info === undefined) {
+          console.log("info is null")
+          return
+        }
+
+        qrLoginCheck(info).then(() => {})
+      }); // Call fetchQrInfo when the QR tab is selected
+    } else {}
+  }, [selectedTab]); // Trigger effect when selectedTab changes
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

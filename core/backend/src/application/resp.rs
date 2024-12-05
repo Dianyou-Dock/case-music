@@ -12,6 +12,7 @@ impl<T> ApplicationResp<T>
 where
     T: Serialize + Clone + Debug,
 {
+
     pub fn msg_code(msg: String, code: i32) -> ApplicationResp<T> {
         ApplicationResp {
             code,
