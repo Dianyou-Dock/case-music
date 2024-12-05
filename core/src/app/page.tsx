@@ -2,7 +2,6 @@ import { Music } from "lucide-react";
 import FeaturedSection from "@/components/featured-section";
 import RecentlyPlayed from "@/components/recently-played";
 import TopCharts from "@/components/top-charts";
-import { AuthDialog } from "@/components/auth-dialog";
 import { UserNav } from "@/components/user-nav";
 
 export default function Home() {
@@ -14,7 +13,6 @@ export default function Home() {
           <h1 className="text-3xl font-bold">Discover</h1>
         </div>
         <div className="flex items-center gap-2">
-          <AuthDialog />
           <UserNav />
         </div>
       </div>

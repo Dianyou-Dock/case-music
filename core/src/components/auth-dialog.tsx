@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -25,16 +24,22 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
+import {MusicSource} from "@/types/constants.ts";
+import {LoginQrInfo} from "@/types/login.ts";
+import {invoke} from "@tauri-apps/api/core";
+import {ApplicationResp} from "@/types/application.ts";
 
 const formSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 });
 
-export function AuthDialog() {
-  const [isOpen, setIsOpen] = useState(false);
+export function AuthDialog({ isOpen, setIsOpen, source }: { isOpen: boolean; setIsOpen: (isOpen: boolean) => void; source: MusicSource }) {
+
   const [mode, setMode] = useState<"login" | "register">("login");
   const { signIn, signUp, user } = useAuth();
+  const [loginQrInfo, setLoginQrInfo] = useState<LoginQrInfo | undefined>(undefined);
+  const [selectedTab, setSelectedTab] = useState("credentials");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,13 +58,29 @@ export function AuthDialog() {
     setIsOpen(false);
   }
 
+  async function fetchQrInfo() {
+    try {
+      const res = await invoke<ApplicationResp>("get_qr", {source: source});
+      console.log("get_qr result:",res);
+      if (res.data !== undefined) {
+        setLoginQrInfo(res.data as LoginQrInfo);
+      }
+
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+
+  useEffect(() => {
+    if (selectedTab === "qr") {
+      fetchQrInfo().then(() => {}); // Call fetchQrInfo when the QR tab is selected
+    }
+  }, [selectedTab, fetchQrInfo]); // Trigger effect when selectedTab changes
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {!user && (
-        <DialogTrigger asChild>
-          <Button variant="outline">Sign In</Button>
-        </DialogTrigger>
-      )}
+      {!user}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
@@ -72,7 +93,7 @@ export function AuthDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="credentials" className="w-full">
+        <Tabs defaultValue="credentials" className="w-full" value={selectedTab}  onValueChange={setSelectedTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="credentials">Credentials</TabsTrigger>
             <TabsTrigger value="qr">QR Code</TabsTrigger>
@@ -137,7 +158,7 @@ export function AuthDialog() {
           <TabsContent value="qr" className="flex flex-col items-center gap-4">
             <div className="rounded-xl border bg-card p-4">
               <QRCodeSVG
-                value="fuck music"
+                value={loginQrInfo?.url || ""}
                 size={200}
                 level="H"
                 includeMargin

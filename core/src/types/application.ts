@@ -1,5 +1,5 @@
 import { MusicSource, SongRate } from "@/types/constants.ts";
-import { SongInfo, SongUrl } from "@/types/song.ts";
+import {SongInfo, SongUrl} from "@/types/song.ts";
 
 /*
  * backend default resp
@@ -91,4 +91,18 @@ export interface ListSongReq {
   list_id: number;
   offset: number;
   limit: number;
+}
+
+/*
+* constants operation
+* */
+
+export interface DisplayData {
+  id: string
+  name: string
+  desc: string
+}
+
+export interface DisplayDataProps {
+  source: DisplayData; // 定义组件接收的 songInfo 类型
 }
