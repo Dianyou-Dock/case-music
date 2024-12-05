@@ -17,7 +17,7 @@ pub trait Client: Sync + Send {
 
     async fn like_list(&mut self, user_id: u64) -> Result<PlayListInfo>;
 
-    async fn collect_list(&mut self, user_id: u64,) -> Result<Vec<SongListInfo>>;
+    async fn collect_list(&mut self, user_id: u64) -> Result<Vec<SongListInfo>>;
 
     async fn list_detail(&mut self, list_id: u64) -> Result<PlayListInfo>;
 

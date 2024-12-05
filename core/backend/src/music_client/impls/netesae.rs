@@ -153,9 +153,12 @@ impl Client for NeteaseClient {
 
                 self.replace_api(cookie.clone()).await?;
 
-                Ok((0,Some(LoginInfo {
-                    data: LoginInfoData::Netesae(msg),
-                })))
+                Ok((
+                    0,
+                    Some(LoginInfo {
+                        data: LoginInfoData::Netesae(msg),
+                    }),
+                ))
             }
             CheckQrCode::Unknown => Err(MusicClientError::QrUnknown.anyhow_err()),
         }
@@ -186,7 +189,9 @@ impl Client for NeteaseClient {
         let mut song_list_info = vec![];
 
         for x in list_info {
-            song_list_info.push(SongListInfo{ data: SongListData::Netesae(x) });
+            song_list_info.push(SongListInfo {
+                data: SongListData::Netesae(x),
+            });
         }
 
         Ok(song_list_info)
@@ -194,7 +199,9 @@ impl Client for NeteaseClient {
 
     async fn list_detail(&mut self, list_id: u64) -> Result<PlayListInfo> {
         let list_info = self.api.song_list_detail(list_id).await?;
-        Ok(PlayListInfo{data: PlayListInfoData::Netesae(list_info)})
+        Ok(PlayListInfo {
+            data: PlayListInfoData::Netesae(list_info),
+        })
     }
 
     async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<SongInfo>> {

@@ -220,26 +220,26 @@ pub enum MusicSource {
 impl MusicSource {
     pub fn display_list() -> Vec<DisplayData> {
         vec![
-            DisplayData{
+            DisplayData {
                 id: MusicSource::Netesae.to_string(),
                 name: "NetEase CloudMusic".to_string(),
                 desc: "Connect to your NetEase CloudMusic account".to_string(),
             },
-            DisplayData{
+            DisplayData {
                 id: MusicSource::Spotify.to_string(),
                 name: "Spotify".to_string(),
                 desc: "Connect to your Spotify account".to_string(),
             },
-            DisplayData{
+            DisplayData {
                 id: MusicSource::QQ.to_string(),
                 name: "QQ Music".to_string(),
                 desc: "Connect to your QQ Music account".to_string(),
             },
-            DisplayData{
+            DisplayData {
                 id: MusicSource::Apple.to_string(),
                 name: "Apple Music".to_string(),
                 desc: "Connect to your Apple Music account".to_string(),
-            }
+            },
         ]
     }
 }
@@ -252,13 +252,11 @@ pub enum AiSource {
 
 impl AiSource {
     pub fn display_list() -> Vec<DisplayData> {
-        vec![
-            DisplayData{
-                id: AiSource::Kimi.to_string(),
-                name: "Kimi Ai".to_string(),
-                desc: "Set your Kimi api key".to_string(),
-            }
-        ]
+        vec![DisplayData {
+            id: AiSource::Kimi.to_string(),
+            name: "Kimi Ai".to_string(),
+            desc: "Set your Kimi api key".to_string(),
+        }]
     }
 }
 

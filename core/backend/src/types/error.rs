@@ -53,7 +53,7 @@ impl MusicClientError {
             -600 => Ok(MusicClientError::LoginFail),
             -700 => Ok(MusicClientError::UserSongListIsNull),
             -800 => Ok(MusicClientError::LikeListNotExist),
-            _ => Err(anyhow!("not match code: {code}"))
+            _ => Err(anyhow!("not match code: {code}")),
         }
     }
 }

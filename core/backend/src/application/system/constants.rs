@@ -1,6 +1,6 @@
-use tauri::ipc::InvokeError;
 use crate::application::resp::ApplicationResp;
 use crate::types::constants::{AiSource, DisplayData, MusicSource};
+use tauri::ipc::InvokeError;
 
 #[tauri::command]
 pub async fn music_source_list() -> Result<ApplicationResp<Vec<DisplayData>>, InvokeError> {
