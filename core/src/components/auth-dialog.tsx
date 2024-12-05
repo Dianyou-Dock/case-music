@@ -72,7 +72,9 @@ export function AuthDialog({
 
   async function fetchQrInfo(): Promise<LoginQrInfo | undefined> {
     try {
-      const res = await invoke<ApplicationResp>("get_qr", { source: source });
+      const res = await invoke<ApplicationResp>("get_qr", {
+        source: source.id,
+      });
       if (res.data !== undefined) {
         console.log("fetch qr info success");
         const info = res.data as LoginQrInfo;
@@ -109,19 +111,21 @@ export function AuthDialog({
   }, [selectedTab]);
 
   useEffect(() => {
+    let key: NodeJS.Timeout;
     if (selectedTab === "qr") {
-      const key = setInterval(() => {
+      key = setInterval(() => {
         if (loginQrInfo) {
           qrLoginCheck(loginQrInfo).then((isSuccess) => {
             if (isSuccess) {
+              clearInterval(key);
               setIsOpen(false);
               configureSource(source);
-              clearInterval(key);
             }
           });
         }
       }, 1000);
     }
+    return () => clearInterval(key);
   }, [loginQrInfo, selectedTab]);
 
   return (

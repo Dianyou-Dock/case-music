@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { AudioSource } from "@/lib/audio-sources";
+import { invoke } from "@tauri-apps/api/core";
 
 interface AudioSourceContextType {
   currentSource: AudioSource | null;
@@ -12,6 +13,17 @@ const AudioSourceContext = createContext<AudioSourceContextType | undefined>(
   undefined
 );
 
+const fetchUserSourceConfig = async () => {
+  try {
+    // fetch audio source from server
+    const res = await invoke("logged");
+    console.log('res: ', res);
+  }
+  catch (error) {
+    console.error(error);
+  }
+}
+
 export function AudioSourceProvider({
   children,
 }: {
@@ -21,6 +33,7 @@ export function AudioSourceProvider({
 
   useEffect(() => {
     // fetch audio source from server
+    fetchUserSourceConfig()
   }, []);
 
   const configureSource = (data: AudioSource) => {

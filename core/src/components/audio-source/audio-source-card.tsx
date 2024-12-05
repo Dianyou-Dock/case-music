@@ -11,9 +11,12 @@ export function AudioSourceCard({ source }: DisplayDataProps) {
   const { currentSource } = useAudioSource();
   const isSelected = currentSource?.id === source.id;
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
-  
+
   const handleConnectClick = () => {
     // 点击按钮时，打开 AuthDialog
+    if (isSelected) {
+      return;
+    }
     setIsAuthDialogOpen(true);
   };
 
