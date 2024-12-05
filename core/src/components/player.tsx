@@ -25,7 +25,7 @@ export default function Player({songInfo}: SongInfoProps) {
   const [volume, setVolume] = useState(75);
   const [isLiked, setIsLiked] = useState(false);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
-  const [pictureUrl, setPictureUrl] = useState<string | null>(null);
+  const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined);
   const [isPlaying, setIsPlaying] = useState(false); // 播放状态
 
   useEffect(() => {
@@ -45,10 +45,8 @@ export default function Player({songInfo}: SongInfoProps) {
         setPictureUrl(songInfo.content.pic_url)
       }
 
-
-
     });
-  }, []);
+  }, [songInfo.content.id, songInfo.content.pic_url, songInfo.type]);
 
   return (
     <>
