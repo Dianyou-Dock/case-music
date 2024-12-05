@@ -51,7 +51,7 @@ export function AuthDialog({
     undefined
   );
   const [selectedTab, setSelectedTab] = useState("qr");
-  const { configureSource } = useAudioSource();
+  const { configureSource, audioSource } = useAudioSource();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,7 +72,7 @@ export function AuthDialog({
 
   async function fetchQrInfo(): Promise<LoginQrInfo | undefined> {
     try {
-      const res = await invoke<ApplicationResp>("get_qr", {
+      const res = await invoke<ApplicationResp<any>>("get_qr", {
         source: source.id,
       });
       if (res.data !== undefined) {
@@ -93,7 +93,9 @@ export function AuthDialog({
       unikey: info.unikey,
     };
     try {
-      const res = await invoke<ApplicationResp>("login_by_qr", { req: req });
+      const res = await invoke<ApplicationResp<any>>("login_by_qr", {
+        req: req,
+      });
       if (res.code == 0) {
         return true;
       }
@@ -112,21 +114,25 @@ export function AuthDialog({
 
   useEffect(() => {
     let key: NodeJS.Timeout;
-    if (selectedTab === "qr") {
+    if (isOpen && selectedTab === "qr") {
       key = setInterval(() => {
         if (loginQrInfo) {
           qrLoginCheck(loginQrInfo).then((isSuccess) => {
             if (isSuccess) {
               clearInterval(key);
               setIsOpen(false);
-              configureSource(source);
+              configureSource([
+                ...(audioSource?.map((s) =>
+                  s.id === source.id ? { ...s, connected: true } : s
+                ) || []),
+              ]);
             }
           });
         }
       }, 1000);
     }
     return () => clearInterval(key);
-  }, [loginQrInfo, selectedTab]);
+  }, [loginQrInfo, selectedTab, isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>

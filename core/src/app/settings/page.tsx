@@ -9,20 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AudioSourceCard } from "@/components/audio-source/audio-source-card";
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { ApplicationResp, DisplayData } from "@/types/application.ts";
+import { useAudioSource } from "@/hooks/use-audio-source";
 
 export default function SettingsPage() {
-  const [audioSources, setAudioSources] = useState<DisplayData[]>([]);
-
-  useEffect(() => {
-    invoke<ApplicationResp>("music_source_list", {}).then((res) => {
-      if (res.data !== undefined) {
-        setAudioSources(res.data as DisplayData[]);
-      }
-    });
-  }, []);
+  const { audioSource } = useAudioSource();
 
   return (
     <div className="flex flex-col gap-8 p-6">
@@ -43,7 +33,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            {audioSources.map((source) => (
+            {audioSource?.map((source) => (
               <AudioSourceCard key={source.id} source={source} />
             ))}
           </div>

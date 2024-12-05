@@ -3,13 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { useAudioSource } from "@/hooks/use-audio-source";
 import { cn } from "@/lib/utils";
-import { DisplayDataProps } from "@/types/application.ts";
 import { AuthDialog } from "@/components/auth-dialog.tsx";
 import { useState } from "react";
+import { AudioSource } from "@/lib/audio-sources";
 
-export function AudioSourceCard({ source }: DisplayDataProps) {
-  const { currentSource } = useAudioSource();
-  const isSelected = currentSource?.id === source.id;
+export function AudioSourceCard({ source }: { source: AudioSource }) {
+  const { audioSource } = useAudioSource();
+  const isSelected = audioSource?.find((s) => s.id === source.id)?.connected;
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
 
   const handleConnectClick = () => {

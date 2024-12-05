@@ -1,5 +1,6 @@
 export type AudioSource = {
-  id: string
-  name: string
-  desc: string
+  id: string;
+  name: string;
+  desc: string;
+  connected: boolean;
 };

@@ -1,13 +1,13 @@
 import { MusicSource, SongRate } from "@/types/constants.ts";
-import {SongInfo, SongUrl} from "@/types/song.ts";
+import { SongInfo, SongUrl } from "@/types/song.ts";
 
 /*
  * backend default resp
  * */
-export interface ApplicationResp {
+export interface ApplicationResp<T> {
   code: number;
   msg: string;
-  data?: any;
+  data?: T;
 }
 
 /*
@@ -94,15 +94,17 @@ export interface ListSongReq {
 }
 
 /*
-* constants operation
-* */
+ * constants operation
+ * */
 
-export interface DisplayData {
-  id: string
-  name: string
-  desc: string
+export interface SourceData {
+  id: string;
+  name: string;
+  desc: string;
 }
 
-export interface DisplayDataProps {
-  source: DisplayData; // 定义组件接收的 songInfo 类型
-}
+export type SourceListResp = ApplicationResp<SourceData[]>;
+
+export type UserSourceConfig = Record<MusicSource, boolean>;
+
+export type UserSourceConfigRes = ApplicationResp<UserSourceConfig>;
