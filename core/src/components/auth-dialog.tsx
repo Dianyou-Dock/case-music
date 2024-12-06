@@ -50,7 +50,7 @@ export function AuthDialog({
   const [loginQrInfo, setLoginQrInfo] = useState<LoginQrInfo | undefined>(
     undefined
   );
-  const [selectedTab, setSelectedTab] = useState("qr");
+  const [selectedTab, setSelectedTab] = useState("credentials");
   const { configureSource, audioSource } = useAudioSource();
 
   const form = useForm<z.infer<typeof formSchema>>({
