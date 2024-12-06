@@ -51,7 +51,8 @@ export function AudioSourceProvider({
           Object.entries(data).forEach(([key, value]) => {
             result.forEach((source) => {
               if (source.id === key) {
-                set(source, "connected", value);
+                set(source, "connected", value.logged);
+                set(source, "disabled", value.disable);
               }
             });
           });

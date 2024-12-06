@@ -1,5 +1,6 @@
 import { MusicSource, SongRate } from "@/types/constants.ts";
 import { SongInfo, SongUrl } from "@/types/song.ts";
+import {LoggedData} from "@/types/login.ts";
 
 /*
  * backend default resp
@@ -105,6 +106,6 @@ export interface SourceData {
 
 export type SourceListResp = ApplicationResp<SourceData[]>;
 
-export type UserSourceConfig = Record<MusicSource, boolean>;
+export type UserSourceConfig = Record<MusicSource, LoggedData>;
 
 export type UserSourceConfigRes = ApplicationResp<UserSourceConfig>;

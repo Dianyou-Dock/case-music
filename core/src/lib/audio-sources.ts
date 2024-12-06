@@ -3,4 +3,5 @@ export type AudioSource = {
   name: string;
   desc: string;
   connected: boolean;
+  disabled: boolean;
 };
