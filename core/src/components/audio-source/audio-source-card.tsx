@@ -12,6 +12,7 @@ import {ApplicationResp} from "@/types/application.ts";
 export function AudioSourceCard({ source }: { source: AudioSource }) {
   const { audioSource } = useAudioSource();
   const isSelected = audioSource?.find((s) => s.id === source.id)?.connected;
+  const disabled = audioSource?.find((s) => s.id === source.id)?.disabled;
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [reload, setReload] = useState(false);
 
@@ -64,6 +65,7 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
       <Button
         variant={isSelected ? "default" : "outline"}
         onClick={handleConnectClick}
+        disabled={disabled}
       >
         {isSelected ? "Connected" : "Connect"}
       </Button>

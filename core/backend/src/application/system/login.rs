@@ -86,8 +86,14 @@ pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, In
     Ok(resp)
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LoggedData{
+    pub logged: bool,
+    pub disable: bool,
+}
+
 #[tauri::command]
-pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, bool>>, InvokeError> {
+pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, LoggedData>>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
     let mut map = BTreeMap::new();
@@ -95,22 +101,22 @@ pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, bool>>, InvokeE
     // netease
     {
         let result = instance.netesae.client().logged().await;
-        map.insert(MusicSource::Netesae.to_string(), result);
+        map.insert(MusicSource::Netesae.to_string(), LoggedData{ logged: result, disable: false });
     }
 
     // qq
     {
-        map.insert(MusicSource::QQ.to_string(), false);
+        map.insert(MusicSource::QQ.to_string(), LoggedData{ logged: false, disable: true });
     }
 
     // apple
     {
-        map.insert(MusicSource::Apple.to_string(), false);
+        map.insert(MusicSource::Apple.to_string(), LoggedData{ logged: false, disable: true });
     }
 
     // spotify
     {
-        map.insert(MusicSource::Spotify.to_string(), false);
+        map.insert(MusicSource::Spotify.to_string(), LoggedData{ logged: false, disable: true });
     }
 
     Ok(ApplicationResp::success_data(map))

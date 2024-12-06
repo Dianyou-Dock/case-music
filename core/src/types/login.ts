@@ -11,3 +11,9 @@ export interface LoginInfoData {
 }
 
 export interface LoginInfo extends LoginInfoData {}
+
+
+export interface LoggedData {
+  logged: boolean;
+  disable: boolean;
+}
