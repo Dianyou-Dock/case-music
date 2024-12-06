@@ -119,6 +119,9 @@ export function AuthDialog({
         if (loginQrInfo) {
           qrLoginCheck(loginQrInfo).then((isSuccess) => {
             if (isSuccess) {
+              // default operation
+              setLoginQrInfo(undefined)
+              setSelectedTab("credentials");
               clearInterval(key);
               setIsOpen(false);
               configureSource([
@@ -129,9 +132,11 @@ export function AuthDialog({
             }
           });
         }
-      }, 1000);
+      }, 2000);
     }
-    return () => clearInterval(key);
+    return () => {
+      clearInterval(key);
+    }
   }, [loginQrInfo, selectedTab, isOpen]);
 
   return (

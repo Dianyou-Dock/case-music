@@ -1,7 +1,7 @@
 use crate::application::resp::ApplicationResp;
 use crate::types::constants::MusicSource;
 use crate::types::error::MusicClientError;
-use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
+use crate::types::login_info::{LoginInfo, LoginQrInfo};
 use crate::INSTANCE;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -57,22 +57,6 @@ pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, In
                 .map_err(InvokeError::from_anyhow)?;
 
             let msg = if code == 0 {
-                let result = result.clone().unwrap();
-
-                // login success, get user like list
-                let user_id = match &result.data {
-                    LoginInfoData::Netesae(v) => v.uid,
-                };
-                let like_list = instance
-                    .netesae
-                    .client()
-                    .like_list(user_id)
-                    .await
-                    .map_err(InvokeError::from_anyhow)?;
-                instance
-                    .netesae
-                    .set_like_list(like_list)
-                    .map_err(InvokeError::from_anyhow)?;
                 "".to_string()
             } else {
                 MusicClientError::from_code(code)
@@ -110,7 +94,7 @@ pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, bool>>, InvokeE
 
     // netease
     {
-        let result = instance.netesae.client().logged();
+        let result = instance.netesae.client().logged().await;
         map.insert(MusicSource::Netesae.to_string(), result);
     }
 

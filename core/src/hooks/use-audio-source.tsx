@@ -29,6 +29,7 @@ const fetchUserSourceConfig = async () => {
   try {
     // fetch audio source from server
     const res = await invoke<UserSourceConfigRes>("logged");
+    console.log("logged: ", res)
     return res.data;
   } catch (error) {
     console.error(error);

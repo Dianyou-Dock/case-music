@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use cookie_store::CookieStore;
 use ncm_api::{CookieBuilder, CookieJar, MusicApi};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
 
 pub enum CheckQrCode {
@@ -165,6 +165,7 @@ impl Client for NeteaseClient {
     }
 
     async fn logout(&mut self) -> Result<()> {
+        tokio::fs::remove_file(&self.auth_file).await?;
         Ok(self.api.logout().await)
     }
 
@@ -273,8 +274,12 @@ impl Client for NeteaseClient {
         Ok(list)
     }
 
-    fn logged(&mut self) -> bool {
-        self.api.cookie_jar().is_some()
+    async fn logged(&mut self) -> bool {
+        let path = Path::new(&self.auth_file);
+        if path.exists() {
+            return true;
+        }
+        false
     }
 
     async fn login_info(&mut self) -> Result<LoginInfo> {
