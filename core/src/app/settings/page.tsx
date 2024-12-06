@@ -1,11 +1,19 @@
 "use client";
 
 import { Settings } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { AudioSourceCard } from "@/components/audio-source/audio-source-card";
-import { audioSources } from "@/lib/audio-sources";
+import { useAudioSource } from "@/hooks/use-audio-source";
 
 export default function SettingsPage() {
+  const { audioSource } = useAudioSource();
+
   return (
     <div className="flex flex-col gap-8 p-6">
       <div className="flex items-center justify-between">
@@ -19,12 +27,13 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Audio Sources</CardTitle>
           <CardDescription>
-            Configure your preferred music streaming service. Only one source can be connected at a time.
+            Configure your preferred music streaming service. Only one source
+            can be connected at a time.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            {audioSources.map((source) => (
+            {audioSource?.map((source) => (
               <AudioSourceCard key={source.id} source={source} />
             ))}
           </div>

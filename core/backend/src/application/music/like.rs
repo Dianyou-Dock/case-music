@@ -16,9 +16,7 @@ pub struct LikeListReq {
 }
 
 #[tauri::command]
-pub async fn like_list(
-    req: LikeListReq,
-) -> Result<ApplicationResp<Vec<SongInfo>>, InvokeError> {
+pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
     let offset = req.offset * req.limit;

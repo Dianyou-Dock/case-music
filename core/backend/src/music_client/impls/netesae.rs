@@ -132,14 +132,17 @@ impl Client for NeteaseClient {
         })
     }
 
-    async fn login_by_unikey(&mut self, unikey: String) -> Result<LoginInfo> {
+    async fn login_by_unikey(&mut self, unikey: String) -> Result<(i32, Option<LoginInfo>)> {
+        println!("unikey: {unikey}");
+
         let result = self.api.login_qr_check(unikey).await?;
 
+        println!("result: {result:?}");
         let check_qr_code = CheckQrCode::from_i32(result.code);
         match check_qr_code {
-            CheckQrCode::Timeout => Err(MusicClientError::QrTimeout.anyhow_err()),
-            CheckQrCode::WaitScan => Err(MusicClientError::QrWaitScan.anyhow_err()),
-            CheckQrCode::WaitConfirm => Err(MusicClientError::QrWaitConfirm.anyhow_err()),
+            CheckQrCode::Timeout => Ok((MusicClientError::QrTimeout.code(), None)),
+            CheckQrCode::WaitScan => Ok((MusicClientError::QrWaitScan.code(), None)),
+            CheckQrCode::WaitConfirm => Ok((MusicClientError::QrWaitConfirm.code(), None)),
             CheckQrCode::LoginSuccess => {
                 let msg = self.api.login_status().await?;
                 let cookie = if msg.code == 200 && self.api.cookie_jar().is_some() {
@@ -150,9 +153,12 @@ impl Client for NeteaseClient {
 
                 self.replace_api(cookie.clone()).await?;
 
-                Ok(LoginInfo {
-                    data: LoginInfoData::Netesae(msg),
-                })
+                Ok((
+                    0,
+                    Some(LoginInfo {
+                        data: LoginInfoData::Netesae(msg),
+                    }),
+                ))
             }
             CheckQrCode::Unknown => Err(MusicClientError::QrUnknown.anyhow_err()),
         }
@@ -183,7 +189,9 @@ impl Client for NeteaseClient {
         let mut song_list_info = vec![];
 
         for x in list_info {
-            song_list_info.push(SongListInfo{ data: SongListData::Netesae(x) });
+            song_list_info.push(SongListInfo {
+                data: SongListData::Netesae(x),
+            });
         }
 
         Ok(song_list_info)
@@ -191,7 +199,9 @@ impl Client for NeteaseClient {
 
     async fn list_detail(&mut self, list_id: u64) -> Result<PlayListInfo> {
         let list_info = self.api.song_list_detail(list_id).await?;
-        Ok(PlayListInfo{data: PlayListInfoData::Netesae(list_info)})
+        Ok(PlayListInfo {
+            data: PlayListInfoData::Netesae(list_info),
+        })
     }
 
     async fn song_infos(&mut self, song_id_list: &[u64]) -> Result<Vec<SongInfo>> {

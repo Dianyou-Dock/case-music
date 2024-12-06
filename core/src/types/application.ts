@@ -4,10 +4,10 @@ import { SongInfo, SongUrl } from "@/types/song.ts";
 /*
  * backend default resp
  * */
-export interface ApplicationResp {
+export interface ApplicationResp<T> {
   code: number;
   msg: string;
-  data?: object;
+  data?: T;
 }
 
 /*
@@ -92,3 +92,19 @@ export interface ListSongReq {
   offset: number;
   limit: number;
 }
+
+/*
+ * constants operation
+ * */
+
+export interface SourceData {
+  id: string;
+  name: string;
+  desc: string;
+}
+
+export type SourceListResp = ApplicationResp<SourceData[]>;
+
+export type UserSourceConfig = Record<MusicSource, boolean>;
+
+export type UserSourceConfigRes = ApplicationResp<UserSourceConfig>;
