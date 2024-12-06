@@ -27,6 +27,9 @@ pub enum MusicClientError {
 
     #[strum(serialize = "like list not exist")]
     LikeListNotExist,
+
+    #[strum(serialize = "not login")]
+    NotLogin,
 }
 
 impl MusicClientError {
@@ -40,6 +43,7 @@ impl MusicClientError {
             MusicClientError::LoginFail => -600,
             MusicClientError::UserSongListIsNull => -700,
             MusicClientError::LikeListNotExist => -800,
+            MusicClientError::NotLogin => -900,
         }
     }
 
@@ -53,6 +57,7 @@ impl MusicClientError {
             -600 => Ok(MusicClientError::LoginFail),
             -700 => Ok(MusicClientError::UserSongListIsNull),
             -800 => Ok(MusicClientError::LikeListNotExist),
+            -900 => Ok(MusicClientError::NotLogin),
             _ => Err(anyhow!("not match code: {code}")),
         }
     }

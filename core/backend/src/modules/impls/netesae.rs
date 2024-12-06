@@ -2,6 +2,7 @@ use crate::modules::MusicModule;
 use crate::music_client::impls::netesae::NeteaseClient;
 use crate::music_client::Client;
 use crate::types::constants::MusicSource;
+use crate::types::login_info::LoginInfo;
 use crate::types::play_list_info::PlayListInfo;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -9,6 +10,7 @@ use async_trait::async_trait;
 pub struct NetesaeModule {
     client: Box<dyn Client>,
     like_list: Option<PlayListInfo>,
+    user_info: Option<LoginInfo>,
 }
 
 impl NetesaeModule {
@@ -17,6 +19,7 @@ impl NetesaeModule {
         Ok(Self {
             client: Box::new(netesae_client),
             like_list: None,
+            user_info: None,
         })
     }
 }
@@ -44,5 +47,13 @@ impl MusicModule for NetesaeModule {
     fn set_like_list(&mut self, like_list: PlayListInfo) -> Result<()> {
         self.like_list = Some(like_list);
         Ok(())
+    }
+
+    fn login_info(&self) -> Option<LoginInfo> {
+        self.user_info.clone()
+    }
+
+    fn set_login_info(&mut self, login_info: LoginInfo) {
+        self.user_info.replace(login_info);
     }
 }
