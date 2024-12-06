@@ -111,28 +111,6 @@ pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, bool>>, InvokeE
     // netease
     {
         let result = instance.netesae.client().logged();
-
-        let login_info = instance
-            .netesae
-            .client()
-            .login_info()
-            .await
-            .map_err(InvokeError::from_anyhow)?;
-        let user_id = match login_info.data {
-            LoginInfoData::Netesae(v) => v.uid,
-        };
-
-        let like_list = instance
-            .netesae
-            .client()
-            .like_list(user_id)
-            .await
-            .map_err(InvokeError::from_anyhow)?;
-        instance
-            .netesae
-            .set_like_list(like_list)
-            .map_err(InvokeError::from_anyhow)?;
-
         map.insert(MusicSource::Netesae.to_string(), result);
     }
 
