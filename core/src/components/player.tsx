@@ -13,7 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import ReactHowler from "react-howler";
-import {SongInfoProps} from "@/types/song.ts";
+import {SongInfo, SongInfoProps} from "@/types/song.ts";
 import {ApplicationResp} from "@/types/application.ts";
 import {SongRate} from "@/types/constants.ts";
 
@@ -33,7 +33,7 @@ export default function Player({songInfo}: SongInfoProps) {
       rate: SongRate.L,
     };
 
-    invoke<ApplicationResp>("songs_url", { req: req }).then((res) => {
+    invoke<ApplicationResp<any>>("songs_url", { req: req }).then((res) => {
 
       if (res.data !== undefined) {
         const url = res.data.urls[0].content.url;
