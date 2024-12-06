@@ -28,6 +28,8 @@ pub async fn run() {
             application::system::login::get_qr,
             application::system::login::login_by_qr,
             application::system::login::logged,
+            application::system::constants::music_source_list,
+            application::system::constants::ai_source_list,
             // music api
             application::music::like::like_list,
             application::music::song::songs_url,

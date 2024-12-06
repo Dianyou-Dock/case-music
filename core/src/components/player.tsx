@@ -20,8 +20,6 @@ import {SongRate} from "@/types/constants.ts";
 
 export default function Player({songInfo}: SongInfoProps) {
 
-  console.log(songInfo)
-
   const [volume, setVolume] = useState(75);
   const [isLiked, setIsLiked] = useState(false);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
@@ -35,8 +33,7 @@ export default function Player({songInfo}: SongInfoProps) {
       rate: SongRate.L,
     };
 
-    invoke<ApplicationResp>("songs_url", { req: req }).then((res) => {
-      console.log(res)
+    invoke<ApplicationResp<any>>("songs_url", { req: req }).then((res) => {
 
       if (res.data !== undefined) {
         const url = res.data.urls[0].content.url;
@@ -46,7 +43,7 @@ export default function Player({songInfo}: SongInfoProps) {
       }
 
     });
-  }, [songInfo.content.id, songInfo.content.pic_url, songInfo.type]);
+  }, []);
 
   return (
     <>

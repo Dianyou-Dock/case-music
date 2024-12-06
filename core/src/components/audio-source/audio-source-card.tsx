@@ -1,17 +1,24 @@
 "use client";
 
-import { AudioSource } from "@/lib/audio-sources";
 import { Button } from "@/components/ui/button";
 import { useAudioSource } from "@/hooks/use-audio-source";
 import { cn } from "@/lib/utils";
+import { AuthDialog } from "@/components/auth-dialog.tsx";
+import { useState } from "react";
+import { AudioSource } from "@/lib/audio-sources";
 
-interface AudioSourceCardProps {
-  source: AudioSource;
-}
+export function AudioSourceCard({ source }: { source: AudioSource }) {
+  const { audioSource } = useAudioSource();
+  const isSelected = audioSource?.find((s) => s.id === source.id)?.connected;
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
 
-export function AudioSourceCard({ source }: AudioSourceCardProps) {
-  const { currentSource, configureSource } = useAudioSource();
-  const isSelected = currentSource?.id === source.id;
+  const handleConnectClick = () => {
+    // 点击按钮时，打开 AuthDialog
+    if (isSelected) {
+      return;
+    }
+    setIsAuthDialogOpen(true);
+  };
 
   return (
     <div
@@ -23,15 +30,20 @@ export function AudioSourceCard({ source }: AudioSourceCardProps) {
       <div className="flex items-center gap-4">
         <div>
           <h3 className="font-medium">{source.name}</h3>
-          <p className="text-sm text-muted-foreground">{source.description}</p>
+          <p className="text-sm text-muted-foreground">{source.desc}</p>
         </div>
       </div>
       <Button
         variant={isSelected ? "default" : "outline"}
-        onClick={() => configureSource(source.id)}
+        onClick={handleConnectClick}
       >
         {isSelected ? "Connected" : "Connect"}
       </Button>
+      <AuthDialog
+        isOpen={isAuthDialogOpen}
+        setIsOpen={setIsAuthDialogOpen}
+        source={source}
+      />
     </div>
   );
 }

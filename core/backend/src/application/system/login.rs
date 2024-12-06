@@ -1,9 +1,11 @@
 use crate::application::resp::ApplicationResp;
 use crate::types::constants::MusicSource;
+use crate::types::error::MusicClientError;
 use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
 use crate::INSTANCE;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use tauri::ipc::InvokeError;
 
@@ -45,31 +47,40 @@ pub async fn get_qr(source: MusicSource) -> Result<ApplicationResp<LoginQrInfo>,
 pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
-    let result = match req.source {
+    let (result, msg, code) = match req.source {
         MusicSource::Netesae => {
-            let result = instance
+            let (code, result) = instance
                 .netesae
                 .client()
                 .login_by_unikey(req.unikey)
                 .await
                 .map_err(InvokeError::from_anyhow)?;
 
-            // login success, get user like list
-            let user_id = match &result.data {
-                LoginInfoData::Netesae(v) => v.uid,
-            };
-            let like_list = instance
-                .netesae
-                .client()
-                .like_list(user_id)
-                .await
-                .map_err(InvokeError::from_anyhow)?;
-            instance
-                .netesae
-                .set_like_list(like_list)
-                .map_err(InvokeError::from_anyhow)?;
+            let msg = if code == 0 {
+                let result = result.clone().unwrap();
 
-            result
+                // login success, get user like list
+                let user_id = match &result.data {
+                    LoginInfoData::Netesae(v) => v.uid,
+                };
+                let like_list = instance
+                    .netesae
+                    .client()
+                    .like_list(user_id)
+                    .await
+                    .map_err(InvokeError::from_anyhow)?;
+                instance
+                    .netesae
+                    .set_like_list(like_list)
+                    .map_err(InvokeError::from_anyhow)?;
+                "".to_string()
+            } else {
+                MusicClientError::from_code(code)
+                    .map_err(InvokeError::from_anyhow)?
+                    .to_string()
+            };
+
+            (result, msg, code)
         }
         MusicSource::Spotify => {
             todo!()
@@ -82,51 +93,63 @@ pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, In
         }
     };
 
-    Ok(ApplicationResp::success_data(result))
+    let resp = if let Some(data) = result {
+        ApplicationResp::success_data(data)
+    } else {
+        ApplicationResp::msg_code(msg, code)
+    };
+
+    Ok(resp)
 }
 
 #[tauri::command]
-pub async fn logged(source: MusicSource) -> Result<ApplicationResp<bool>, InvokeError> {
+pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, bool>>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
-    match source {
-        MusicSource::Netesae => {
-            let result = instance.netesae.client().logged();
+    let mut map = BTreeMap::new();
 
-            // if already logged, get like list
-            if result {
-                let login_info = instance
-                    .netesae
-                    .client()
-                    .login_info()
-                    .await
-                    .map_err(InvokeError::from_anyhow)?;
-                let user_id = match login_info.data {
-                    LoginInfoData::Netesae(v) => v.uid,
-                };
+    // netease
+    {
+        let result = instance.netesae.client().logged();
 
-                let like_list = instance
-                    .netesae
-                    .client()
-                    .like_list(user_id)
-                    .await
-                    .map_err(InvokeError::from_anyhow)?;
-                instance
-                    .netesae
-                    .set_like_list(like_list)
-                    .map_err(InvokeError::from_anyhow)?;
-            }
+        let login_info = instance
+            .netesae
+            .client()
+            .login_info()
+            .await
+            .map_err(InvokeError::from_anyhow)?;
+        let user_id = match login_info.data {
+            LoginInfoData::Netesae(v) => v.uid,
+        };
 
-            Ok(ApplicationResp::success_data(result))
-        }
-        MusicSource::Spotify => {
-            todo!()
-        }
-        MusicSource::QQ => {
-            todo!()
-        }
-        MusicSource::Apple => {
-            todo!()
-        }
+        let like_list = instance
+            .netesae
+            .client()
+            .like_list(user_id)
+            .await
+            .map_err(InvokeError::from_anyhow)?;
+        instance
+            .netesae
+            .set_like_list(like_list)
+            .map_err(InvokeError::from_anyhow)?;
+
+        map.insert(MusicSource::Netesae.to_string(), result);
     }
+
+    // qq
+    {
+        map.insert(MusicSource::QQ.to_string(), false);
+    }
+
+    // apple
+    {
+        map.insert(MusicSource::Apple.to_string(), false);
+    }
+
+    // spotify
+    {
+        map.insert(MusicSource::Spotify.to_string(), false);
+    }
+
+    Ok(ApplicationResp::success_data(map))
 }

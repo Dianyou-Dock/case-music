@@ -1,38 +1,73 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { AudioSource, audioSources } from "@/lib/audio-sources";
+import { AudioSource } from "@/lib/audio-sources";
+import { invoke } from "@tauri-apps/api/core";
+import { UserSourceConfigRes, SourceListResp } from "@/types/application";
+import { cloneDeep, set } from "lodash";
 
 interface AudioSourceContextType {
-  currentSource: AudioSource | null;
-  configureSource: (sourceId: string) => void;
+  audioSource: AudioSource[] | null;
+  configureSource: (data: AudioSource[]) => void;
 }
 
-const AudioSourceContext = createContext<AudioSourceContextType | undefined>(undefined);
+const AudioSourceContext = createContext<AudioSourceContextType | undefined>(
+  undefined
+);
 
-export function AudioSourceProvider({ children }: { children: React.ReactNode }) {
-  const [currentSource, setCurrentSource] = useState<AudioSource | null>(null);
+const fetchSourceList = async () => {
+  try {
+    // fetch audio source list from server
+    const res = await invoke<SourceListResp>("music_source_list", {});
+    return res.data;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const fetchUserSourceConfig = async () => {
+  try {
+    // fetch audio source from server
+    const res = await invoke<UserSourceConfigRes>("logged");
+    return res.data;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export function AudioSourceProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [audioSource, setAudioSource] = useState<AudioSource[] | null>(null);
 
   useEffect(() => {
-    const storedSourceId = localStorage.getItem("audioSource");
-    if (storedSourceId) {
-      const source = audioSources.find(s => s.id === storedSourceId);
-      if (source) {
-        setCurrentSource(source);
-      }
-    }
+    fetchSourceList().then((list) => {
+      fetchUserSourceConfig().then((data) => {
+        if (data && list) {
+          const result = cloneDeep(list);
+          Object.entries(data).forEach(([key, value]) => {
+            result.forEach((source) => {
+              if (source.id === key) {
+                set(source, "connected", value);
+              }
+            });
+          });
+          setAudioSource(result as AudioSource[]);
+        }
+      });
+    });
   }, []);
 
-  const configureSource = (sourceId: string) => {
-    const source = audioSources.find(s => s.id === sourceId);
-    if (source) {
-      setCurrentSource(source);
-      localStorage.setItem("audioSource", source.id);
+  const configureSource = (data: AudioSource[]) => {
+    if (data) {
+      setAudioSource(data);
     }
   };
 
   return (
-    <AudioSourceContext.Provider value={{ currentSource, configureSource }}>
+    <AudioSourceContext.Provider value={{ audioSource, configureSource }}>
       {children}
     </AudioSourceContext.Provider>
   );
@@ -41,7 +76,9 @@ export function AudioSourceProvider({ children }: { children: React.ReactNode })
 export function useAudioSource() {
   const context = useContext(AudioSourceContext);
   if (context === undefined) {
-    throw new Error("useAudioSource must be used within an AudioSourceProvider");
+    throw new Error(
+      "useAudioSource must be used within an AudioSourceProvider"
+    );
   }
   return context;
 }

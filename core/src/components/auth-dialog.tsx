@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -25,16 +24,34 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
+import { MusicSource } from "@/types/constants";
+import { LoginQrInfo } from "@/types/login.ts";
+import { invoke } from "@tauri-apps/api/core";
+import { ApplicationResp, LoginReq } from "@/types/application.ts";
+import { useAudioSource } from "@/hooks/use-audio-source";
+import { AudioSource } from "@/lib/audio-sources";
 
 const formSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 });
 
-export function AuthDialog() {
-  const [isOpen, setIsOpen] = useState(false);
+export function AuthDialog({
+  isOpen,
+  setIsOpen,
+  source,
+}: {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  source: AudioSource;
+}) {
   const [mode, setMode] = useState<"login" | "register">("login");
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp } = useAuth();
+  const [loginQrInfo, setLoginQrInfo] = useState<LoginQrInfo | undefined>(
+    undefined
+  );
+  const [selectedTab, setSelectedTab] = useState("credentials");
+  const { configureSource, audioSource } = useAudioSource();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,13 +70,72 @@ export function AuthDialog() {
     setIsOpen(false);
   }
 
+  async function fetchQrInfo(): Promise<LoginQrInfo | undefined> {
+    try {
+      const res = await invoke<ApplicationResp<any>>("get_qr", {
+        source: source.id,
+      });
+      if (res.data !== undefined) {
+        console.log("fetch qr info success");
+        const info = res.data as LoginQrInfo;
+        return info;
+      }
+    } catch (e) {
+      console.error(e);
+      return undefined;
+    }
+  }
+
+  async function qrLoginCheck(info: LoginQrInfo) {
+    console.log("checking qr login");
+    const req: LoginReq = {
+      source: source.id as MusicSource,
+      unikey: info.unikey,
+    };
+    try {
+      const res = await invoke<ApplicationResp<any>>("login_by_qr", {
+        req: req,
+      });
+      if (res.code == 0) {
+        return true;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  useEffect(() => {
+    if (selectedTab === "qr") {
+      fetchQrInfo().then((info) => {
+        setLoginQrInfo(info);
+      });
+    }
+  }, [selectedTab]);
+
+  useEffect(() => {
+    let key: NodeJS.Timeout;
+    if (isOpen && selectedTab === "qr") {
+      key = setInterval(() => {
+        if (loginQrInfo) {
+          qrLoginCheck(loginQrInfo).then((isSuccess) => {
+            if (isSuccess) {
+              clearInterval(key);
+              setIsOpen(false);
+              configureSource([
+                ...(audioSource?.map((s) =>
+                  s.id === source.id ? { ...s, connected: true } : s
+                ) || []),
+              ]);
+            }
+          });
+        }
+      }, 1000);
+    }
+    return () => clearInterval(key);
+  }, [loginQrInfo, selectedTab, isOpen]);
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {!user && (
-        <DialogTrigger asChild>
-          <Button variant="outline">Sign In</Button>
-        </DialogTrigger>
-      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
@@ -72,10 +148,15 @@ export function AuthDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="credentials" className="w-full">
+        <Tabs
+          defaultValue="qr"
+          className="w-full"
+          value={selectedTab}
+          onValueChange={setSelectedTab}
+        >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="credentials">Credentials</TabsTrigger>
             <TabsTrigger value="qr">QR Code</TabsTrigger>
+            <TabsTrigger value="credentials">Credentials</TabsTrigger>
           </TabsList>
 
           <TabsContent value="credentials">
@@ -137,7 +218,7 @@ export function AuthDialog() {
           <TabsContent value="qr" className="flex flex-col items-center gap-4">
             <div className="rounded-xl border bg-card p-4">
               <QRCodeSVG
-                value="fuck music"
+                value={loginQrInfo?.url || ""}
                 size={200}
                 level="H"
                 includeMargin

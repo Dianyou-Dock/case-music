@@ -11,13 +11,13 @@ use async_trait::async_trait;
 pub trait Client: Sync + Send {
     async fn login_qr(&mut self) -> Result<LoginQrInfo>;
 
-    async fn login_by_unikey(&mut self, unikey: String) -> Result<LoginInfo>;
+    async fn login_by_unikey(&mut self, unikey: String) -> Result<(i32, Option<LoginInfo>)>;
 
     async fn logout(&mut self) -> Result<()>;
 
     async fn like_list(&mut self, user_id: u64) -> Result<PlayListInfo>;
 
-    async fn collect_list(&mut self, user_id: u64,) -> Result<Vec<SongListInfo>>;
+    async fn collect_list(&mut self, user_id: u64) -> Result<Vec<SongListInfo>>;
 
     async fn list_detail(&mut self, list_id: u64) -> Result<PlayListInfo>;
 

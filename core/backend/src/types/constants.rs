@@ -198,6 +198,13 @@ pub fn gen_rand_recommend_content(song_list: &str, count: u64, exclude_artist: &
     template
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DisplayData {
+    pub id: String,
+    pub name: String,
+    pub desc: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, EnumString, Display)]
 pub enum MusicSource {
     #[strum(serialize = "Netesae")]
@@ -210,10 +217,47 @@ pub enum MusicSource {
     Apple,
 }
 
+impl MusicSource {
+    pub fn display_list() -> Vec<DisplayData> {
+        vec![
+            DisplayData {
+                id: MusicSource::Netesae.to_string(),
+                name: "NetEase CloudMusic".to_string(),
+                desc: "Connect to your NetEase CloudMusic account".to_string(),
+            },
+            DisplayData {
+                id: MusicSource::Spotify.to_string(),
+                name: "Spotify".to_string(),
+                desc: "Connect to your Spotify account".to_string(),
+            },
+            DisplayData {
+                id: MusicSource::QQ.to_string(),
+                name: "QQ Music".to_string(),
+                desc: "Connect to your QQ Music account".to_string(),
+            },
+            DisplayData {
+                id: MusicSource::Apple.to_string(),
+                name: "Apple Music".to_string(),
+                desc: "Connect to your Apple Music account".to_string(),
+            },
+        ]
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, EnumString, Display)]
 pub enum AiSource {
     #[strum(serialize = "Kimi")]
     Kimi,
+}
+
+impl AiSource {
+    pub fn display_list() -> Vec<DisplayData> {
+        vec![DisplayData {
+            id: AiSource::Kimi.to_string(),
+            name: "Kimi Ai".to_string(),
+            desc: "Set your Kimi api key".to_string(),
+        }]
+    }
 }
 
 pub static RAND_RECOMMENDS_BENCHMARK_COUNT: usize = 3;
