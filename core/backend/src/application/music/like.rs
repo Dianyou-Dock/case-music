@@ -1,5 +1,8 @@
 use crate::application::resp::ApplicationResp;
 use crate::types::constants::MusicSource;
+use crate::types::error::ErrorHandle;
+use crate::types::error::MusicClientError::NotLogin;
+use crate::types::login_info::LoginInfoData;
 use crate::types::play_list_info::PlayListInfoData;
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::INSTANCE;
@@ -10,13 +13,16 @@ use tauri::ipc::InvokeError;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LikeListReq {
     pub source: MusicSource,
-    pub user_id: u64,
     pub offset: usize,
     pub limit: usize,
 }
 
 #[tauri::command]
 pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>>, InvokeError> {
+    let Some(login_info) = INSTANCE.read().await.netesae.login_info() else {
+        return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
+    };
+
     let mut instance = INSTANCE.write().await;
 
     let offset = req.offset * req.limit;
@@ -25,12 +31,15 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>
     let list = match req.source {
         MusicSource::Netesae => {
             let empty = instance.netesae.like_list().is_none();
+            let info = match login_info.data {
+                LoginInfoData::Netesae(v) => v,
+            };
 
             if empty {
                 let like_list = instance
                     .netesae
                     .client()
-                    .like_list(req.user_id)
+                    .like_list(info.uid)
                     .await
                     .map_err(InvokeError::from_anyhow)?;
                 instance

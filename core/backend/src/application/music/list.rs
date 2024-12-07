@@ -1,5 +1,8 @@
 use crate::application::resp::ApplicationResp;
 use crate::types::constants::MusicSource;
+use crate::types::error::ErrorHandle;
+use crate::types::error::MusicClientError::NotLogin;
+use crate::types::login_info::LoginInfoData;
 use crate::types::play_list_info::{PlayListInfoData, SongListInfo};
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::INSTANCE;
@@ -18,21 +21,28 @@ pub struct ListSongsReq {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CollectListReq {
     pub source: MusicSource,
-    pub user_id: u64,
 }
 
 #[tauri::command]
 pub async fn collect_list(
-    req: CollectListReq,
+    source: MusicSource,
 ) -> Result<ApplicationResp<Vec<SongListInfo>>, InvokeError> {
+    let Some(login_info) = INSTANCE.read().await.netesae.login_info() else {
+        return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
+    };
+
     let mut instance = INSTANCE.write().await;
 
-    let list = match req.source {
+    let list = match source {
         MusicSource::Netesae => {
+            let info = match login_info.data {
+                LoginInfoData::Netesae(v) => v,
+            };
+
             let result = instance
                 .netesae
                 .client()
-                .collect_list(req.user_id)
+                .collect_list(info.uid)
                 .await
                 .map_err(InvokeError::from_anyhow)?;
             result
