@@ -10,7 +10,7 @@ interface PlaylistButtonProps {
 
 export function PlaylistButton({ name }: PlaylistButtonProps) {
   const pathname = usePathname();
-  const href = `/playlist/${name.toLowerCase().replace(/ /g, "-")}`;
+  const href = `/${name.toLowerCase().replace(/ /g, "-")}`;
   const isActive = pathname === href;
 
   return (

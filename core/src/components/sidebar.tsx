@@ -6,6 +6,7 @@ import { NavigationLink } from "@/components/navigation/navigation-link";
 import { PlaylistButton } from "@/components/navigation/playlist-button";
 
 const playlists = [
+  "Liked Playlist",
   "Recently Added",
   "Recently Played",
   "Top Songs",

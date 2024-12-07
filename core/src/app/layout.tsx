@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 const songInfo: SongInfo = {
-  type: MusicSource.Netesae,
+  type: "Netesae",
   content: {
     id:26196246,
     name: "Midnight City",
