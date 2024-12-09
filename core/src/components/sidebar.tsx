@@ -31,7 +31,7 @@ export default function Sidebar() {
     <div className="flex h-full w-64 flex-col gap-6 border-r bg-card p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-lg font-semibold">
-          <span className="text-primary">♪</span> Fuck Music
+          <span className="text-primary">♪</span> Case Music
         </div>
       </div>
 
