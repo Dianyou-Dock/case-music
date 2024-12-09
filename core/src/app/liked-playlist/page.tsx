@@ -2,6 +2,8 @@ import React from "react";
 import useLikedPlaylist from "@/hooks/use-liked-playlist";
 import { MusicList } from "@/components/music/music-list";
 import { MusicHeader } from "@/components/music/music-header";
+import {ApplicationResp} from "@/types/application.ts";
+import {Playlist} from "@/types/music.ts";
 
 export default function PlaylistPage() {
   const { data, isLoading, mutate, error } = useLikedPlaylist({
@@ -9,20 +11,26 @@ export default function PlaylistPage() {
     pageIndex: 0,
   });
 
+  console.log("isLoading:", isLoading)
+  console.log("mutate: ", mutate)
+
+  const result = data as ApplicationResp<Playlist>;
+  const playlist = result.data as Playlist;
+
   console.log('error: ', error);
 
-  console.log('data: ', data);
+  console.log('data: ', result);
 
 
   return (
     <>
       <div className="flex flex-col gap-6 p-6">
-        {/* <MusicHeader
+        <MusicHeader
           title={playlist?.name || "Playlist"}
-          subtitle={`${playlist?.tracks.length || 0} songs`}
-          coverUrl={playlist?.coverUrl}
+          subtitle={`${playlist?.songs.length || 0} songs`}
+          coverUrl={playlist?.cover_img_url}
         />
-        <MusicList tracks={playlist?.tracks || []} /> */}
+        <MusicList songs={playlist?.songs || []} />
       </div>
     </>
   );

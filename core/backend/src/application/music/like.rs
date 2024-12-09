@@ -17,8 +17,16 @@ pub struct LikeListReq {
     pub limit: usize,
 }
 
+#[derive(Serialize, Debug, Clone)]
+pub struct LikeListResp {
+    pub id: u64,
+    pub name: String,
+    pub cover_img_url: String,
+    pub songs: Vec<SongInfo>
+}
+
 #[tauri::command]
-pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>>, InvokeError> {
+pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<LikeListResp>, InvokeError> {
     let Some(login_info) = INSTANCE.read().await.netesae.login_info() else {
         return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
     };
@@ -28,10 +36,10 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>
     let offset = req.offset * req.limit;
     let limit = req.limit;
 
-    let list = match req.source {
+    let resp = match req.source {
         MusicSource::Netesae => {
             let empty = instance.netesae.like_list().is_none();
-            let info = match login_info.data {
+            let user_info = match login_info.data {
                 LoginInfoData::Netesae(v) => v,
             };
 
@@ -39,7 +47,7 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>
                 let like_list = instance
                     .netesae
                     .client()
-                    .like_list(info.uid)
+                    .like_list(user_info.uid)
                     .await
                     .map_err(InvokeError::from_anyhow)?;
                 instance
@@ -48,8 +56,8 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>
                     .map_err(InvokeError::from_anyhow)?;
             }
 
-            let info = instance.netesae.like_list().unwrap();
-            let data = match &info.data {
+            let list_info = instance.netesae.like_list().unwrap();
+            let data = match &list_info.data {
                 PlayListInfoData::Netesae(v) => v,
             };
             let page_list = data
@@ -61,7 +69,12 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>
                     data: SongInfoData::Netesae(v.clone()),
                 })
                 .collect::<Vec<_>>();
-            page_list
+            LikeListResp {
+                id: data.id,
+                name: data.name.clone(),
+                cover_img_url: data.cover_img_url.clone(),
+                songs: page_list,
+            }
         }
         MusicSource::Spotify => {
             todo!()
@@ -74,7 +87,7 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<Vec<SongInfo>
         }
     };
 
-    Ok(ApplicationResp::success_data(list))
+    Ok(ApplicationResp::success_data(resp))
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

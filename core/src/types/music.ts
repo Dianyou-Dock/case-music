@@ -1,3 +1,5 @@
+import {SongInfo} from "@/types/song.ts";
+
 export interface Track {
   id: string;
   title: string;
@@ -8,8 +10,8 @@ export interface Track {
 }
 
 export interface Playlist {
-  id: string;
+  id: number;
   name: string;
-  coverUrl?: string;
-  tracks: Track[];
+  cover_img_url?: string;
+  songs: SongInfo[];
 }

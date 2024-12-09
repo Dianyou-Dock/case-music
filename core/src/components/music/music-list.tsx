@@ -8,14 +8,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Track } from "@/types/music";
 import { formatDuration } from "@/lib/format";
+import {SongInfo} from "@/types/song.ts";
 
 interface MusicListProps {
-  tracks: Track[];
+  songs: SongInfo[];
 }
 
-export function MusicList({ tracks }: MusicListProps) {
+export function MusicList({ songs }: MusicListProps) {
   return (
     <Table>
       <TableHeader>
@@ -31,22 +31,22 @@ export function MusicList({ tracks }: MusicListProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {tracks.map((track, index) => (
-          <TableRow key={track.id}>
+        {songs.map((track, index) => (
+          <TableRow key={track.content.id}>
             <TableCell>{index + 1}</TableCell>
             <TableCell>
               <div className="flex items-center gap-3">
                 <img
-                  src={track.coverUrl}
-                  alt={track.title}
+                  src={track.content.pic_url}
+                  alt={track.content.name}
                   className="h-10 w-10 rounded object-cover"
                 />
-                <span className="font-medium">{track.title}</span>
+                <span className="font-medium">{track.content.name}</span>
               </div>
             </TableCell>
-            <TableCell>{track.artist}</TableCell>
-            <TableCell>{track.album}</TableCell>
-            <TableCell>{formatDuration(track.duration)}</TableCell>
+            <TableCell>{track.content.singer}</TableCell>
+            <TableCell>{track.content.album}</TableCell>
+            <TableCell>{formatDuration(track.content.duration)}</TableCell>
             <TableCell>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="h-8 w-8">
