@@ -20,7 +20,6 @@ export function MusicList({ songs }: MusicListProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[40px]">#</TableHead>
           <TableHead>Title</TableHead>
           <TableHead>Artist</TableHead>
           <TableHead>Album</TableHead>
@@ -31,9 +30,8 @@ export function MusicList({ songs }: MusicListProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {songs.map((track, index) => (
+        {songs.map((track) => (
           <TableRow key={track.content.id}>
-            <TableCell>{index + 1}</TableCell>
             <TableCell>
               <div className="flex items-center gap-3">
                 <img

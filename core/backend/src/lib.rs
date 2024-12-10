@@ -3,6 +3,7 @@ use crate::application::Application;
 use crate::modules::impls::netesae::NetesaeModule;
 use once_cell::sync::Lazy;
 use tokio::sync::RwLock;
+use anyhow::Result;
 
 pub mod music_client;
 
@@ -21,6 +22,9 @@ pub static INSTANCE: Lazy<RwLock<Application>> = Lazy::new(|| {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
+
+    init_module().await.unwrap();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
@@ -46,4 +50,18 @@ pub async fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+
+async fn init_module() -> Result<()> {
+    let mut instance = INSTANCE.write().await;
+
+    {
+        if instance.netesae.client().logged().await {
+            let info = instance.netesae.client().login_info().await?;
+            instance.netesae.set_login_info(info);
+        }
+    }
+
+    Ok(())
 }
