@@ -7,7 +7,7 @@ import { useMusicData } from "@/hooks/use-music-data";
 
 export function PlaylistContent() {
   const { id } = useParams();
-  const { playlist, isLoading } = useMusicData(id as string);
+  const { playlist, isLoading } = useMusicData(id as unknown as number);
 
   if (isLoading) {
     return <div className="p-6">Loading...</div>;
@@ -17,10 +17,10 @@ export function PlaylistContent() {
     <div className="flex flex-col gap-6 p-6">
       <MusicHeader
         title={playlist?.name || "Playlist"}
-        subtitle={`${playlist?.tracks.length || 0} songs`}
-        coverUrl={playlist?.coverUrl}
+        subtitle={`${playlist?.songs.length || 0} songs`}
+        coverUrl={playlist?.cover_img_url}
       />
-      <MusicList tracks={playlist?.tracks || []} />
+      <MusicList songs={playlist?.songs || []} />
     </div>
   );
 }

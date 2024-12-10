@@ -1,2 +1,2 @@
-# fuck-music-app
-Is there no music software that can accurately recommend the songs I want to listen to?
+# CASE MUSIC
+We don't produce music, we are just the transporters of music

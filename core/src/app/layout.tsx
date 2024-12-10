@@ -7,7 +7,6 @@ import {AudioSourceProvider} from '@/hooks/use-audio-source';
 import Player from '@/components/player';
 import Sidebar from '@/components/sidebar';
 import {SongInfo} from "@/types/song.ts";
-import {MusicSource} from "@/types/constants.ts";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 const songInfo: SongInfo = {
-  type: MusicSource.Netesae,
+  type: "Netesae",
   content: {
     id:26196246,
     name: "Midnight City",

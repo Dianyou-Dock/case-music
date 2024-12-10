@@ -48,6 +48,7 @@ impl CheckQrCode {
 pub struct NeteaseClient {
     api: MusicApi,
     auth_file: PathBuf,
+    logged: bool,
 }
 
 impl NeteaseClient {
@@ -60,6 +61,7 @@ impl NeteaseClient {
         }
 
         let auth_file = auth_data.join(AUTH_FILE);
+        let mut logged = false;
 
         let api = if auth_file.exists() {
             let auth_str = fs::read_to_string(&auth_file)?;
@@ -75,12 +77,13 @@ impl NeteaseClient {
                     cookie_jar.set(cookie, &base_url.parse()?)?;
                 }
             }
+            logged = true;
             MusicApi::from_cookie_jar(cookie_jar, 100)
         } else {
             MusicApi::new(100)
         };
 
-        Ok(Self { api, auth_file })
+        Ok(Self { api, auth_file, logged })
     }
 
     async fn replace_api(&mut self, cookie_jar: CookieJar) -> Result<()> {
@@ -275,11 +278,7 @@ impl Client for NeteaseClient {
     }
 
     async fn logged(&mut self) -> bool {
-        let path = Path::new(&self.auth_file);
-        if path.exists() {
-            return true;
-        }
-        false
+        self.logged
     }
 
     async fn login_info(&mut self) -> Result<LoginInfo> {
@@ -321,9 +320,13 @@ mod test {
             let resp = client.login_by_unikey(result.unikey.clone()).await;
 
             match resp {
-                Ok(info) => {
+                Ok((code,info)) => {
                     println!("login info: {info:?}");
-                    return Ok(info);
+                    if code == 0 {
+                        let info = info.unwrap();
+                        return Ok(info);
+                    }
+
                 }
                 Err(e) => {
                     println!("login error: {e}");

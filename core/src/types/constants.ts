@@ -1,9 +1,4 @@
-export enum MusicSource {
-  Netesae = "Netesae",
-  Spotify = "Spotify",
-  QQ = "QQ",
-  Apple = "Apple",
-}
+export type MusicSource = "Netesae" | "Spotify" | "QQ" | "Apple";
 
 export enum AiSource {
   Kimi = "Kimi",

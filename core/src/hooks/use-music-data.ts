@@ -4,105 +4,118 @@ import { useState, useEffect } from "react";
 import { Playlist } from "@/types/music";
 
 // Mock data - replace with real API calls
-const mockPlaylists: Record<string, Playlist> = {
-  "recently-added": {
-    id: "recently-added",
+const mockPlaylists: Record<number, Playlist> = {
+  1: {
+    id: 1,
     name: "Recently Added",
-    coverUrl:
+    cover_img_url:
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop",
-    tracks: [
+    songs: [
       {
-        id: "1",
-        title: "Midnight City",
-        artist: "Neon Dreams",
-        album: "Night Drive",
-        duration: 272,
-        coverUrl:
-          "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=60&h=60&fit=crop",
+        content:{
+          id: 1,
+          title: "Midnight City",
+          artist: "Neon Dreams",
+          album: "Night Drive",
+          duration: 272,
+          pic_url:
+              "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=60&h=60&fit=crop",
+        },
+        type: "Netesae"
       },
       {
-        id: "2",
-        title: "Summer Nights",
-        artist: "The Midnight",
-        album: "Days of Thunder",
-        duration: 225,
-        coverUrl:
-          "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=60&h=60&fit=crop",
+        content: {
+          id: 2,
+          title: "Summer Nights",
+          artist: "The Midnight",
+          album: "Days of Thunder",
+          duration: 225,
+          pic_url:
+              "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=60&h=60&fit=crop"
+        },
+        type: "Netesae"
       },
     ],
   },
-  "recently-played": {
-    id: "recently-played",
+  2: {
+    id: 2,
     name: "Recently Played",
-    coverUrl:
+    cover_img_url:
       "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
-    tracks: [
+    songs: [
       {
-        id: "3",
-        title: "Retrowave",
-        artist: "Sunset Riders",
-        album: "Neon Horizon",
-        duration: 317,
-        coverUrl:
-          "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=60&h=60&fit=crop",
+        content: {
+          id: 3,
+          title: "Retrowave",
+          artist: "Sunset Riders",
+          album: "Neon Horizon",
+          duration: 317,
+          pic_url:
+              "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=60&h=60&fit=crop"
+        },
+        type: "Netesae"
       },
     ],
   },
-  "top-songs": {
-    id: "top-songs",
+  3: {
+    id: 3,
     name: "Top Songs",
-    coverUrl:
+    cover_img_url:
       "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop",
-    tracks: [
+    songs: [
       {
-        id: "4",
-        title: "Neon Dreams",
-        artist: "Synthwave Masters",
-        album: "Future City",
-        duration: 245,
-        coverUrl:
-          "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=60&h=60&fit=crop",
+        content: {
+          id: 4,
+          title: "Neon Dreams",
+          artist: "Synthwave Masters",
+          album: "Future City",
+          duration: 245,
+          pic_url:
+              "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=60&h=60&fit=crop",
+        },
+        type: "Netesae"
+
       },
     ],
   },
-  favorites: {
-    id: "favorites",
+  4: {
+    id: 4,
     name: "Favorites",
-    coverUrl:
+    cover_img_url:
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop",
-    tracks: [],
+    songs: [],
   },
-  "workout-mix": {
-    id: "workout-mix",
+  5: {
+    id: 5,
     name: "Workout Mix",
-    coverUrl:
+    cover_img_url:
       "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
-    tracks: [],
+    songs: [],
   },
-  "chill-vibes": {
-    id: "chill-vibes",
+  6: {
+    id: 6,
     name: "Chill Vibes",
-    coverUrl:
+    cover_img_url:
       "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop",
-    tracks: [],
+    songs: [],
   },
-  "road-trip": {
-    id: "road-trip",
+  7: {
+    id: 7,
     name: "Road Trip",
-    coverUrl:
+    cover_img_url:
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop",
-    tracks: [],
+    songs: [],
   },
-  "90s-hits": {
-    id: "90s-hits",
+  8: {
+    id: 8,
     name: "90s Hits",
-    coverUrl:
+    cover_img_url:
       "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
-    tracks: [],
+    songs: [],
   },
 };
 
-export function useMusicData(playlistId: string) {
+export function useMusicData(playlistId: number) {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
