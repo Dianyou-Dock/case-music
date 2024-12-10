@@ -33,8 +33,8 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<LikeListResp>
 
     let mut instance = INSTANCE.write().await;
 
-    let offset = req.offset * req.limit;
-    let limit = req.limit;
+    let skip = req.offset * req.limit;
+    let take = req.limit;
 
     let resp = match req.source {
         MusicSource::Netesae => {
@@ -63,8 +63,8 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<LikeListResp>
             let page_list = data
                 .songs
                 .iter()
-                .skip(offset)
-                .take(limit)
+                .skip(skip)
+                .take(take)
                 .map(|v| SongInfo {
                     data: SongInfoData::Netesae(v.clone()),
                 })

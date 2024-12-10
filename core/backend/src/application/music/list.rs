@@ -65,8 +65,28 @@ pub async fn collect_list(
 pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<Vec<SongInfo>>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
+    let skip = req.offset * req.limit;
+    let take = req.limit;
+
     let list = match req.source {
         MusicSource::Netesae => {
+
+            if let Some(like_list_info) = instance.netesae.like_list() {
+                let data =  match &like_list_info.data { PlayListInfoData::Netesae(v) => {v} };
+                if data.id == req.list_id {
+                    let page_list = data
+                        .songs
+                        .iter()
+                        .skip(skip)
+                        .take(take)
+                        .map(|v| SongInfo {
+                            data: SongInfoData::Netesae(v.clone()),
+                        })
+                        .collect::<Vec<_>>();
+                    return Ok(ApplicationResp::success_data(page_list))
+                }
+            }
+
             let result = instance
                 .netesae
                 .client()
@@ -78,8 +98,7 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<Vec<SongInf
                 PlayListInfoData::Netesae(v) => v.songs,
             };
 
-            let skip = req.offset * req.limit;
-            let take = req.limit;
+
             let list = songs
                 .iter()
                 .skip(skip)
