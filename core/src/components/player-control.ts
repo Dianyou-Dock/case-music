@@ -35,7 +35,7 @@ export async function updateState(result: any) {
   // handle immediately
   if (data.immediately !== undefined) {
     console.log("immediately: ", data.immediately)
-    let cur = structuredClone(data.songs[0]);
+    const cur = structuredClone(data.songs[0]);
     const res: playerControlData = {
       current: cur,
       playListInfo: data.playListInfo,
