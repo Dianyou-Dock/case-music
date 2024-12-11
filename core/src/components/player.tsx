@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect} from "react";
+import {useState, useEffect, useRef} from "react";
 import {
   Play,
   Pause,
@@ -17,7 +17,7 @@ import {SongInfo} from "@/types/song.ts";
 import {ApplicationResp} from "@/types/application.ts";
 import {SongRate} from "@/types/constants.ts";
 import {back, next, playerControl, updateState} from "@/components/player-control";
-import {formatDuration} from "@/lib/format.ts";
+import {formatDuration, formatProgress} from "@/lib/format.ts";
 
 export default function Player() {
 
@@ -27,6 +27,10 @@ export default function Player() {
   const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined);
   const [isPlaying, setIsPlaying] = useState(false); // 播放状态
   const [current, setCurrent] = useState<SongInfo|undefined>(undefined);
+  const [progress, setProgress] = useState(0); // 播放进度
+  const [duration, setDuration] = useState(0); // 总时长
+  const howlerRef = useRef<ReactHowler | null>(null);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
 
   async function handleOnEnd() {
@@ -35,6 +39,52 @@ export default function Player() {
 
     updateState(state).then(() => {});
   }
+
+  // async function handleOnSeek() {
+  //
+  // }
+
+  useEffect(() => {
+    // 当播放器正在播放时，定时更新播放进度
+    console.log("isPlaying, songUrl, isPlaying && songUrl", isPlaying, songUrl, isPlaying && songUrl)
+    if (isPlaying && songUrl) {
+      progressInterval.current = setInterval(() => {
+        console.log("into current")
+        if (howlerRef?.current) {
+          console.log("into if")
+          const currentProgress = howlerRef.current.seek() as number;
+          console.log("currentProgress: ", currentProgress)
+          setProgress(currentProgress);
+        }
+      }, 1000); // 每秒更新一次
+    } else {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+    }
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+    };
+  }, [isPlaying, songUrl]);
+
+  const handleSliderChange = (value: number[]) => {
+    const newProgress = value[0];
+    setProgress(newProgress);
+    if (howlerRef?.current) {
+      howlerRef.current.seek(newProgress); // 设置播放器的新播放位置
+    }
+  };
+
+  const handleLoad = () => {
+    if (howlerRef?.current) {
+      const songDuration = howlerRef.current.duration();
+      setDuration(songDuration); // 获取歌曲总时长
+    }
+  };
+
 
   async function get_song_url(songInfo: SongInfo) {
     const req = {
@@ -84,7 +134,9 @@ export default function Player() {
           playing={isPlaying}
           volume={volume / 100}
           onEnd={handleOnEnd}
-          // onLoad={onLoad}
+          onLoad={handleLoad} // 加载完成时设置总时长
+          ref={howlerRef} // 直接使用 useRef 的引用
+          // onSeek={}
         />
       )}
       <div className="border-t bg-background p-4">
@@ -148,12 +200,13 @@ export default function Player() {
               />
             </div>
             <div className="flex w-[400px] items-center gap-2">
-              <span className="text-sm text-muted-foreground">0:00</span>
+              <span className="text-sm text-muted-foreground">{formatProgress(progress)}</span>
               <Slider
-                defaultValue={[33]}
-                max={100}
+                value={[progress]}
+                max={duration}
                 step={1}
                 className="cursor-pointer"
+                onValueChange={handleSliderChange}
               />
               <span className="text-sm text-muted-foreground">{formatDuration(current?.content.duration || 0)}</span>
             </div>
