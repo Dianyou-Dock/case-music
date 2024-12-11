@@ -76,9 +76,10 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
 
     let (list, total) = match req.source {
         MusicSource::Netesae => {
-
             if let Some(like_list_info) = instance.netesae.like_list() {
-                let data =  match &like_list_info.data { PlayListInfoData::Netesae(v) => {v} };
+                let data = match &like_list_info.data {
+                    PlayListInfoData::Netesae(v) => v,
+                };
                 if data.id == req.list_id {
                     let total = data.songs.len();
                     let page_list = data
@@ -90,7 +91,10 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
                             data: SongInfoData::Netesae(v.clone()),
                         })
                         .collect::<Vec<_>>();
-                    return Ok(ApplicationResp::success_data(ListSongsResp{ list: page_list, total: total as u64 }))
+                    return Ok(ApplicationResp::success_data(ListSongsResp {
+                        list: page_list,
+                        total: total as u64,
+                    }));
                 }
             }
 
@@ -128,5 +132,5 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
         }
     };
 
-    Ok(ApplicationResp::success_data(ListSongsResp{ list, total }))
+    Ok(ApplicationResp::success_data(ListSongsResp { list, total }))
 }
