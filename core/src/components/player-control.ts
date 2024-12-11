@@ -45,7 +45,6 @@ export async function updateState(data: any) {
     updateSongs(data.playListInfo).then((res) => {
       if (res) {
         data.songs.push(...res);
-        data.total += res.length - 1;
       }
 
     })
@@ -117,32 +116,27 @@ export async function next() {
 
   const songsLen = data.songs.length;
 
-  if (data.index ===  songsLen - 1) {
-
+  if (songsLen - data.index <= 5 ) {
     if (data.total - songsLen > 0) {
-      const offset = songsLen;
-      const limit = data.total - songsLen;
-
-      const page_index = offset / limit;
+      const offset = data.playListInfo.page_index + 1;
+      const limit = data.playListInfo.limit;
 
       const req: playListInfo = {
         type: data.playListInfo.type,
         list_id: data.playListInfo.list_id,
-        page_index: page_index,
+        page_index: offset,
         limit: limit,
       }
 
       updateSongs(req).then((res) => {
-
         if (res) {
           data.songs.push(...res);
-          data.total += res.length
         }
 
       });
+    } else {
+      return new Error("Already at the last song")
     }
-
-    return new Error("Already at the last song")
   }
 
   const nextIndex = data.index + 1;
