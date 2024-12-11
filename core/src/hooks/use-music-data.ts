@@ -36,6 +36,7 @@ const mockPlaylists: Record<number, Playlist> = {
         type: "Netesae"
       },
     ],
+    total: 2,
   },
   2: {
     id: 2,
@@ -56,6 +57,7 @@ const mockPlaylists: Record<number, Playlist> = {
         type: "Netesae"
       },
     ],
+    total: 1,
   },
   3: {
     id: 3,
@@ -77,6 +79,7 @@ const mockPlaylists: Record<number, Playlist> = {
 
       },
     ],
+    total: 1,
   },
   4: {
     id: 4,
@@ -84,6 +87,7 @@ const mockPlaylists: Record<number, Playlist> = {
     cover_img_url:
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop",
     songs: [],
+    total: 0,
   },
   5: {
     id: 5,
@@ -91,6 +95,7 @@ const mockPlaylists: Record<number, Playlist> = {
     cover_img_url:
       "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
     songs: [],
+    total: 0,
   },
   6: {
     id: 6,
@@ -98,6 +103,7 @@ const mockPlaylists: Record<number, Playlist> = {
     cover_img_url:
       "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop",
     songs: [],
+    total: 0,
   },
   7: {
     id: 7,
@@ -105,6 +111,7 @@ const mockPlaylists: Record<number, Playlist> = {
     cover_img_url:
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop",
     songs: [],
+    total: 0,
   },
   8: {
     id: 8,
@@ -112,6 +119,7 @@ const mockPlaylists: Record<number, Playlist> = {
     cover_img_url:
       "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
     songs: [],
+    total: 0,
   },
 };
 

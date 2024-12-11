@@ -22,7 +22,8 @@ pub struct LikeListResp {
     pub id: u64,
     pub name: String,
     pub cover_img_url: String,
-    pub songs: Vec<SongInfo>
+    pub songs: Vec<SongInfo>,
+    pub total: u64,
 }
 
 #[tauri::command]
@@ -60,6 +61,8 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<LikeListResp>
             let data = match &list_info.data {
                 PlayListInfoData::Netesae(v) => v,
             };
+
+            let total = data.songs.len();
             let page_list = data
                 .songs
                 .iter()
@@ -74,6 +77,7 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<LikeListResp>
                 name: data.name.clone(),
                 cover_img_url: data.cover_img_url.clone(),
                 songs: page_list,
+                total: total as u64,
             }
         }
         MusicSource::Spotify => {

@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use cookie_store::CookieStore;
 use ncm_api::{CookieBuilder, CookieJar, MusicApi};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use tokio::io::AsyncWriteExt;
 
 pub enum CheckQrCode {

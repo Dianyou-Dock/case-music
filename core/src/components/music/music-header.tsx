@@ -10,10 +10,12 @@ interface MusicHeaderProps {
   coverUrl?: string;
   playlist: Playlist | undefined;
   source: MusicSource,
+  total: number,
 }
 
-export function MusicHeader({ title, subtitle, coverUrl, playlist, source }: MusicHeaderProps) {
+export function MusicHeader({ title, subtitle, coverUrl, playlist, source, total }: MusicHeaderProps) {
 
+  console.log("total: ", total)
   const handlePlayAllClick = () => {
     if (playlist != undefined) {
       playerControl.setState({
@@ -24,8 +26,10 @@ export function MusicHeader({ title, subtitle, coverUrl, playlist, source }: Mus
           limit: defaultLimit,
         },
         songs: playlist.songs,
+        index: 0,
         current: playlist.songs[0],
         immediately: undefined,
+        total: total,
       });
     }
   }

@@ -10,12 +10,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDuration } from "@/lib/format";
 import {SongInfo} from "@/types/song.ts";
+import {playerControl} from "@/components/player-control";
 
 interface MusicListProps {
   songs: SongInfo[];
 }
 
 export function MusicList({ songs }: MusicListProps) {
+
+
+  function handlePlayClick(song: SongInfo) {
+    playerControl.setState({immediately: song, current: undefined})
+  }
+
+
   return (
     <Table>
       <TableHeader>
@@ -51,7 +59,10 @@ export function MusicList({ songs }: MusicListProps) {
                   <Heart className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Play className="h-4 w-4" />
+                  <Play
+                    className="h-4 w-4"
+                    onClick={() => {handlePlayClick(track)}}
+                  />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <MoreHorizontal className="h-4 w-4" />

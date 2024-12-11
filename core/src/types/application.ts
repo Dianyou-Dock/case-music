@@ -94,6 +94,11 @@ export interface ListSongReq {
   limit: number;
 }
 
+export interface ListSongResp {
+  list: SongInfo[];
+  total: number;
+}
+
 /*
  * constants operation
  * */

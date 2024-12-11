@@ -16,7 +16,7 @@ import ReactHowler from "react-howler";
 import {SongInfo} from "@/types/song.ts";
 import {ApplicationResp} from "@/types/application.ts";
 import {SongRate} from "@/types/constants.ts";
-import {playerControl, updateState} from "@/components/player-control";
+import {back, next, playerControl, updateState} from "@/components/player-control";
 import {formatDuration} from "@/lib/format.ts";
 
 export default function Player() {
@@ -123,7 +123,10 @@ export default function Player() {
 
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-6">
-              <SkipBack className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground" />
+              <SkipBack
+                className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
+                onClick={() => back()}
+              />
               <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary">
                 <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary">
                   {!isPlaying ? (
@@ -139,7 +142,10 @@ export default function Player() {
                   )}
                 </div>
               </div>
-              <SkipForward className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground" />
+              <SkipForward
+                className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
+                onClick={() => next()}
+              />
             </div>
             <div className="flex w-[400px] items-center gap-2">
               <span className="text-sm text-muted-foreground">0:00</span>

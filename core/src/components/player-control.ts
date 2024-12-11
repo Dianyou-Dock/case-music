@@ -3,7 +3,7 @@
 import {create} from "zustand";
 import {SongInfo} from "@/types/song.ts";
 import {invoke} from "@tauri-apps/api/core";
-import {ApplicationResp} from "@/types/application.ts";
+import {ApplicationResp, ListSongResp} from "@/types/application.ts";
 
 export interface playListInfo {
   type: string;
@@ -17,55 +17,60 @@ export const playerControl = create(
     ()=>({
       playListInfo: {} as playListInfo,
       songs: [] as SongInfo[],
+      index: -1,
       current: {} as SongInfo,
       immediately: {} as SongInfo,
+      total: -1,
     }),
 )
 
 export async function updateState(data: any) {
 
-
-  // handle immediately
+  // handle immediately finish
   if (data.immediately !== undefined) {
-    const cur = structuredClone(data.songs[0]);
+    const cur = structuredClone(data.songs[data.index]);
     playerControl.setState({
       current: cur,
       playListInfo: data.playListInfo,
       songs: data.songs,
-      immediately: undefined
+      index: data.index,
+      immediately: undefined,
+      total: data.total,
     })
     return
   }
 
-  // 弹出已经播放完的
-  data.songs.shift();
-
-  if (data.songs.length <= 5) {
+  if (data.songs.length - data.index <= 5) {
     // update songs
     updateSongs(data.playListInfo).then((res) => {
       if (res) {
-        data.songs.push(...res)
+        data.songs.push(...res);
+        data.total += res.length - 1;
       }
 
     })
   }
 
-  // 给个引用, 因为后续插队歌曲进来播放完后, 这里还需要, 所以给引用
+  data.index += 1
+  const song = data.songs[data.index];
+
   const cur: SongInfo = {
-    type: data.songs[0].type,
-    content: data.songs[0].content
+    type: song.type,
+    content: song.content
   };
 
   playerControl.setState({
     current: cur,
     playListInfo: data.playListInfo,
+    index: data.index,
     songs: data.songs,
-    immediately: undefined
+    immediately: undefined,
+    total: data.total,
   });
 }
 
 async function updateSongs(playListInfo: playListInfo):Promise<SongInfo[] | undefined> {
-  const result = await invoke<ApplicationResp<SongInfo[]>>("list_songs", {
+  const result = await invoke<ApplicationResp<ListSongResp>>("list_songs", {
     req: {
       source: playListInfo.type,
       list_id: playListInfo.list_id,
@@ -75,8 +80,84 @@ async function updateSongs(playListInfo: playListInfo):Promise<SongInfo[] | unde
   });
 
   if (result.data) {
-    return result.data as SongInfo[];
+    return result.data.list;
   }
 
   return undefined
+}
+
+
+export async function back() {
+  const data = playerControl.getState();
+
+  if (data.index === 0) {
+    return new Error("Already at the first song");
+  }
+
+  const backIndex = data.index - 1;
+  const song = data.songs[backIndex];
+
+  const cur: SongInfo = {
+    type: song.type,
+    content: song.content
+  };
+
+  playerControl.setState({
+    current: cur,
+    playListInfo: data.playListInfo,
+    index: backIndex,
+    songs: data.songs,
+    immediately: undefined,
+    total: data.total,
+  })
+}
+
+export async function next() {
+  const data = playerControl.getState();
+
+  const songsLen = data.songs.length;
+
+  if (data.index ===  songsLen - 1) {
+
+    if (data.total - songsLen > 0) {
+      const offset = songsLen;
+      const limit = data.total - songsLen;
+
+      const page_index = offset / limit;
+
+      const req: playListInfo = {
+        type: data.playListInfo.type,
+        list_id: data.playListInfo.list_id,
+        page_index: page_index,
+        limit: limit,
+      }
+
+      updateSongs(req).then((res) => {
+
+        if (res) {
+          data.songs.push(...res);
+          data.total += res.length
+        }
+
+      });
+    }
+
+    return new Error("Already at the last song")
+  }
+
+  const nextIndex = data.index + 1;
+  const song = data.songs[nextIndex];
+
+  const cur: SongInfo = {
+    type: song.type,
+    content: song.content
+  };
+
+  playerControl.setState({
+    current: cur,
+    playListInfo: data.playListInfo,
+    index: nextIndex,
+    songs: data.songs,
+    immediately: undefined
+  })
 }

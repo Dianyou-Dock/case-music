@@ -46,6 +46,7 @@ export default function PlaylistPage() {
           coverUrl={playlist?.cover_img_url}
           playlist={playlist || undefined}
           source={source}
+          total={playlist?.total || 0}
         />
         <MusicList songs={playlist?.songs || []} />
       </div>

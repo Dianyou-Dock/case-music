@@ -22,6 +22,7 @@ export function PlaylistContent() {
         coverUrl={playlist?.cover_img_url}
         playlist={playlist || undefined}
         source={source}
+        total={0}
       />
       <MusicList songs={playlist?.songs || []} />
     </div>
