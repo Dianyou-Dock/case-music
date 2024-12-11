@@ -16,7 +16,7 @@ import ReactHowler from "react-howler";
 import {SongInfo} from "@/types/song.ts";
 import {ApplicationResp} from "@/types/application.ts";
 import {SongRate} from "@/types/constants.ts";
-import {playerControl, playerControlData, updateState} from "@/components/player-control";
+import {playerControl, updateState} from "@/components/player-control";
 import {formatDuration} from "@/lib/format.ts";
 
 export default function Player() {
@@ -30,15 +30,10 @@ export default function Player() {
 
 
   async function handleOnEnd() {
-    console.log("handleOnEnd1")
     setIsPlaying(false);
     const state = playerControl.getState();
-    console.log("state", state);
-    updateState(state).then(() => {
-      // setCurrent(undefined);
-      // setPictureUrl(undefined);
-    });
-    console.log("handleOnEnd2")
+
+    updateState(state).then(() => {});
   }
 
   async function get_song_url(songInfo: SongInfo) {
@@ -64,9 +59,8 @@ export default function Player() {
   useEffect(() => {
     playerControl.subscribe(
       state => {
-        console.log("stateCurrent: ",state);
 
-        const data = (state as any) as playerControlData;
+        const data = state as any;
         const stateCurrent = data.current as SongInfo;
         const stateImmediately = data.immediately as SongInfo;
         if (stateImmediately !== undefined) {
@@ -74,7 +68,6 @@ export default function Player() {
           return
         }
 
-        console.log("stateCurrent 4: ",stateCurrent);
         if (stateCurrent !== undefined && stateCurrent.content.id != current?.content.id) {
           get_song_url(stateCurrent).then(() => {});
         }

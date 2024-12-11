@@ -1,7 +1,7 @@
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {Playlist} from "@/types/music.ts";
-import {playerControl, playerControlData} from "@/components/player-control";
+import {playerControl} from "@/components/player-control";
 import {defaultLimit, MusicSource} from "@/types/constants.ts";
 
 interface MusicHeaderProps {
@@ -16,9 +16,7 @@ export function MusicHeader({ title, subtitle, coverUrl, playlist, source }: Mus
 
   const handlePlayAllClick = () => {
     if (playlist != undefined) {
-      console.log("handlePlayAllClick")
-
-      const data: playerControlData = {
+      playerControl.setState({
         playListInfo: {
           type: source,
           list_id: playlist.id,
@@ -28,9 +26,7 @@ export function MusicHeader({ title, subtitle, coverUrl, playlist, source }: Mus
         songs: playlist.songs,
         current: playlist.songs[0],
         immediately: undefined,
-      }
-
-      playerControl.setState(data as any);
+      });
     }
   }
 

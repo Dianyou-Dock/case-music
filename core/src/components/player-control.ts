@@ -5,13 +5,6 @@ import {SongInfo} from "@/types/song.ts";
 import {invoke} from "@tauri-apps/api/core";
 import {ApplicationResp} from "@/types/application.ts";
 
-export interface playerControlData {
-  playListInfo: playListInfo,
-  songs: SongInfo[];
-  current: SongInfo | undefined;
-  immediately: SongInfo | undefined;
-}
-
 export interface playListInfo {
   type: string;
   list_id: number;
@@ -22,27 +15,25 @@ export interface playListInfo {
 
 export const playerControl = create(
     ()=>({
-        data: {} as playerControlData
+      playListInfo: {} as playListInfo,
+      songs: [] as SongInfo[],
+      current: {} as SongInfo,
+      immediately: {} as SongInfo,
     }),
 )
 
-export async function updateState(result: any) {
-
-  const data = result as playerControlData;
-  console.log("updateState: ", data)
+export async function updateState(data: any) {
 
 
   // handle immediately
   if (data.immediately !== undefined) {
-    console.log("immediately: ", data.immediately)
     const cur = structuredClone(data.songs[0]);
-    const res: playerControlData = {
+    playerControl.setState({
       current: cur,
       playListInfo: data.playListInfo,
       songs: data.songs,
       immediately: undefined
-    }
-    playerControl.setState(res as any)
+    })
     return
   }
 
@@ -65,17 +56,12 @@ export async function updateState(result: any) {
     content: data.songs[0].content
   };
 
-  console.log("songs[0]: ", data.songs[0])
-  console.log("cur: ", cur);
-
-  const res: playerControlData = {
+  playerControl.setState({
     current: cur,
     playListInfo: data.playListInfo,
     songs: data.songs,
     immediately: undefined
-  }
-
-  playerControl.setState(res as any);
+  });
 }
 
 async function updateSongs(playListInfo: playListInfo):Promise<SongInfo[] | undefined> {
