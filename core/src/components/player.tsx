@@ -16,7 +16,7 @@ import ReactHowler from "react-howler";
 import {SongInfo} from "@/types/song.ts";
 import {ApplicationResp} from "@/types/application.ts";
 import {SongRate} from "@/types/constants.ts";
-import {back, next, playerControl, updateState} from "@/components/player-control";
+import {back, next, playerControl} from "@/components/player-control";
 import {formatDuration, formatProgress} from "@/lib/format.ts";
 
 export default function Player() {
@@ -27,6 +27,7 @@ export default function Player() {
   const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined);
   const [isPlaying, setIsPlaying] = useState(false); // 播放状态
   const [current, setCurrent] = useState<SongInfo|undefined>(undefined);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [progress, setProgress] = useState(0); // 播放进度
   const [duration, setDuration] = useState(0); // 总时长
   const howlerRef = useRef<ReactHowler | null>(null);
@@ -35,25 +36,38 @@ export default function Player() {
 
   async function handleOnEnd() {
     setIsPlaying(false);
-    const state = playerControl.getState();
-
-    updateState(state).then(() => {});
   }
 
-  // async function handleOnSeek() {
-  //
-  // }
+  async function handleHeartClick() {
+    console.log("handleHeartClick", current, currentIndex);
+    if (current === undefined){
+      return
+    }
+
+    const newLiked = !isLiked
+    setIsLiked(newLiked)
+    const res = await invoke<ApplicationResp<boolean>>("like_song", {req: {source: current.type, song_id: current.content.id, is_like: newLiked}});
+    console.log("handleHeartClick res: ", res);
+    if (res.data !== undefined && res.data) {
+      if (currentIndex != -1) {
+        // update play control
+        const state = playerControl.getState() as any;
+        state.likeds[currentIndex] = newLiked;
+        playerControl.setState(state);
+      }
+    }
+  }
 
   useEffect(() => {
     // 当播放器正在播放时，定时更新播放进度
-    console.log("isPlaying, songUrl, isPlaying && songUrl", isPlaying, songUrl, isPlaying && songUrl)
     if (isPlaying && songUrl) {
+
+
+      // TODO: 这里有点问题, 一旦在歌曲播放完后在点击播放, 这里的seek不会从0开始跳, 例如开始是8, 然后会在这里一直卡这个数,等到歌曲真实播放到了8s后,这个seek开会开始走数
       progressInterval.current = setInterval(() => {
-        console.log("into current")
-        if (howlerRef?.current) {
-          console.log("into if")
+        if (howlerRef?.current && howlerRef.current.howlerState() === "loaded") {
+
           const currentProgress = howlerRef.current.seek() as number;
-          console.log("currentProgress: ", currentProgress)
           setProgress(currentProgress);
         }
       }, 1000); // 每秒更新一次
@@ -79,14 +93,22 @@ export default function Player() {
   };
 
   const handleLoad = () => {
+    console.log("into onload")
     if (howlerRef?.current) {
       const songDuration = howlerRef.current.duration();
       setDuration(songDuration); // 获取歌曲总时长
     }
   };
 
+  const handlePlay = () => {
+    if (howlerRef?.current) {
+      const currentProgress = howlerRef.current.seek() as number;
+      setProgress(currentProgress);
+    }
+  }
 
-  async function get_song_url(songInfo: SongInfo) {
+
+  async function get_song_url(songInfo: SongInfo, currentIndex: number) {
     const req = {
       source: songInfo.type,
       songs: [songInfo.content.id],
@@ -101,6 +123,7 @@ export default function Player() {
         setPictureUrl(songInfo.content.pic_url)
         setIsPlaying(true);
         setCurrent(songInfo);
+        setCurrentIndex(currentIndex);
       }
 
     });
@@ -113,13 +136,24 @@ export default function Player() {
         const data = state as any;
         const stateCurrent = data.current as SongInfo;
         const stateImmediately = data.immediately as SongInfo;
+
+
+        // immediately
         if (stateImmediately !== undefined) {
-          get_song_url(stateImmediately).then(() => {});
+          get_song_url(stateImmediately, -1).then(() => {
+            setIsLiked(data.thisLiked);
+          });
+
           return
         }
 
+        // not immediately
         if (stateCurrent !== undefined && stateCurrent.content.id != current?.content.id) {
-          get_song_url(stateCurrent).then(() => {});
+          const currentIndex = data.thisIndex;
+          get_song_url(stateCurrent, currentIndex).then(() => {
+            setIsLiked(data.thisLiked);
+          });
+
         }
       }
     )
@@ -130,12 +164,13 @@ export default function Player() {
       {songUrl && (
         <ReactHowler
           src={songUrl}
-          preload={false}
+          preload={true}
           playing={isPlaying}
           volume={volume / 100}
           onEnd={handleOnEnd}
           onLoad={handleLoad} // 加载完成时设置总时长
           ref={howlerRef} // 直接使用 useRef 的引用
+          onPlay={handlePlay}
           // onSeek={}
         />
       )}
@@ -160,7 +195,7 @@ export default function Player() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setIsLiked(!isLiked)}
+                onClick={() => handleHeartClick()}
               >
                 <Heart
                   className={`h-4 w-4 ${

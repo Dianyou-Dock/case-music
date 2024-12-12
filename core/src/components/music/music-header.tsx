@@ -11,9 +11,10 @@ interface MusicHeaderProps {
   playlist: Playlist | undefined;
   source: MusicSource,
   total: number,
+  likeds: boolean[];
 }
 
-export function MusicHeader({ title, subtitle, coverUrl, playlist, source, total }: MusicHeaderProps) {
+export function MusicHeader({ title, subtitle, coverUrl, playlist, source, total, likeds }: MusicHeaderProps) {
 
   console.log("total: ", total)
   const handlePlayAllClick = () => {
@@ -30,6 +31,7 @@ export function MusicHeader({ title, subtitle, coverUrl, playlist, source, total
         current: playlist.songs[0],
         immediately: undefined,
         total: total,
+        likeds: likeds,
       });
     }
   }

@@ -26,6 +26,7 @@ pub struct CollectListReq {
 #[derive(Serialize, Debug, Clone)]
 pub struct ListSongsResp {
     pub list: Vec<SongInfo>,
+    pub likeds: Vec<bool>,
     pub total: u64,
 }
 
@@ -71,10 +72,14 @@ pub async fn collect_list(
 pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsResp>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
+    let Some(likeds) = INSTANCE.read().await.netesae.likeds() else {
+        return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
+    };
+
     let skip = req.offset * req.limit;
     let take = req.limit;
 
-    let (list, total) = match req.source {
+    let (list, total, ls) = match req.source {
         MusicSource::Netesae => {
             if let Some(like_list_info) = instance.netesae.like_list() {
                 let data = match &like_list_info.data {
@@ -82,6 +87,7 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
                 };
                 if data.id == req.list_id {
                     let total = data.songs.len();
+                    let ls = (0..take).map(|_| true).collect::<Vec<bool>>();
                     let page_list = data
                         .songs
                         .iter()
@@ -93,6 +99,7 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
                         .collect::<Vec<_>>();
                     return Ok(ApplicationResp::success_data(ListSongsResp {
                         list: page_list,
+                        likeds: ls,
                         total: total as u64,
                     }));
                 }
@@ -119,7 +126,17 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
                     data: SongInfoData::Netesae(v.clone()),
                 })
                 .collect::<Vec<_>>();
-            (list, total)
+
+            let mut ls = vec![];
+            for x in &songs {
+                if likeds.contains(&x.id) {
+                    ls.push(true);
+                } else {
+                    ls.push(false);
+                }
+            }
+
+            (list, total, ls)
         }
         MusicSource::Spotify => {
             todo!()
@@ -132,5 +149,9 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
         }
     };
 
-    Ok(ApplicationResp::success_data(ListSongsResp { list, total }))
+    Ok(ApplicationResp::success_data(ListSongsResp {
+        list,
+        likeds: ls,
+        total,
+    }))
 }

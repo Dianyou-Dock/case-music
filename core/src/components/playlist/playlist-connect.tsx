@@ -23,8 +23,9 @@ export function PlaylistContent() {
         playlist={playlist || undefined}
         source={source}
         total={0}
+        likeds={[]}
       />
-      <MusicList songs={playlist?.songs || []} />
+      <MusicList songs={playlist?.songs || []} likeds={[]} />
     </div>
   );
 }

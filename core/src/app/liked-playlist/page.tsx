@@ -26,11 +26,18 @@ export default function PlaylistPage() {
   }
 
   const [playlist, setPlaylist] = useState<Playlist>();
+  const [likeds, setLikeds] = useState<boolean[]>([]);
+
   useEffect(() => {
 
     likeList().then((res)=>{
       console.log('res: ', res);
-      setPlaylist(res)
+
+      if (res) {
+        setPlaylist(res)
+        const likeds: boolean[] = res.songs.map(() => true) || [];
+        setLikeds(likeds)
+      }
 
     })
 
@@ -47,8 +54,9 @@ export default function PlaylistPage() {
           playlist={playlist || undefined}
           source={source}
           total={playlist?.total || 0}
+          likeds={likeds}
         />
-        <MusicList songs={playlist?.songs || []} />
+        <MusicList songs={playlist?.songs || []} likeds={likeds} />
       </div>
     </>
   );

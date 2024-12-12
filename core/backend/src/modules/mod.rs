@@ -6,6 +6,7 @@ use crate::types::login_info::LoginInfo;
 use crate::types::play_list_info::PlayListInfo;
 use anyhow::Result;
 use async_trait::async_trait;
+use std::collections::HashSet;
 
 #[async_trait]
 pub trait MusicModule: Sync + Send {
@@ -20,4 +21,6 @@ pub trait MusicModule: Sync + Send {
     fn login_info(&self) -> Option<LoginInfo>;
 
     fn set_login_info(&mut self, login_info: LoginInfo);
+
+    fn likeds(&self) -> Option<HashSet<u64>>;
 }

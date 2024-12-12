@@ -11,18 +11,33 @@ import { Button } from "@/components/ui/button";
 import { formatDuration } from "@/lib/format";
 import {SongInfo} from "@/types/song.ts";
 import {playerControl} from "@/components/player-control";
+import {invoke} from "@tauri-apps/api/core";
+import {ApplicationResp} from "@/types/application.ts";
+import {useEffect} from "react";
 
 interface MusicListProps {
   songs: SongInfo[];
+  likeds: boolean[];
 }
 
-export function MusicList({ songs }: MusicListProps) {
+export function MusicList({ songs, likeds }: MusicListProps) {
 
-
-  function handlePlayClick(song: SongInfo) {
-    playerControl.setState({immediately: song, current: undefined})
+  function handlePlayClick(song: SongInfo, liked: boolean) {
+    playerControl.setState({immediately: song, current: undefined, thisLiked: liked})
   }
 
+  async function handleHeartClick(song: SongInfo, liked: boolean, index: number) {
+    console.log("into: ", song, liked, index);
+    const newLiked = !liked;
+    const res = await invoke<ApplicationResp<boolean>>("like_song", {req: {source: song.type, song_id: song.content.id, is_like: newLiked}});
+    console.log("res: ", res);
+    if (res.data !== undefined && res.data) {
+      likeds[index] = newLiked;
+    }
+  }
+
+  useEffect(() => {
+  }, [likeds]);
 
   return (
     <Table>
@@ -38,7 +53,7 @@ export function MusicList({ songs }: MusicListProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {songs.map((track) => (
+        {songs.map((track, index) => (
           <TableRow key={track.content.id}>
             <TableCell>
               <div className="flex items-center gap-3">
@@ -56,12 +71,19 @@ export function MusicList({ songs }: MusicListProps) {
             <TableCell>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Heart className="h-4 w-4" />
+                  <Heart
+                    className={`h-4 w-4 ${
+                      likeds[index]
+                        ? "fill-primary text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => {handleHeartClick(track, likeds[index], index)}}
+                  />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Play
                     className="h-4 w-4"
-                    onClick={() => {handlePlayClick(track)}}
+                    onClick={() => {handlePlayClick(track, likeds[index])}}
                   />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8">

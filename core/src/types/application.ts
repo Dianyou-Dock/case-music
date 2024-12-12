@@ -96,6 +96,7 @@ export interface ListSongReq {
 
 export interface ListSongResp {
   list: SongInfo[];
+  likeds: boolean[];
   total: number;
 }
 

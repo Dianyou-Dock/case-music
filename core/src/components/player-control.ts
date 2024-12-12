@@ -21,6 +21,8 @@ export const playerControl = create(
       current: {} as SongInfo,
       immediately: {} as SongInfo,
       total: -1,
+      likeds: [] as boolean[],
+      thisLiked: false,
     }),
 )
 
@@ -29,6 +31,7 @@ export async function updateState(data: any) {
   // handle immediately finish
   if (data.immediately !== undefined) {
     const cur = structuredClone(data.songs[data.index]);
+    const thisLiked = data.likeds[data.index];
     playerControl.setState({
       current: cur,
       playListInfo: data.playListInfo,
@@ -36,6 +39,8 @@ export async function updateState(data: any) {
       index: data.index,
       immediately: undefined,
       total: data.total,
+      likeds: data.liked,
+      thisLiked: thisLiked,
     })
     return
   }
@@ -44,7 +49,8 @@ export async function updateState(data: any) {
     // update songs
     updateSongs(data.playListInfo).then((res) => {
       if (res) {
-        data.songs.push(...res);
+        data.songs.push(...res.list);
+        data.likeds.push(...res.likeds);
       }
 
     })
@@ -52,6 +58,7 @@ export async function updateState(data: any) {
 
   data.index += 1
   const song = data.songs[data.index];
+  const thisLiked = data.likeds[data.index];
 
   const cur: SongInfo = {
     type: song.type,
@@ -65,10 +72,12 @@ export async function updateState(data: any) {
     songs: data.songs,
     immediately: undefined,
     total: data.total,
+    likeds: data.liked,
+    thisLiked: thisLiked,
   });
 }
 
-async function updateSongs(playListInfo: playListInfo):Promise<SongInfo[] | undefined> {
+async function updateSongs(playListInfo: playListInfo):Promise<ListSongResp | undefined> {
   const result = await invoke<ApplicationResp<ListSongResp>>("list_songs", {
     req: {
       source: playListInfo.type,
@@ -78,11 +87,7 @@ async function updateSongs(playListInfo: playListInfo):Promise<SongInfo[] | unde
     }
   });
 
-  if (result.data) {
-    return result.data.list;
-  }
-
-  return undefined
+  return result.data;
 }
 
 
@@ -95,6 +100,7 @@ export async function back() {
 
   const backIndex = data.index - 1;
   const song = data.songs[backIndex];
+  const thisLiked = data.likeds[backIndex];
 
   const cur: SongInfo = {
     type: song.type,
@@ -108,6 +114,8 @@ export async function back() {
     songs: data.songs,
     immediately: undefined,
     total: data.total,
+    likeds: data.likeds,
+    thisLiked: thisLiked,
   })
 }
 
@@ -130,7 +138,8 @@ export async function next() {
 
       updateSongs(req).then((res) => {
         if (res) {
-          data.songs.push(...res);
+          data.songs.push(...res.list);
+          data.likeds.push(...res.likeds);
         }
 
       });
@@ -141,6 +150,7 @@ export async function next() {
 
   const nextIndex = data.index + 1;
   const song = data.songs[nextIndex];
+  const thisLiked = data.likeds[nextIndex];
 
   const cur: SongInfo = {
     type: song.type,
@@ -152,6 +162,8 @@ export async function next() {
     playListInfo: data.playListInfo,
     index: nextIndex,
     songs: data.songs,
-    immediately: undefined
+    immediately: undefined,
+    likeds: data.likeds,
+    thisLiked: thisLiked,
   })
 }
