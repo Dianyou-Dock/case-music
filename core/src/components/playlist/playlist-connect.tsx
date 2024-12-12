@@ -8,6 +8,7 @@ import { useMusicData } from "@/hooks/use-music-data";
 export function PlaylistContent() {
   const { id } = useParams();
   const { playlist, isLoading } = useMusicData(id as unknown as number);
+  const source = "Netesae";
 
   if (isLoading) {
     return <div className="p-6">Loading...</div>;
@@ -19,6 +20,9 @@ export function PlaylistContent() {
         title={playlist?.name || "Playlist"}
         subtitle={`${playlist?.songs.length || 0} songs`}
         coverUrl={playlist?.cover_img_url}
+        playlist={playlist || undefined}
+        source={source}
+        total={0}
       />
       <MusicList songs={playlist?.songs || []} />
     </div>

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "core",
+  "productName": "case-music",
   "version": "0.1.0",
-  "identifier": "com.core.app",
+  "identifier": "com.case-music.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "core",
+        "title": "case music",
         "width": 800,
         "height": 600
       }

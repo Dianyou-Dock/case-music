@@ -29,7 +29,6 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
   }
 
   const handleConnectClick = () => {
-    console.log("isSelected: ", isSelected);
     // 点击按钮时，打开 AuthDialog
     if (isSelected) {
       logout().then((res) => {

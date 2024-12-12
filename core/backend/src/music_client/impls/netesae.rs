@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use cookie_store::CookieStore;
 use ncm_api::{CookieBuilder, CookieJar, MusicApi};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
 
 pub enum CheckQrCode {
@@ -83,7 +83,11 @@ impl NeteaseClient {
             MusicApi::new(100)
         };
 
-        Ok(Self { api, auth_file, logged })
+        Ok(Self {
+            api,
+            auth_file,
+            logged,
+        })
     }
 
     async fn replace_api(&mut self, cookie_jar: CookieJar) -> Result<()> {
@@ -320,13 +324,12 @@ mod test {
             let resp = client.login_by_unikey(result.unikey.clone()).await;
 
             match resp {
-                Ok((code,info)) => {
+                Ok((code, info)) => {
                     println!("login info: {info:?}");
                     if code == 0 {
                         let info = info.unwrap();
                         return Ok(info);
                     }
-
                 }
                 Err(e) => {
                     println!("login error: {e}");
