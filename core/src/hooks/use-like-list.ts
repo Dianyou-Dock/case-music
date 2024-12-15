@@ -8,7 +8,7 @@ type Props = {
   pageIndex: number;
 };
 
-const useLikedPlaylist = ({ source, pageIndex }: Props) => {
+const useLikeList = ({ source, pageIndex }: Props) => {
   const { data, isLoading, mutate, error } = useSWR(
     source ? ["like_list", source, pageIndex] : null,
     () =>
@@ -25,4 +25,4 @@ const useLikedPlaylist = ({ source, pageIndex }: Props) => {
   };
 };
 
-export default useLikedPlaylist;
+export default useLikeList;

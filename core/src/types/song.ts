@@ -1,8 +1,20 @@
 import { MusicSource } from "@/types/constants.ts";
 
+type SongContent = {
+  album: string;
+  album_id: number;
+  copyright: string;
+  duration: number;
+  id: number;
+  name: string;
+  pic_url: string;
+  singer: string;
+  song_url: string;
+};
+
 export interface SongInfoData {
   type: MusicSource;
-  content: any;
+  content: SongContent;
 }
 
 export interface SongInfo extends SongInfoData {}

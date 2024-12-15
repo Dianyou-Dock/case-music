@@ -1,4 +1,5 @@
-import {SongInfo} from "@/types/song.ts";
+import { SongInfo } from "@/types/song.ts";
+import { ApplicationResp } from "./application";
 
 export interface Track {
   id: string;
@@ -16,3 +17,5 @@ export interface Playlist {
   songs: SongInfo[];
   total: number;
 }
+
+export type PlaylistRes = ApplicationResp<Playlist>;
