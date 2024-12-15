@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import {create} from "zustand";
-import {SongInfo} from "@/types/song.ts";
-import {invoke} from "@tauri-apps/api/core";
-import {ApplicationResp, ListSongResp} from "@/types/application.ts";
+import { create } from "zustand";
+import { SongInfo } from "@/types/song.ts";
+import { invoke } from "@tauri-apps/api/core";
+import { ApplicationResp, ListSongResp } from "@/types/application.ts";
 
 export interface playListInfo {
   type: string;
@@ -12,22 +12,18 @@ export interface playListInfo {
   limit: number;
 }
 
-
-export const playerControl = create(
-    ()=>({
-      playListInfo: {} as playListInfo,
-      songs: [] as SongInfo[],
-      index: -1,
-      current: {} as SongInfo,
-      immediately: {} as SongInfo,
-      total: -1,
-      likeds: [] as boolean[],
-      thisLiked: false,
-    }),
-)
+export const playerControl = create(() => ({
+  playListInfo: {} as playListInfo,
+  songs: [] as SongInfo[],
+  index: -1,
+  current: {} as SongInfo,
+  immediately: {} as SongInfo,
+  total: -1,
+  likeds: [] as boolean[],
+  thisLiked: false,
+}));
 
 export async function updateState(data: any) {
-
   // handle immediately finish
   if (data.immediately !== undefined) {
     const cur = structuredClone(data.songs[data.index]);
@@ -41,8 +37,8 @@ export async function updateState(data: any) {
       total: data.total,
       likeds: data.liked,
       thisLiked: thisLiked,
-    })
-    return
+    });
+    return;
   }
 
   if (data.songs.length - data.index <= 5) {
@@ -52,17 +48,16 @@ export async function updateState(data: any) {
         data.songs.push(...res.list);
         data.likeds.push(...res.likeds);
       }
-
-    })
+    });
   }
 
-  data.index += 1
+  data.index += 1;
   const song = data.songs[data.index];
   const thisLiked = data.likeds[data.index];
 
   const cur: SongInfo = {
     type: song.type,
-    content: song.content
+    content: song.content,
   };
 
   playerControl.setState({
@@ -77,19 +72,20 @@ export async function updateState(data: any) {
   });
 }
 
-async function updateSongs(playListInfo: playListInfo):Promise<ListSongResp | undefined> {
+async function updateSongs(
+  playListInfo: playListInfo
+): Promise<ListSongResp | undefined> {
   const result = await invoke<ApplicationResp<ListSongResp>>("list_songs", {
     req: {
       source: playListInfo.type,
       list_id: playListInfo.list_id,
       offset: playListInfo.page_index,
-      limit: playListInfo.limit
-    }
+      limit: playListInfo.limit,
+    },
   });
 
   return result.data;
 }
-
 
 export async function back() {
   const data = playerControl.getState();
@@ -104,7 +100,7 @@ export async function back() {
 
   const cur: SongInfo = {
     type: song.type,
-    content: song.content
+    content: song.content,
   };
 
   playerControl.setState({
@@ -116,7 +112,7 @@ export async function back() {
     total: data.total,
     likeds: data.likeds,
     thisLiked: thisLiked,
-  })
+  });
 }
 
 export async function next() {
@@ -124,7 +120,7 @@ export async function next() {
 
   const songsLen = data.songs.length;
 
-  if (songsLen - data.index <= 5 ) {
+  if (songsLen - data.index <= 5) {
     if (data.total - songsLen > 0) {
       const offset = data.playListInfo.page_index + 1;
       const limit = data.playListInfo.limit;
@@ -134,17 +130,16 @@ export async function next() {
         list_id: data.playListInfo.list_id,
         page_index: offset,
         limit: limit,
-      }
+      };
 
       updateSongs(req).then((res) => {
         if (res) {
           data.songs.push(...res.list);
           data.likeds.push(...res.likeds);
         }
-
       });
     } else {
-      return new Error("Already at the last song")
+      return new Error("Already at the last song");
     }
   }
 
@@ -154,7 +149,7 @@ export async function next() {
 
   const cur: SongInfo = {
     type: song.type,
-    content: song.content
+    content: song.content,
   };
 
   playerControl.setState({
@@ -165,5 +160,5 @@ export async function next() {
     immediately: undefined,
     likeds: data.likeds,
     thisLiked: thisLiked,
-  })
+  });
 }

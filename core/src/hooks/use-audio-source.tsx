@@ -1,14 +1,16 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { AudioSource } from "@/lib/audio-sources";
 import { invoke } from "@tauri-apps/api/core";
 import { UserSourceConfigRes, SourceListResp } from "@/types/application";
 import { cloneDeep, set } from "lodash";
+import { MusicSource } from "@/types/constants";
 
 interface AudioSourceContextType {
   audioSource: AudioSource[] | null;
   configureSource: (data: AudioSource[]) => void;
+  currentSource: MusicSource;
 }
 
 const AudioSourceContext = createContext<AudioSourceContextType | undefined>(
@@ -29,7 +31,7 @@ const fetchUserSourceConfig = async () => {
   try {
     // fetch audio source from server
     const res = await invoke<UserSourceConfigRes>("logged");
-    console.log("logged: ", res)
+    console.log("logged: ", res);
     return res.data;
   } catch (error) {
     console.error(error);
@@ -42,6 +44,11 @@ export function AudioSourceProvider({
   children: React.ReactNode;
 }) {
   const [audioSource, setAudioSource] = useState<AudioSource[] | null>(null);
+
+  const currentSource = useMemo(() => {
+    // only use one source
+    return audioSource?.filter((item) => item.connected)[0].id as MusicSource;
+  }, [audioSource]);
 
   useEffect(() => {
     fetchSourceList().then((list) => {
@@ -69,7 +76,9 @@ export function AudioSourceProvider({
   };
 
   return (
-    <AudioSourceContext.Provider value={{ audioSource, configureSource }}>
+    <AudioSourceContext.Provider
+      value={{ audioSource, configureSource, currentSource }}
+    >
       {children}
     </AudioSourceContext.Provider>
   );

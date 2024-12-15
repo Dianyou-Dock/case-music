@@ -1,22 +1,29 @@
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {Playlist} from "@/types/music.ts";
-import {playerControl} from "@/components/player-control";
-import {defaultLimit, MusicSource} from "@/types/constants.ts";
+import { Playlist } from "@/types/music.ts";
+import { playerControl } from "@/components/player-control";
+import { defaultLimit, MusicSource } from "@/types/constants.ts";
 
 interface MusicHeaderProps {
   title: string;
   subtitle: string;
   coverUrl?: string;
   playlist: Playlist | undefined;
-  source: MusicSource,
-  total: number,
+  source: MusicSource;
+  total: number;
   likeds: boolean[];
 }
 
-export function MusicHeader({ title, subtitle, coverUrl, playlist, source, total, likeds }: MusicHeaderProps) {
+export function MusicHeader({
+  title,
+  subtitle,
+  coverUrl,
+  playlist,
+  source,
+  total,
+  likeds,
+}: MusicHeaderProps) {
 
-  console.log("total: ", total)
   const handlePlayAllClick = () => {
     if (playlist != undefined) {
       playerControl.setState({
@@ -34,7 +41,7 @@ export function MusicHeader({ title, subtitle, coverUrl, playlist, source, total
         likeds: likeds,
       });
     }
-  }
+  };
 
   return (
     <div className="flex items-end gap-6">
@@ -52,11 +59,7 @@ export function MusicHeader({ title, subtitle, coverUrl, playlist, source, total
           <h1 className="text-4xl font-bold">{title}</h1>
           <p className="text-lg text-muted-foreground">{subtitle}</p>
         </div>
-        <Button
-            size="lg"
-            className="w-fit gap-2"
-            onClick={handlePlayAllClick}
-        >
+        <Button size="lg" className="w-fit gap-2" onClick={handlePlayAllClick}>
           <Play className="h-5 w-5" /> Play All
         </Button>
       </div>

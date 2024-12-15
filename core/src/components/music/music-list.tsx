@@ -9,35 +9,43 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { formatDuration } from "@/lib/format";
-import {SongInfo} from "@/types/song.ts";
-import {playerControl} from "@/components/player-control";
-import {invoke} from "@tauri-apps/api/core";
-import {ApplicationResp} from "@/types/application.ts";
-import {useEffect} from "react";
+import { SongInfo } from "@/types/song.ts";
+import { playerControl } from "@/components/player-control";
+import { invoke } from "@tauri-apps/api/core";
+import { ApplicationResp } from "@/types/application.ts";
+import { useState } from "react";
+import { useAudioSource } from "@/hooks/use-audio-source";
 
 interface MusicListProps {
   songs: SongInfo[];
-  likeds: boolean[];
 }
 
-export function MusicList({ songs, likeds }: MusicListProps) {
+export function MusicList({ songs }: MusicListProps) {
+  const { currentSource } = useAudioSource();
+  const [likes, setLikes] = useState(songs.map((item) => item.content.id));
 
   function handlePlayClick(song: SongInfo, liked: boolean) {
-    playerControl.setState({immediately: song, current: undefined, thisLiked: liked})
+    playerControl.setState({
+      immediately: song,
+      current: undefined,
+      thisLiked: liked,
+    });
   }
 
-  async function handleHeartClick(song: SongInfo, liked: boolean, index: number) {
-    console.log("into: ", song, liked, index);
+  async function handleHeartClick(id: number, liked: boolean) {
     const newLiked = !liked;
-    const res = await invoke<ApplicationResp<boolean>>("like_song", {req: {source: song.type, song_id: song.content.id, is_like: newLiked}});
-    console.log("res: ", res);
+    const res = await invoke<ApplicationResp<boolean>>("like_song", {
+      req: { source: currentSource, song_id: id, is_like: newLiked },
+    });
     if (res.data !== undefined && res.data) {
-      likeds[index] = newLiked;
+      // update success, update local state
+      if (newLiked) {
+        setLikes([...likes, id]);
+      } else {
+        setLikes(likes.filter((item) => item !== id));
+      }
     }
   }
-
-  useEffect(() => {
-  }, [likeds]);
 
   return (
     <Table>
@@ -53,7 +61,7 @@ export function MusicList({ songs, likeds }: MusicListProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {songs.map((track, index) => (
+        {songs.map((track) => (
           <TableRow key={track.content.id}>
             <TableCell>
               <div className="flex items-center gap-3">
@@ -73,17 +81,24 @@ export function MusicList({ songs, likeds }: MusicListProps) {
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Heart
                     className={`h-4 w-4 ${
-                      likeds[index]
+                      likes.includes(track.content.id)
                         ? "fill-primary text-primary"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
-                    onClick={() => {handleHeartClick(track, likeds[index], index)}}
+                    onClick={() => {
+                      handleHeartClick(
+                        track.content.id,
+                        likes.includes(track.content.id)
+                      );
+                    }}
                   />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Play
                     className="h-4 w-4"
-                    onClick={() => {handlePlayClick(track, likeds[index])}}
+                    onClick={() => {
+                      handlePlayClick(track, likes.includes(track.content.id));
+                    }}
                   />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8">

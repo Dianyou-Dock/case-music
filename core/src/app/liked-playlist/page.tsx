@@ -1,19 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
 import useLikedPlaylist from "@/hooks/use-liked-playlist";
 import { useAudioSource } from "@/hooks/use-audio-source";
 import { MusicList } from "@/components/music/music-list";
 import { MusicHeader } from "@/components/music/music-header";
-import { MusicSource } from "@/types/constants.ts";
 
 export default function PlaylistPage() {
-  const { audioSource } = useAudioSource();
-
-  const currentSource = useMemo(() => {
-    // only use one source
-    return audioSource?.filter((item) => item.connected)[0].id as MusicSource;
-  }, [audioSource]);
+  const { currentSource } = useAudioSource();
 
   const { data } = useLikedPlaylist({
     source: currentSource,
@@ -32,10 +25,7 @@ export default function PlaylistPage() {
           total={data?.total || 0}
           likeds={data?.songs.map(() => true) || []}
         />
-        <MusicList
-          songs={data?.songs || []}
-          likeds={data?.songs.map(() => true) || []}
-        />
+        <MusicList songs={data?.songs || []} />
       </div>
     </>
   );
