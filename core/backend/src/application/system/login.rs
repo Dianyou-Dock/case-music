@@ -1,5 +1,6 @@
+use crate::ai_client::impls::kimi::Kimi;
 use crate::application::resp::ApplicationResp;
-use crate::types::constants::MusicSource;
+use crate::types::constants::{AiSource, MusicSource};
 use crate::types::error::MusicClientError;
 use crate::types::login_info::{LoginInfo, LoginQrInfo};
 use crate::INSTANCE;
@@ -87,13 +88,51 @@ pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, In
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct LoggedData {
+pub struct AiLoggedData {
+    pub used: bool,
+    pub disabled: bool,
+}
+
+#[tauri::command]
+pub async fn ai_logged() -> Result<ApplicationResp<BTreeMap<String, AiLoggedData>>, InvokeError> {
+    let instance = INSTANCE.read().await;
+
+    let mut map = BTreeMap::new();
+
+    AiSource::display_list().iter().for_each(|ai| {
+        map.insert(
+            ai.id.clone(),
+            AiLoggedData {
+                used: false,
+                disabled: false,
+            },
+        );
+    });
+
+    if let Some(ai) = &instance.ai {
+        let ai_source = ai.ai_source();
+
+        map.insert(
+            ai_source.to_string(),
+            AiLoggedData {
+                used: true,
+                disabled: false,
+            },
+        );
+    };
+
+    Ok(ApplicationResp::success_data(map))
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MusicLoggedData {
     pub logged: bool,
     pub disable: bool,
 }
 
 #[tauri::command]
-pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, LoggedData>>, InvokeError> {
+pub async fn music_logged(
+) -> Result<ApplicationResp<BTreeMap<String, MusicLoggedData>>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
     let mut map = BTreeMap::new();
@@ -103,7 +142,7 @@ pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, LoggedData>>, I
         let result = instance.netesae.client().logged().await;
         map.insert(
             MusicSource::Netesae.to_string(),
-            LoggedData {
+            MusicLoggedData {
                 logged: result,
                 disable: false,
             },
@@ -114,7 +153,7 @@ pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, LoggedData>>, I
     {
         map.insert(
             MusicSource::QQ.to_string(),
-            LoggedData {
+            MusicLoggedData {
                 logged: false,
                 disable: true,
             },
@@ -125,7 +164,7 @@ pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, LoggedData>>, I
     {
         map.insert(
             MusicSource::Apple.to_string(),
-            LoggedData {
+            MusicLoggedData {
                 logged: false,
                 disable: true,
             },
@@ -136,7 +175,7 @@ pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, LoggedData>>, I
     {
         map.insert(
             MusicSource::Spotify.to_string(),
-            LoggedData {
+            MusicLoggedData {
                 logged: false,
                 disable: true,
             },
@@ -144,4 +183,29 @@ pub async fn logged() -> Result<ApplicationResp<BTreeMap<String, LoggedData>>, I
     }
 
     Ok(ApplicationResp::success_data(map))
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AiSetApiKeyReq {
+    pub source: AiSource,
+    pub api_key: String,
+}
+
+#[tauri::command]
+pub async fn set_api_key(
+    req: AiSetApiKeyReq,
+) -> std::result::Result<ApplicationResp<()>, InvokeError> {
+    let mut instance = INSTANCE.write().await;
+
+    match req.source {
+        AiSource::Kimi => {
+            let kimi = Kimi::new(req.api_key)
+                .await
+                .map_err(InvokeError::from_anyhow)?;
+
+            instance.ai.replace(Box::new(kimi));
+        }
+    }
+
+    Ok(ApplicationResp::success())
 }

@@ -3,6 +3,7 @@ pub mod impls;
 use crate::types::ai_recommend_info::{
     AiRecommendInfo, AiRecommendSingerInfo, AiRecommendSongInfo,
 };
+use crate::types::constants::AiSource;
 use anyhow::Result;
 use async_trait::async_trait;
 
@@ -37,4 +38,6 @@ pub trait Client: Sync + Send {
         song_count: u64,
         previous: Option<Vec<String>>,
     ) -> Result<AiRecommendSingerInfo>;
+
+    fn ai_source(&self) -> AiSource;
 }

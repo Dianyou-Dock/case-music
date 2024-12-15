@@ -234,6 +234,10 @@ impl Client for Kimi {
 
         Ok(resp)
     }
+
+    fn ai_source(&self) -> AiSource {
+        AiSource::Kimi
+    }
 }
 
 #[cfg(test)]

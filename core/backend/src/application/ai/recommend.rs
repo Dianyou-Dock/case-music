@@ -1,4 +1,4 @@
-use crate::application::resp::ApplicationResp;
+use crate::application::resp::{ApplicationResp, ListResp};
 use crate::types::ai_recommend_info::{AiBenchmarkInfo, AiRecommendSongInfo};
 use crate::types::constants::{
     MusicSource, RAND_RECOMMENDS_BENCHMARK_COUNT, RAND_RECOMMENDS_COUNT,
@@ -8,7 +8,6 @@ use crate::types::error::ErrorHandle;
 use crate::types::error::MusicClientError::LikeListNotExist;
 use crate::types::play_list_info::PlayListInfoData;
 use crate::types::song_info::{SongInfo, SongInfoData};
-use crate::types::song_url::{SongRate, SongUrl};
 use crate::{utils, INSTANCE};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -264,7 +263,7 @@ pub async fn current_recommends() -> Result<ApplicationResp<BTreeMap<u64, SongIn
 #[tauri::command]
 pub async fn rand_recommends(
     source: MusicSource,
-) -> Result<ApplicationResp<Vec<SongUrl>>, InvokeError> {
+) -> Result<ApplicationResp<ListResp>, InvokeError> {
     if INSTANCE.read().await.ai.is_none() {
         return Err(InvokeError::from_anyhow(AiNotUse.anyhow_err()));
     }
@@ -308,30 +307,40 @@ pub async fn rand_recommends(
                 .await
                 .map_err(InvokeError::from_anyhow)?;
 
-            let mut songs = vec![];
+            let mut songs_id = vec![];
+            println!("recommend_result: {recommend_result:?}");
             for recommend_info in recommend_result.recommends {
-                let song_info = instance
+                let result = instance
                     .netesae
                     .client()
                     .search_song(&recommend_info.name, &recommend_info.singer)
-                    .await
-                    .map_err(InvokeError::from_anyhow)?;
+                    .await;
 
-                if let Some(v) = song_info {
-                    let song_id = match v.data {
-                        SongInfoData::Netesae(d) => d.id,
-                    };
-                    songs.push(song_id);
+                match result {
+                    Ok(song_info) => {
+                        if let Some(v) = song_info {
+                            let song_id = match &v.data {
+                                SongInfoData::Netesae(v) => v.id,
+                            };
+
+                            songs_id.push(song_id);
+                        }
+                    }
+                    Err(e) => {
+                        println!("recommend_error: {e}");
+                        continue;
+                    }
                 }
             }
 
-            let songs_url = instance
+            let songs_info = instance
                 .netesae
                 .client()
-                .songs_url(&songs, SongRate::M)
+                .song_infos(&songs_id)
                 .await
                 .map_err(InvokeError::from_anyhow)?;
-            songs_url
+
+            songs_info
         }
         MusicSource::Spotify => {
             todo!()
@@ -344,5 +353,13 @@ pub async fn rand_recommends(
         }
     };
 
-    Ok(ApplicationResp::success_data(list))
+    let total = list.len();
+
+    Ok(ApplicationResp::success_data(ListResp{
+        id: 0,
+        name: "rand recommend".to_string(),
+        cover_img_url: "https://raw.githubusercontent.com/Dianyou-Dock/case-music/refs/heads/main/core/backend/icons/origin.png".to_string(),
+        songs: list,
+        total: total as u64,
+    }))
 }

@@ -30,7 +30,9 @@ pub async fn run() {
             // system api
             application::system::login::get_qr,
             application::system::login::login_by_qr,
-            application::system::login::logged,
+            application::system::login::music_logged,
+            application::system::login::ai_logged,
+            application::system::login::set_api_key,
             application::system::logout::logout,
             application::system::constants::music_source_list,
             application::system::constants::ai_source_list,

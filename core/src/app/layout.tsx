@@ -5,6 +5,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { AudioSourceProvider } from "@/hooks/use-audio-source";
 import Player from "@/components/player";
 import Sidebar from "@/components/sidebar";
+import { AiSourceProvider } from "@/hooks/use-ai-source.tsx";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             <AudioSourceProvider>
+              <AiSourceProvider>
               <div className="flex h-screen flex-col">
                 <div className="flex flex-1 overflow-hidden">
                   <Sidebar />
@@ -34,6 +36,7 @@ export default function RootLayout({
                 </div>
                 <Player />
               </div>
+              </AiSourceProvider>
             </AudioSourceProvider>
           </AuthProvider>
         </ThemeProvider>

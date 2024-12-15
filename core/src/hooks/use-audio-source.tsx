@@ -30,7 +30,7 @@ const fetchSourceList = async () => {
 const fetchUserSourceConfig = async () => {
   try {
     // fetch audio source from server
-    const res = await invoke<UserSourceConfigRes>("logged");
+    const res = await invoke<UserSourceConfigRes>("music_logged");
     console.log("logged: ", res);
     return res.data;
   } catch (error) {

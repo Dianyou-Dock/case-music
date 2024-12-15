@@ -1,4 +1,4 @@
-use crate::application::resp::ApplicationResp;
+use crate::application::resp::{ApplicationResp, ListResp};
 use crate::types::constants::MusicSource;
 use crate::types::error::ErrorHandle;
 use crate::types::error::MusicClientError::NotLogin;
@@ -17,17 +17,8 @@ pub struct LikeListReq {
     pub limit: usize,
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub struct LikeListResp {
-    pub id: u64,
-    pub name: String,
-    pub cover_img_url: String,
-    pub songs: Vec<SongInfo>,
-    pub total: u64,
-}
-
 #[tauri::command]
-pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<LikeListResp>, InvokeError> {
+pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<ListResp>, InvokeError> {
     let Some(login_info) = INSTANCE.read().await.netesae.login_info() else {
         return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
     };
@@ -72,7 +63,7 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<LikeListResp>
                     data: SongInfoData::Netesae(v.clone()),
                 })
                 .collect::<Vec<_>>();
-            LikeListResp {
+            ListResp {
                 id: data.id,
                 name: data.name.clone(),
                 cover_img_url: data.cover_img_url.clone(),
