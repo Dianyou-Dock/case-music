@@ -18,7 +18,10 @@ const useLikedPlaylist = ({ source, pageIndex }: Props) => {
   );
 
   return {
-    data,
+    data: {
+      ...data,
+      songs: data?.songs.map((song) => ({ ...song, liked: true })),
+    },
     isLoading,
     mutate,
     error,

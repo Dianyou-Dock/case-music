@@ -28,7 +28,7 @@ export default function PlaylistPage() {
       <div className="flex flex-col gap-6 p-6">
         <MusicHeader
           title={data?.name || "Playlist"}
-          subtitle={`${data?.songs.length || 0} songs`}
+          subtitle={`${data?.songs?.length || 0} songs`}
           coverUrl={data?.cover_img_url}
           handlePlayAllClick={handlePlayAll}
         />

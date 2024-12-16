@@ -18,8 +18,10 @@ import { ApplicationResp } from "@/types/application.ts";
 import { SongRate } from "@/types/constants.ts";
 import playerControl from "@/store/player-control";
 import { formatDuration, formatProgress } from "@/lib/format.ts";
+import { useAudioSource } from "@/hooks/use-audio-source";
 
 export default function Player() {
+  const { currentSource } = useAudioSource();
   const index = playerControl.useTracked.index();
   const isPlaying = playerControl.useTracked.isPlaying();
   const current = playerControl.useTracked.currentSong();
@@ -31,6 +33,7 @@ export default function Player() {
   const [duration, setDuration] = useState(0); // 总时长
   const howlerRef = useRef<ReactHowler | null>(null);
   const [seekInterval, setSeekInterval] = useState<NodeJS.Timeout | null>(null);
+  const [liked, setLiked] = useState(current?.liked || false);
 
   async function handleOnEnd() {
     if (immediately) {
@@ -111,6 +114,17 @@ export default function Player() {
     }
   }, [index, current]);
 
+  async function handleHeartClick(id: number) {
+    const newLiked = !liked;
+
+    // update local state
+    setLiked(newLiked);
+
+    await invoke<ApplicationResp<boolean>>("like_song", {
+      req: { source: currentSource, song_id: id, is_like: newLiked },
+    });
+  }
+
   return (
     <>
       {songUrl && (
@@ -147,11 +161,11 @@ export default function Player() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => {}}
+                  onClick={() => handleHeartClick(current.content.id)}
                 >
                   <Heart
                     className={`h-4 w-4 ${
-                      true
+                      liked
                         ? "fill-primary text-primary"
                         : "text-muted-foreground hover:text-foreground"
                     }`}

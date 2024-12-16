@@ -15,6 +15,7 @@ type SongContent = {
 export interface SongInfoData {
   type: MusicSource;
   content: SongContent;
+  liked: boolean;
 }
 
 export interface SongInfo extends SongInfoData {}
