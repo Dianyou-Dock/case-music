@@ -13,40 +13,16 @@ import { Button } from "@/components/ui/button";
 import { formatDuration } from "@/lib/format";
 import { SongInfo } from "@/types/song.ts";
 import playerControl from "@/store/player-control";
-import { invoke } from "@tauri-apps/api/core";
-import { ApplicationResp } from "@/types/application.ts";
-import { useState } from "react";
-import { useAudioSource } from "@/hooks/use-audio-source";
 
 interface MusicListProps {
   songs: SongInfo[];
 }
 
 export function MusicList({ songs }: MusicListProps) {
-  const { currentSource } = useAudioSource();
-  const [likes, setLikes] = useState(songs.map((item) => item.content.id));
-
-  function handlePlayClick(song: SongInfo, liked: boolean) {
+  function handlePlayClick(song: SongInfo) {
     playerControl.set.state((draft) => {
       draft.immediately = song;
-      draft.current = song;
-      draft.thisLiked = liked;
     });
-  }
-
-  async function handleHeartClick(id: number, liked: boolean) {
-    const newLiked = !liked;
-    const res = await invoke<ApplicationResp<boolean>>("like_song", {
-      req: { source: currentSource, song_id: id, is_like: newLiked },
-    });
-    if (res.data !== undefined && res.data) {
-      // update success, update local state
-      if (newLiked) {
-        setLikes([...likes, id]);
-      } else {
-        setLikes(likes.filter((item) => item !== id));
-      }
-    }
   }
 
   return (
@@ -83,23 +59,18 @@ export function MusicList({ songs }: MusicListProps) {
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Heart
                     className={`h-4 w-4 ${
-                      likes.includes(track.content.id)
+                      true
                         ? "fill-primary text-primary"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
-                    onClick={() => {
-                      handleHeartClick(
-                        track.content.id,
-                        likes.includes(track.content.id)
-                      );
-                    }}
+                    onClick={() => {}}
                   />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Play
                     className="h-4 w-4"
                     onClick={() => {
-                      handlePlayClick(track, likes.includes(track.content.id));
+                      handlePlayClick(track);
                     }}
                   />
                 </Button>

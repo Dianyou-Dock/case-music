@@ -18,77 +18,51 @@ import { ApplicationResp } from "@/types/application.ts";
 import { SongRate } from "@/types/constants.ts";
 import playerControl from "@/store/player-control";
 import { formatDuration, formatProgress } from "@/lib/format.ts";
-import { likeSong } from "@/services";
 
 export default function Player() {
-  const current = playerControl.useTracked.current();
+  const index = playerControl.useTracked.index();
+  const isPlaying = playerControl.useTracked.isPlaying();
+  const current = playerControl.useTracked.currentSong();
   const immediately = playerControl.useTracked.immediately();
-  const thisLiked = playerControl.useTracked.thisLiked();
-  const thisIndex = playerControl.useTracked.index();
   const [volume, setVolume] = useState(75);
-  const [isLiked, setIsLiked] = useState(false);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
   const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined);
-  const [isPlaying, setIsPlaying] = useState(false); // 播放状态
-  const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [progress, setProgress] = useState(0); // 播放进度
   const [duration, setDuration] = useState(0); // 总时长
   const howlerRef = useRef<ReactHowler | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const [seekInterval, setSeekInterval] = useState<NodeJS.Timeout | null>(null);
 
   async function handleOnEnd() {
-    setIsPlaying(false);
-  }
-
-  async function handleHeartClick() {
-    console.log("handleHeartClick", current, currentIndex);
-    if (current === undefined) {
-      return;
+    if (immediately) {
+      // clear immediately song, and play with index
+      playerControl.set.state((draft) => {
+        draft.immediately = undefined;
+      });
     }
-
-    const newLiked = !isLiked;
-    setIsLiked(newLiked);
-    const res = await likeSong({
-      source: current.type,
-      song_id: current.content.id,
-      is_like: newLiked,
-    });
-    console.log("handleHeartClick res: ", res);
-    if (res.data !== undefined && res.data) {
-      if (currentIndex != -1) {
-        // update play control
-        playerControl.set.state((draft) => {
-          draft.likeds[currentIndex] = newLiked;
-        });
-      }
-    }
+    playerControl.set.pause();
+    playerControl.set.next();
+    playerControl.set.play();
   }
 
   useEffect(() => {
-    // 当播放器正在播放时，定时更新播放进度
-    if (isPlaying && songUrl) {
-      // TODO: 这里有点问题, 一旦在歌曲播放完后在点击播放, 这里的seek不会从0开始跳, 例如开始是8, 然后会在这里一直卡这个数,等到歌曲真实播放到了8s后,这个seek开会开始走数
-      progressInterval.current = setInterval(() => {
-        if (
-          howlerRef?.current &&
-          howlerRef.current.howlerState() === "loaded"
-        ) {
-          const currentProgress = howlerRef.current.seek() as number;
-          setProgress(currentProgress);
+    if (isPlaying && !seekInterval) {
+      const interval = setInterval(() => {
+        if (howlerRef.current) {
+          setProgress(howlerRef.current.seek());
         }
-      }, 1000); // 每秒更新一次
-    } else {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-        progressInterval.current = null;
-      }
+      }, 1000);
+      setSeekInterval(interval);
+    } else if (!isPlaying && seekInterval) {
+      clearInterval(seekInterval);
+      setSeekInterval(null);
     }
+
     return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
+      if (seekInterval) {
+        clearInterval(seekInterval);
       }
     };
-  }, [isPlaying, songUrl]);
+  }, [isPlaying, seekInterval]);
 
   const handleSliderChange = (value: number[]) => {
     const newProgress = value[0];
@@ -99,7 +73,6 @@ export default function Player() {
   };
 
   const handleLoad = () => {
-    console.log("into onload");
     if (howlerRef?.current) {
       const songDuration = howlerRef.current.duration();
       setDuration(songDuration); // 获取歌曲总时长
@@ -113,7 +86,7 @@ export default function Player() {
     }
   };
 
-  async function get_song_url(songInfo: SongInfo, currentIndex: number) {
+  async function get_song_url(songInfo: SongInfo) {
     const req = {
       source: songInfo.type,
       songs: [songInfo.content.id],
@@ -125,28 +98,18 @@ export default function Player() {
         const url = res.data.urls[0].content.url;
         setSongUrl(url);
         setPictureUrl(songInfo.content.pic_url);
-        setIsPlaying(true);
-        setCurrentIndex(currentIndex);
       }
     });
   }
 
   useEffect(() => {
-    // immediately
-    if (immediately !== undefined) {
-      get_song_url(immediately, -1).then(() => {
-        setIsLiked(thisLiked);
-      });
+    if (!current) {
       return;
     }
-
-    // not immediately
-    if (current !== undefined) {
-      get_song_url(current, thisIndex).then(() => {
-        setIsLiked(thisLiked);
-      });
+    if (index >= 0) {
+      get_song_url(current);
     }
-  }, [current, immediately, thisLiked, thisIndex]);
+  }, [index, current]);
 
   return (
     <>
@@ -160,7 +123,6 @@ export default function Player() {
           onLoad={handleLoad} // 加载完成时设置总时长
           ref={howlerRef} // 直接使用 useRef 的引用
           onPlay={handlePlay}
-          // onSeek={}
         />
       )}
       <div className="border-t bg-background p-4">
@@ -174,7 +136,9 @@ export default function Player() {
               />
               <div className="flex items-center gap-3">
                 <div>
-                  <h3 className="font-medium">{current?.content?.name || ""}</h3>
+                  <h3 className="font-medium">
+                    {current?.content?.name || ""}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
                     {current?.content?.singer || ""}
                   </p>
@@ -183,11 +147,11 @@ export default function Player() {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => handleHeartClick()}
+                  onClick={() => {}}
                 >
                   <Heart
                     className={`h-4 w-4 ${
-                      isLiked
+                      true
                         ? "fill-primary text-primary"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
@@ -210,12 +174,12 @@ export default function Player() {
                   {!isPlaying ? (
                     <Play
                       className="h-5 w-5 text-primary-foreground"
-                      onClick={() => setIsPlaying(!isPlaying)}
+                      onClick={() => playerControl.set.play()}
                     />
                   ) : (
                     <Pause
                       className="h-5 w-5 text-primary-foreground"
-                      onClick={() => setIsPlaying(!isPlaying)}
+                      onClick={() => playerControl.set.pause()}
                     />
                   )}
                 </div>

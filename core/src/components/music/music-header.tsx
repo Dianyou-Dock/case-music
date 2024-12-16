@@ -2,48 +2,20 @@
 
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Playlist } from "@/types/music.ts";
-import playerControl from "@/store/player-control";
-import { defaultLimit, MusicSource } from "@/types/constants.ts";
 
 interface MusicHeaderProps {
   title: string;
   subtitle: string;
   coverUrl?: string;
-  playlist: Playlist | undefined;
-  source: MusicSource;
-  total: number;
-  likeds: boolean[];
+  handlePlayAllClick: () => void;
 }
 
 export function MusicHeader({
   title,
   subtitle,
   coverUrl,
-  playlist,
-  source,
-  total,
-  likeds,
+  handlePlayAllClick,
 }: MusicHeaderProps) {
-  const handlePlayAllClick = () => {
-    if (playlist != undefined) {
-      playerControl.set.state((draft) => {
-        draft.playListInfo = {
-          type: source,
-          list_id: playlist.id,
-          page_index: 0, // start
-          limit: defaultLimit,
-        };
-        draft.songs = playlist.songs;
-        draft.index = 0;
-        draft.current = playlist.songs[0];
-        draft.immediately = undefined;
-        draft.total = total;
-        draft.likeds = likeds;
-      });
-    }
-  };
-
   return (
     <div className="flex items-end gap-6">
       <div className="h-48 w-48 overflow-hidden rounded-lg bg-accent">
