@@ -7,7 +7,6 @@ import { MusicHeader } from "@/components/music/music-header";
 
 export default function PlaylistPage() {
   const { currentSource } = useAudioSource();
-
   const { data } = useLikedPlaylist({
     source: currentSource,
     pageIndex: 0,

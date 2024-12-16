@@ -16,17 +16,20 @@ import ReactHowler from "react-howler";
 import { SongInfo } from "@/types/song.ts";
 import { ApplicationResp } from "@/types/application.ts";
 import { SongRate } from "@/types/constants.ts";
-import { back, next, playerControl } from "@/components/player-control";
+import playerControl from "@/store/player-control";
 import { formatDuration, formatProgress } from "@/lib/format.ts";
 import { likeSong } from "@/services";
 
 export default function Player() {
+  const current = playerControl.useTracked.current();
+  const immediately = playerControl.useTracked.immediately();
+  const thisLiked = playerControl.useTracked.thisLiked();
+  const thisIndex = playerControl.useTracked.index();
   const [volume, setVolume] = useState(75);
   const [isLiked, setIsLiked] = useState(false);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
   const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined);
   const [isPlaying, setIsPlaying] = useState(false); // 播放状态
-  const [current, setCurrent] = useState<SongInfo | undefined>(undefined);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [progress, setProgress] = useState(0); // 播放进度
   const [duration, setDuration] = useState(0); // 总时长
@@ -54,9 +57,9 @@ export default function Player() {
     if (res.data !== undefined && res.data) {
       if (currentIndex != -1) {
         // update play control
-        const state = playerControl.getState() as any;
-        state.likeds[currentIndex] = newLiked;
-        playerControl.setState(state);
+        playerControl.set.state((draft) => {
+          draft.likeds[currentIndex] = newLiked;
+        });
       }
     }
   }
@@ -123,39 +126,27 @@ export default function Player() {
         setSongUrl(url);
         setPictureUrl(songInfo.content.pic_url);
         setIsPlaying(true);
-        setCurrent(songInfo);
         setCurrentIndex(currentIndex);
       }
     });
   }
 
   useEffect(() => {
-    playerControl.subscribe((state) => {
-      const data = state as any;
-      const stateCurrent = data.current as SongInfo;
-      const stateImmediately = data.immediately as SongInfo;
+    // immediately
+    if (immediately !== undefined) {
+      get_song_url(immediately, -1).then(() => {
+        setIsLiked(thisLiked);
+      });
+      return;
+    }
 
-      // immediately
-      if (stateImmediately !== undefined) {
-        get_song_url(stateImmediately, -1).then(() => {
-          setIsLiked(data.thisLiked);
-        });
-
-        return;
-      }
-
-      // not immediately
-      if (
-        stateCurrent !== undefined &&
-        stateCurrent.content.id != current?.content.id
-      ) {
-        const currentIndex = data.thisIndex;
-        get_song_url(stateCurrent, currentIndex).then(() => {
-          setIsLiked(data.thisLiked);
-        });
-      }
-    });
-  }, [current]);
+    // not immediately
+    if (current !== undefined) {
+      get_song_url(current, thisIndex).then(() => {
+        setIsLiked(thisLiked);
+      });
+    }
+  }, [current, immediately, thisLiked, thisIndex]);
 
   return (
     <>
@@ -183,9 +174,9 @@ export default function Player() {
               />
               <div className="flex items-center gap-3">
                 <div>
-                  <h3 className="font-medium">{current?.content.name || ""}</h3>
+                  <h3 className="font-medium">{current?.content?.name || ""}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {current?.content.singer || ""}
+                    {current?.content?.singer || ""}
                   </p>
                 </div>
                 <Button
@@ -212,7 +203,7 @@ export default function Player() {
             <div className="flex items-center gap-6">
               <SkipBack
                 className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
-                onClick={() => back()}
+                onClick={() => playerControl.set.back()}
               />
               <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary">
                 <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary">
@@ -231,7 +222,7 @@ export default function Player() {
               </div>
               <SkipForward
                 className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
-                onClick={() => next()}
+                onClick={() => playerControl.set.next()}
               />
             </div>
             <div className="flex w-[400px] items-center gap-2">
@@ -246,7 +237,7 @@ export default function Player() {
                 onValueChange={handleSliderChange}
               />
               <span className="text-sm text-muted-foreground">
-                {formatDuration(current?.content.duration || 0)}
+                {formatDuration(current?.content?.duration || 0)}
               </span>
             </div>
           </div>

@@ -115,3 +115,10 @@ export type SourceListResp = ApplicationResp<SourceData[]>;
 export type UserSourceConfig = Record<MusicSource, LoggedData>;
 
 export type UserSourceConfigRes = ApplicationResp<UserSourceConfig>;
+
+export type PlayListInfo = {
+  type: string;
+  list_id: number;
+  page_index: number;
+  limit: number;
+};

@@ -1,3 +1,5 @@
+"use client";
+
 import { Clock, Heart, MoreHorizontal, Play } from "lucide-react";
 import {
   Table,
@@ -10,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDuration } from "@/lib/format";
 import { SongInfo } from "@/types/song.ts";
-import { playerControl } from "@/components/player-control";
+import playerControl from "@/store/player-control";
 import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application.ts";
 import { useState } from "react";
@@ -25,10 +27,10 @@ export function MusicList({ songs }: MusicListProps) {
   const [likes, setLikes] = useState(songs.map((item) => item.content.id));
 
   function handlePlayClick(song: SongInfo, liked: boolean) {
-    playerControl.setState({
-      immediately: song,
-      current: undefined,
-      thisLiked: liked,
+    playerControl.set.state((draft) => {
+      draft.immediately = song;
+      draft.current = song;
+      draft.thisLiked = liked;
     });
   }
 

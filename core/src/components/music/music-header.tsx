@@ -1,7 +1,9 @@
+"use client";
+
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Playlist } from "@/types/music.ts";
-import { playerControl } from "@/components/player-control";
+import playerControl from "@/store/player-control";
 import { defaultLimit, MusicSource } from "@/types/constants.ts";
 
 interface MusicHeaderProps {
@@ -23,22 +25,21 @@ export function MusicHeader({
   total,
   likeds,
 }: MusicHeaderProps) {
-
   const handlePlayAllClick = () => {
     if (playlist != undefined) {
-      playerControl.setState({
-        playListInfo: {
+      playerControl.set.state((draft) => {
+        draft.playListInfo = {
           type: source,
           list_id: playlist.id,
           page_index: 0, // start
           limit: defaultLimit,
-        },
-        songs: playlist.songs,
-        index: 0,
-        current: playlist.songs[0],
-        immediately: undefined,
-        total: total,
-        likeds: likeds,
+        };
+        draft.songs = playlist.songs;
+        draft.index = 0;
+        draft.current = playlist.songs[0];
+        draft.immediately = undefined;
+        draft.total = total;
+        draft.likeds = likeds;
       });
     }
   };
