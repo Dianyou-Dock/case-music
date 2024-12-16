@@ -49,7 +49,7 @@ jobs:
 
   rust:
     name: Run Rust CI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       # Checkout the repository
