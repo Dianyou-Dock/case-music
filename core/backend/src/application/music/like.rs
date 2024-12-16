@@ -103,6 +103,10 @@ pub struct LikeSongReq {
 
 #[tauri::command]
 pub async fn like_song(req: LikeSongReq) -> Result<ApplicationResp<bool>, InvokeError> {
+    let Some(login_info) = INSTANCE.read().await.netesae.login_info() else {
+        return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
+    };
+
     let mut instance = INSTANCE.write().await;
 
     match req.source {
@@ -113,6 +117,23 @@ pub async fn like_song(req: LikeSongReq) -> Result<ApplicationResp<bool>, Invoke
                 .like_song(req.song_id, req.is_like)
                 .await
                 .map_err(InvokeError::from_anyhow)?;
+
+            // update like list
+            let user_info = match login_info.data {
+                LoginInfoData::Netesae(v) => v,
+            };
+            {
+                let like_list = instance
+                    .netesae
+                    .client()
+                    .like_list(user_info.uid)
+                    .await
+                    .map_err(InvokeError::from_anyhow)?;
+                instance
+                    .netesae
+                    .set_like_list(like_list)
+                    .map_err(InvokeError::from_anyhow)?;
+            }
             Ok(ApplicationResp::success_data(result))
         }
         MusicSource::Spotify => {

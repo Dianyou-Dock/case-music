@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect, useRef} from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Play,
   Pause,
@@ -13,62 +13,59 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import ReactHowler from "react-howler";
-import {SongInfo} from "@/types/song.ts";
-import {ApplicationResp} from "@/types/application.ts";
-import {SongRate} from "@/types/constants.ts";
-import {back, next, playerControl, updateState} from "@/components/player-control";
-import {formatDuration, formatProgress} from "@/lib/format.ts";
+import { SongInfo } from "@/types/song.ts";
+import { ApplicationResp } from "@/types/application.ts";
+import { SongRate } from "@/types/constants.ts";
+import playerControl from "@/store/player-control";
+import { formatDuration, formatProgress } from "@/lib/format.ts";
+import { useAudioSource } from "@/hooks/use-audio-source";
 
 export default function Player() {
-
+  const { currentSource } = useAudioSource();
+  const index = playerControl.useTracked.index();
+  const isPlaying = playerControl.useTracked.isPlaying();
+  const current = playerControl.useTracked.currentSong();
+  const immediately = playerControl.useTracked.immediately();
   const [volume, setVolume] = useState(75);
-  const [isLiked, setIsLiked] = useState(false);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
   const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined);
-  const [isPlaying, setIsPlaying] = useState(false); // 播放状态
-  const [current, setCurrent] = useState<SongInfo|undefined>(undefined);
   const [progress, setProgress] = useState(0); // 播放进度
   const [duration, setDuration] = useState(0); // 总时长
   const howlerRef = useRef<ReactHowler | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
-
+  const [seekInterval, setSeekInterval] = useState<NodeJS.Timeout | null>(null);
+  const [liked, setLiked] = useState(current?.liked || false);
 
   async function handleOnEnd() {
-    setIsPlaying(false);
-    const state = playerControl.getState();
-
-    updateState(state).then(() => {});
+    if (immediately) {
+      // clear immediately song, and play with index
+      playerControl.set.state((draft) => {
+        draft.immediately = undefined;
+      });
+    }
+    playerControl.set.pause();
+    playerControl.set.next();
+    playerControl.set.play();
   }
 
-  // async function handleOnSeek() {
-  //
-  // }
-
   useEffect(() => {
-    // 当播放器正在播放时，定时更新播放进度
-    console.log("isPlaying, songUrl, isPlaying && songUrl", isPlaying, songUrl, isPlaying && songUrl)
-    if (isPlaying && songUrl) {
-      progressInterval.current = setInterval(() => {
-        console.log("into current")
-        if (howlerRef?.current) {
-          console.log("into if")
-          const currentProgress = howlerRef.current.seek() as number;
-          console.log("currentProgress: ", currentProgress)
-          setProgress(currentProgress);
+    if (isPlaying && !seekInterval) {
+      const interval = setInterval(() => {
+        if (howlerRef.current) {
+          setProgress(howlerRef.current.seek());
         }
-      }, 1000); // 每秒更新一次
-    } else {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
-        progressInterval.current = null;
-      }
+      }, 1000);
+      setSeekInterval(interval);
+    } else if (!isPlaying && seekInterval) {
+      clearInterval(seekInterval);
+      setSeekInterval(null);
     }
+
     return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
+      if (seekInterval) {
+        clearInterval(seekInterval);
       }
     };
-  }, [isPlaying, songUrl]);
+  }, [isPlaying, seekInterval]);
 
   const handleSliderChange = (value: number[]) => {
     const newProgress = value[0];
@@ -85,6 +82,12 @@ export default function Player() {
     }
   };
 
+  const handlePlay = () => {
+    if (howlerRef?.current) {
+      const currentProgress = howlerRef.current.seek() as number;
+      setProgress(currentProgress);
+    }
+  };
 
   async function get_song_url(songInfo: SongInfo) {
     const req = {
@@ -94,113 +97,116 @@ export default function Player() {
     };
 
     invoke<ApplicationResp<any>>("songs_url", { req: req }).then((res) => {
-
       if (res.data) {
         const url = res.data.urls[0].content.url;
         setSongUrl(url);
-        setPictureUrl(songInfo.content.pic_url)
-        setIsPlaying(true);
-        setCurrent(songInfo);
+        setPictureUrl(songInfo.content.pic_url);
       }
-
     });
   }
 
   useEffect(() => {
-    playerControl.subscribe(
-      state => {
+    if (!current) {
+      return;
+    }
+    if (index >= 0) {
+      get_song_url(current);
+    }
+  }, [index, current]);
 
-        const data = state as any;
-        const stateCurrent = data.current as SongInfo;
-        const stateImmediately = data.immediately as SongInfo;
-        if (stateImmediately !== undefined) {
-          get_song_url(stateImmediately).then(() => {});
-          return
-        }
+  async function handleHeartClick(id: number) {
+    const newLiked = !liked;
 
-        if (stateCurrent !== undefined && stateCurrent.content.id != current?.content.id) {
-          get_song_url(stateCurrent).then(() => {});
-        }
-      }
-    )
-  }, [current]);
+    // update local state
+    setLiked(newLiked);
+
+    await invoke<ApplicationResp<boolean>>("like_song", {
+      req: { source: currentSource, song_id: id, is_like: newLiked },
+    });
+  }
 
   return (
     <>
       {songUrl && (
         <ReactHowler
           src={songUrl}
-          preload={false}
+          preload={true}
           playing={isPlaying}
           volume={volume / 100}
           onEnd={handleOnEnd}
           onLoad={handleLoad} // 加载完成时设置总时长
           ref={howlerRef} // 直接使用 useRef 的引用
-          // onSeek={}
+          onPlay={handlePlay}
         />
       )}
       <div className="border-t bg-background p-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img
-              src={pictureUrl}
-              alt="Album art"
-              className="h-12 w-12 rounded-lg object-cover"
-            />
-            <div className="flex items-center gap-3">
-              <div>
-                <h3 className="font-medium">
-                  {current?.content.name || ""}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {current?.content.singer || ""}
-                </p>
+          {current ? (
+            <div className="flex items-center gap-4">
+              <img
+                src={pictureUrl}
+                alt="Album art"
+                className="h-12 w-12 rounded-lg object-cover"
+              />
+              <div className="flex items-center gap-3">
+                <div>
+                  <h3 className="font-medium">
+                    {current?.content?.name || ""}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {current?.content?.singer || ""}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleHeartClick(current.content.id)}
+                >
+                  <Heart
+                    className={`h-4 w-4 ${
+                      liked
+                        ? "fill-primary text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setIsLiked(!isLiked)}
-              >
-                <Heart
-                  className={`h-4 w-4 ${
-                    isLiked
-                      ? "fill-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                />
-              </Button>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-4"></div>
+          )}
 
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-6">
               <SkipBack
                 className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
-                onClick={() => back()}
+                onClick={() => playerControl.set.back()}
               />
               <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary">
                 <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary">
                   {!isPlaying ? (
                     <Play
                       className="h-5 w-5 text-primary-foreground"
-                      onClick={() => setIsPlaying(!isPlaying)}
+                      onClick={() => playerControl.set.play()}
                     />
                   ) : (
                     <Pause
                       className="h-5 w-5 text-primary-foreground"
-                      onClick={() => setIsPlaying(!isPlaying)}
+                      onClick={() => playerControl.set.pause()}
                     />
                   )}
                 </div>
               </div>
               <SkipForward
                 className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
-                onClick={() => next()}
+                onClick={() => playerControl.set.next()}
               />
             </div>
             <div className="flex w-[400px] items-center gap-2">
-              <span className="text-sm text-muted-foreground">{formatProgress(progress)}</span>
+              <span className="text-sm text-muted-foreground mr-2">
+                {formatProgress(progress)}
+              </span>
               <Slider
                 value={[progress]}
                 max={duration}
@@ -208,7 +214,9 @@ export default function Player() {
                 className="cursor-pointer"
                 onValueChange={handleSliderChange}
               />
-              <span className="text-sm text-muted-foreground">{formatDuration(current?.content.duration || 0)}</span>
+              <span className="text-sm text-muted-foreground">
+                {formatDuration(current?.content?.duration || 0)}
+              </span>
             </div>
           </div>
 

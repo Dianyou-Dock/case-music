@@ -1,54 +1,38 @@
 "use client";
 
-import {useEffect, useState} from "react";
-// import useLikedPlaylist from "@/hooks/use-liked-playlist";
+import useLikedPlaylist from "@/hooks/use-liked-playlist";
+import { useAudioSource } from "@/hooks/use-audio-source";
 import { MusicList } from "@/components/music/music-list";
 import { MusicHeader } from "@/components/music/music-header";
-import {ApplicationResp} from "@/types/application.ts";
-import {Playlist} from "@/types/music.ts";
-import {invoke} from "@tauri-apps/api/core";
-import {defaultLimit} from "@/types/constants.ts";
+import { useEffect } from "react";
+import playerControl from "@/store/player-control";
 
 export default function PlaylistPage() {
-  // const { data, isLoading, mutate, error } = useLikedPlaylist({
-  //   source: "Netesae",
-  //   pageIndex: 0,
-  // });
+  const { currentSource } = useAudioSource();
+  const { data } = useLikedPlaylist({
+    source: currentSource,
+    pageIndex: 0,
+  });
 
-  // TODO: 这里应该要通过外部传进来, 因为不知道用户选择的是哪个音源的
-  const source = "Netesae";
-  const pageIndex = 0;
-
-  async function likeList(): Promise<Playlist | undefined> {
-    const result = await invoke<ApplicationResp<Playlist>>("like_list", {req : { source: source, offset: pageIndex, limit: defaultLimit }});
-    const playlist = result.data as Playlist;
-    return playlist;
-  }
-
-  const [playlist, setPlaylist] = useState<Playlist>();
   useEffect(() => {
+    playerControl.set.songs(data?.songs || []);
+  }, [data]);
 
-    likeList().then((res)=>{
-      console.log('res: ', res);
-      setPlaylist(res)
-
-    })
-
-  }, []);
-
+  const handlePlayAll = () => {
+    playerControl.set.index(0);
+    playerControl.set.play();
+  };
 
   return (
     <>
       <div className="flex flex-col gap-6 p-6">
         <MusicHeader
-          title={playlist?.name || "Playlist"}
-          subtitle={`${playlist?.songs.length || 0} songs`}
-          coverUrl={playlist?.cover_img_url}
-          playlist={playlist || undefined}
-          source={source}
-          total={playlist?.total || 0}
+          title={data?.name || "Playlist"}
+          subtitle={`${data?.songs?.length || 0} songs`}
+          coverUrl={data?.cover_img_url}
+          handlePlayAllClick={handlePlayAll}
         />
-        <MusicList songs={playlist?.songs || []} />
+        <MusicList songs={data?.songs || []} />
       </div>
     </>
   );

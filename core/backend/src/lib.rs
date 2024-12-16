@@ -36,6 +36,7 @@ pub async fn run() {
             application::system::constants::ai_source_list,
             // music api
             application::music::like::like_list,
+            application::music::like::like_song,
             application::music::song::songs_url,
             application::music::list::collect_list,
             application::music::list::list_songs,
