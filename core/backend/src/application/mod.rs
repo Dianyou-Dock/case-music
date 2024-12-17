@@ -14,12 +14,19 @@ pub mod music;
 mod resp;
 pub mod system;
 
+#[derive(Default)]
+pub struct RandCache {
+    pub songs: Vec<SongInfo>,
+    pub likes: Vec<bool>,
+}
+
 pub struct Application {
     pub netesae: Box<dyn MusicModule>,
     pub ai: Option<Box<dyn AiClient>>,
     pub data_path: PathBuf,
     pub history_recommends: BTreeMap<u64, SongInfo>,
     pub current_recommends: BTreeMap<u64, SongInfo>,
+    pub rand_cache: RandCache,
 }
 
 impl Application {
@@ -30,6 +37,7 @@ impl Application {
             data_path: DATA_PATH.clone(),
             history_recommends: BTreeMap::new(),
             current_recommends: BTreeMap::new(),
+            rand_cache: RandCache::default(),
         };
 
         // TODO:

@@ -1,4 +1,5 @@
 use crate::application::resp::{ApplicationResp, ListResp};
+use crate::application::RandCache;
 use crate::types::ai_recommend_info::{AiBenchmarkInfo, AiRecommendSongInfo};
 use crate::types::constants::{
     MusicSource, RAND_RECOMMENDS_BENCHMARK_COUNT, RAND_RECOMMENDS_COUNT,
@@ -264,6 +265,24 @@ pub async fn current_recommends() -> Result<ApplicationResp<BTreeMap<u64, SongIn
 pub async fn rand_recommends(
     source: MusicSource,
 ) -> Result<ApplicationResp<ListResp>, InvokeError> {
+    let instance = INSTANCE.read().await;
+
+    let songs = instance.rand_cache.songs.clone();
+    let likeds = instance.rand_cache.likes.clone();
+    let total = songs.len();
+
+    Ok(ApplicationResp::success_data(ListResp{
+        id: 0,
+        name: "rand recommend".to_string(),
+        cover_img_url: "https://raw.githubusercontent.com/Dianyou-Dock/case-music/refs/heads/main/core/backend/icons/origin.png".to_string(),
+        songs,
+        likeds,
+        total: total as u64,
+    }))
+}
+
+#[tauri::command]
+pub async fn refresh_rand_cache(source: MusicSource) -> Result<ApplicationResp<()>, InvokeError> {
     if INSTANCE.read().await.ai.is_none() {
         return Err(InvokeError::from_anyhow(AiNotUse.anyhow_err()));
     }
@@ -344,7 +363,6 @@ pub async fn rand_recommends(
                 .await
                 .map_err(InvokeError::from_anyhow)?;
 
-
             (songs_info, likeds)
         }
         MusicSource::Spotify => {
@@ -358,14 +376,12 @@ pub async fn rand_recommends(
         }
     };
 
-    let total = list.len();
-
-    Ok(ApplicationResp::success_data(ListResp{
-        id: 0,
-        name: "rand recommend".to_string(),
-        cover_img_url: "https://raw.githubusercontent.com/Dianyou-Dock/case-music/refs/heads/main/core/backend/icons/origin.png".to_string(),
+    let rc = RandCache {
         songs: list,
-        likeds,
-        total: total as u64,
-    }))
+        likes: likeds,
+    };
+
+    instance.rand_cache = rc;
+
+    Ok(ApplicationResp::success())
 }

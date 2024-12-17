@@ -49,6 +49,7 @@ pub async fn run() {
             application::ai::recommend::history_recommends,
             application::ai::recommend::current_recommends,
             application::ai::recommend::rand_recommends,
+            application::ai::recommend::refresh_rand_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
