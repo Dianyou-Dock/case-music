@@ -106,7 +106,7 @@ export function MusicList({ songs }: MusicListProps) {
                   <Play
                     className="h-4 w-4"
                     onClick={() => {
-                      handlePlayClick(track, likes.includes(track.content.id));
+                      handlePlayClick(track);
                     }}
                   />
                 </Button>

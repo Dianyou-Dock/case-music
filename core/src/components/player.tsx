@@ -59,12 +59,13 @@ export default function Player() {
       clearInterval(seekInterval);
       setSeekInterval(null);
     }
+
     return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current);
+      if (seekInterval) {
+        clearInterval(seekInterval);
       }
     };
-  }, [isPlaying, songUrl]);
+  }, [isPlaying, seekInterval]);
 
   const handleSliderChange = (value: number[]) => {
     const newProgress = value[0];
