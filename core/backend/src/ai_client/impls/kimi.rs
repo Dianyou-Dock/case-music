@@ -83,7 +83,7 @@ impl Kimi {
 
     pub fn gen_req(&self, content: &str) -> Result<Request> {
         let chat_req = ChatRequest {
-            model: "moonshot-v1-8k".to_string(),
+            model: "moonshot-v1-auto".to_string(),
             messages: vec![Message {
                 role: "user".to_string(),
                 content: content.to_string(),

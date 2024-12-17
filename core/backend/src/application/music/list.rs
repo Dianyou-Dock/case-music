@@ -1,4 +1,4 @@
-use crate::application::resp::ApplicationResp;
+use crate::application::resp::{ApplicationResp, ListResp};
 use crate::types::constants::MusicSource;
 use crate::types::error::ErrorHandle;
 use crate::types::error::MusicClientError::NotLogin;
@@ -21,13 +21,6 @@ pub struct ListSongsReq {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CollectListReq {
     pub source: MusicSource,
-}
-
-#[derive(Serialize, Debug, Clone)]
-pub struct ListSongsResp {
-    pub list: Vec<SongInfo>,
-    pub likeds: Vec<bool>,
-    pub total: u64,
 }
 
 #[tauri::command]
@@ -69,7 +62,7 @@ pub async fn collect_list(
 }
 
 #[tauri::command]
-pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsResp>, InvokeError> {
+pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListResp>, InvokeError> {
     let mut instance = INSTANCE.write().await;
 
     let Some(likeds) = INSTANCE.read().await.netesae.likeds() else {
@@ -97,8 +90,11 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
                             data: SongInfoData::Netesae(v.clone()),
                         })
                         .collect::<Vec<_>>();
-                    return Ok(ApplicationResp::success_data(ListSongsResp {
-                        list: page_list,
+                    return Ok(ApplicationResp::success_data(ListResp {
+                        id: req.list_id,
+                        name: "".to_string(),
+                        cover_img_url: "".to_string(),
+                        songs: page_list,
                         likeds: ls,
                         total: total as u64,
                     }));
@@ -149,9 +145,12 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListSongsRe
         }
     };
 
-    Ok(ApplicationResp::success_data(ListSongsResp {
-        list,
+    Ok(ApplicationResp::success_data(ListResp {
+        id: req.list_id,
+        name: "".to_string(),
+        cover_img_url: "".to_string(),
         likeds: ls,
         total,
+        songs: list,
     }))
 }

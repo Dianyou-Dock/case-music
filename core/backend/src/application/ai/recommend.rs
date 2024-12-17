@@ -270,7 +270,7 @@ pub async fn rand_recommends(
 
     let mut instance = INSTANCE.write().await;
 
-    let list = match source {
+    let (list, likeds) = match source {
         MusicSource::Netesae => {
             if instance.netesae.like_list().is_none() {
                 return Err(InvokeError::from_anyhow(LikeListNotExist.anyhow_err()));
@@ -280,6 +280,7 @@ pub async fn rand_recommends(
             let like_list = match &like_list_info.data {
                 PlayListInfoData::Netesae(v) => v.songs.clone(),
             };
+            let like_list_set = instance.netesae.likeds().unwrap();
 
             let len = like_list.len();
             let bench_mark_idxs = utils::random_num(len, RAND_RECOMMENDS_BENCHMARK_COUNT);
@@ -308,6 +309,8 @@ pub async fn rand_recommends(
                 .map_err(InvokeError::from_anyhow)?;
 
             let mut songs_id = vec![];
+            let mut likeds = vec![];
+
             println!("recommend_result: {recommend_result:?}");
             for recommend_info in recommend_result.recommends {
                 let result = instance
@@ -323,6 +326,7 @@ pub async fn rand_recommends(
                                 SongInfoData::Netesae(v) => v.id,
                             };
 
+                            likeds.push(like_list_set.contains(&song_id));
                             songs_id.push(song_id);
                         }
                     }
@@ -340,7 +344,8 @@ pub async fn rand_recommends(
                 .await
                 .map_err(InvokeError::from_anyhow)?;
 
-            songs_info
+
+            (songs_info, likeds)
         }
         MusicSource::Spotify => {
             todo!()
@@ -360,6 +365,7 @@ pub async fn rand_recommends(
         name: "rand recommend".to_string(),
         cover_img_url: "https://raw.githubusercontent.com/Dianyou-Dock/case-music/refs/heads/main/core/backend/icons/origin.png".to_string(),
         songs: list,
+        likeds,
         total: total as u64,
     }))
 }

@@ -68,6 +68,7 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<ListResp>, In
                 name: data.name.clone(),
                 cover_img_url: data.cover_img_url.clone(),
                 songs: page_list,
+                likeds: vec![],
                 total: total as u64,
             }
         }

@@ -52,5 +52,6 @@ pub struct ListResp {
     pub name: String,
     pub cover_img_url: String,
     pub songs: Vec<SongInfo>,
+    pub likeds: Vec<bool>,
     pub total: u64,
 }

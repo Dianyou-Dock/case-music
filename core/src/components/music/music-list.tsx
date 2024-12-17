@@ -28,7 +28,10 @@ export function MusicList({ songs }: MusicListProps) {
 
   useEffect(() => {
     if (songs) {
-      setLikes(songs.map((item) => item.content.id));
+      setLikes(songs
+        .filter((item) => item.liked)
+        .map((item) => item.content.id)
+      );
     }
   }, [songs]);
 
