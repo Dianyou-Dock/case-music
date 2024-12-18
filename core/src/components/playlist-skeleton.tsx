@@ -26,7 +26,7 @@ export function PlaylistSkeleton() {
           <div className="w-[100px]"></div>
         </div>
 
-        {Array.from({ length: 5 }).map((_, index) => (
+        {Array.from({ length: 10 }).map((_, index) => (
           <div
             key={index}
             className="flex items-center gap-4 rounded-md px-4 py-2"
