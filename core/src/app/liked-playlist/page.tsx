@@ -6,17 +6,16 @@ import { MusicList } from "@/components/music/music-list";
 import { MusicHeader } from "@/components/music/music-header";
 import { useEffect } from "react";
 import playerControl from "@/store/player-control";
+import { PlaylistSkeleton } from "@/components/playlist-skeleton";
 
 export default function PlaylistPage() {
   const { currentSource } = useAudioSource();
-  const { data } = useLikedPlaylist({
+  const { data, isLoading } = useLikedPlaylist({
     source: currentSource,
     pageIndex: 0,
   });
 
-  useEffect(() => {
-
-  }, [data]);
+  useEffect(() => {}, [data]);
 
   const handlePlayAll = () => {
     playerControl.set.songs(data?.songs || []);
@@ -24,7 +23,11 @@ export default function PlaylistPage() {
     playerControl.set.play();
   };
 
-  const handleRefresh = () => {}
+  const handleRefresh = () => {};
+
+  if (isLoading) {
+    return <PlaylistSkeleton />;
+  }
 
   return (
     <>
