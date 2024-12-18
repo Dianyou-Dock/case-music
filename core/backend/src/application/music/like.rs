@@ -19,7 +19,7 @@ pub struct LikeListReq {
 
 #[tauri::command]
 pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<ListResp>, InvokeError> {
-    let Some(login_info) = INSTANCE.read().await.netesae.login_info() else {
+    if INSTANCE.read().await.netesae.login_info().is_none() {
         return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
     };
 
@@ -30,24 +30,6 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<ListResp>, In
 
     let resp = match req.source {
         MusicSource::Netesae => {
-            let empty = instance.netesae.like_list().is_none();
-            let user_info = match login_info.data {
-                LoginInfoData::Netesae(v) => v,
-            };
-
-            if empty {
-                let like_list = instance
-                    .netesae
-                    .client()
-                    .like_list(user_info.uid)
-                    .await
-                    .map_err(InvokeError::from_anyhow)?;
-                instance
-                    .netesae
-                    .set_like_list(like_list)
-                    .map_err(InvokeError::from_anyhow)?;
-            }
-
             let list_info = instance.netesae.like_list().unwrap();
             let data = match &list_info.data {
                 PlayListInfoData::Netesae(v) => v,

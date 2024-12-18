@@ -70,7 +70,7 @@ pub static AI_RECOMMEND_SINGER: &str = r#"recommend other artists similar to thi
 pub static AI_RECOMMEND_STYLE: &str = r#"recommend songs with a similar style for me"#;
 
 pub static AI_RAND_RECOMMEND_SONGS: &str =
-    r#"recommend similar songs but orther artist for each song in the sample list"#;
+    r#"recommend similar songs and similar artist for each song in the sample list"#;
 pub static AI_RAND_RECOMMEND_EACH_COUNT: &str =
     "recommend similar songs for each sample song, count:";
 pub static AI_RECOMMEND_SONG_COUNT: &str = r#"recommend song count:"#;
@@ -186,13 +186,21 @@ pub fn gen_recommend_singer_content(
 }
 
 pub fn gen_rand_recommend_content(song_list: &str, count: u64, exclude_artist: &str) -> String {
+    // let template = format!(
+    //     "song list: '{song_list}', \
+    //     {AI_RAND_RECOMMEND_SONGS}, \
+    //     {AI_RECOMMEND_SONG_COUNT} {count}, \
+    //     {AI_RECOMMEND_RULES}, \
+    //     {AI_SONG_RESP_TEMPLATE}, \
+    //     exclude artist: {exclude_artist}"
+    // );
+
+
     let template = format!(
         "song list: '{song_list}', \
         {AI_RAND_RECOMMEND_SONGS}, \
         {AI_RECOMMEND_SONG_COUNT} {count}, \
-        {AI_RECOMMEND_RULES}, \
-        {AI_SONG_RESP_TEMPLATE}, \
-        exclude artist: {exclude_artist}"
+        {AI_RECOMMEND_RULES}"
     );
 
     template

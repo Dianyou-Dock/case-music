@@ -15,13 +15,16 @@ export default function PlaylistPage() {
   });
 
   useEffect(() => {
-    playerControl.set.songs(data?.songs || []);
+
   }, [data]);
 
   const handlePlayAll = () => {
+    playerControl.set.songs(data?.songs || []);
     playerControl.set.index(0);
     playerControl.set.play();
   };
+
+  const handleRefresh = () => {}
 
   return (
     <>
@@ -31,6 +34,7 @@ export default function PlaylistPage() {
           subtitle={`${data?.songs?.length || 0} songs`}
           coverUrl={data?.cover_img_url}
           handlePlayAllClick={handlePlayAll}
+          handleRefreshClick={handleRefresh}
         />
         <MusicList songs={data?.songs || []} />
       </div>

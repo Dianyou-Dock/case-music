@@ -2,7 +2,7 @@ use crate::ai_client::impls::kimi::Kimi;
 use crate::application::resp::ApplicationResp;
 use crate::types::constants::{AiSource, MusicSource};
 use crate::types::error::MusicClientError;
-use crate::types::login_info::{LoginInfo, LoginQrInfo};
+use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
 use crate::INSTANCE;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -140,6 +140,25 @@ pub async fn music_logged(
     // netease
     {
         let result = instance.netesae.client().logged().await;
+        let empty = instance.netesae.like_list().is_none();
+
+        if result && empty {
+            let login_info = instance.netesae.login_info().unwrap(); // safe
+            let user_info = match login_info.data {
+                LoginInfoData::Netesae(v) => v,
+            };
+            let like_list = instance
+                .netesae
+                .client()
+                .like_list(user_info.uid)
+                .await
+                .map_err(InvokeError::from_anyhow)?;
+            instance
+                .netesae
+                .set_like_list(like_list)
+                .map_err(InvokeError::from_anyhow)?;
+        }
+
         map.insert(
             MusicSource::Netesae.to_string(),
             MusicLoggedData {
