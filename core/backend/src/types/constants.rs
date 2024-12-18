@@ -200,7 +200,8 @@ pub fn gen_rand_recommend_content(song_list: &str, count: u64, exclude_artist: &
         "song list: '{song_list}', \
         {AI_RAND_RECOMMEND_SONGS}, \
         {AI_RECOMMEND_SONG_COUNT} {count}, \
-        {AI_RECOMMEND_RULES}"
+        {AI_RECOMMEND_RULES}, \
+        {AI_SONG_RESP_TEMPLATE}, "
     );
 
     template
