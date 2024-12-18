@@ -8,23 +8,26 @@ type Props = {
 };
 
 const useRandRecommend = ({ source }: Props) => {
-
   const { data, isLoading, mutate, error } = useSWR(
     source ? ["rand_recommends", source] : null,
-    () =>{
-      console.log("into here");
-      return invoke<PlaylistRes>("rand_recommends", {source}).then((res) => {
-        console.log("res: ", res)
-        return res.data
-      })
+    () =>
+      invoke<PlaylistRes>("rand_recommends", { source }).then(
+        (res) => res.data
+      ),
+    {
+      revalidateOnFocus: false,
+      revalidateOnMount: false,
+      revalidateOnReconnect: false,
     }
-
   );
 
   return {
     data: {
       ...data,
-      songs: data?.songs.map((song, idx) => ({ ...song, liked: data?.likeds[idx] })),
+      songs: data?.songs.map((song, idx) => ({
+        ...song,
+        liked: data?.likeds[idx],
+      })),
     },
     isLoading,
     mutate,
