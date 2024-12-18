@@ -16,7 +16,6 @@ const useRandRecommend = ({ source }: Props) => {
       ),
     {
       revalidateOnFocus: false,
-      revalidateOnMount: false,
       revalidateOnReconnect: false,
     }
   );
