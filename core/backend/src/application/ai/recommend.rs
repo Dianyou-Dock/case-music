@@ -295,7 +295,7 @@ pub async fn rand_recommends(
 
     Ok(ApplicationResp::success_data(ListResp{
         id: 0,
-        name: "rand recommend".to_string(),
+        name: "Rand Recommend".to_string(),
         cover_img_url: "https://raw.githubusercontent.com/Dianyou-Dock/case-music/refs/heads/main/core/backend/icons/origin.png".to_string(),
         songs,
         likeds,
