@@ -178,10 +178,7 @@ impl Client for Kimi {
     ) -> Result<AiRecommendInfo> {
         let sample_playlist = serde_json::to_string_pretty(data)?;
 
-        let exclude_artist = data.iter().map(|v| v.singer.clone()).collect::<Vec<_>>();
-        let exclude_artist_str = serde_json::to_string_pretty(&exclude_artist)?;
-
-        let content = gen_rand_recommend_content(&sample_playlist, count, &exclude_artist_str);
+        let content = gen_rand_recommend_content(&sample_playlist, count);
 
         println!("content: {content}");
 

@@ -227,8 +227,8 @@ impl Client for NeteaseClient {
         Ok(song_infos)
     }
 
-    async fn search_song(&mut self, song: &str, singer: &str) -> Result<Option<SongInfo>> {
-        let search_info = format!("{song} {singer}");
+    async fn search_song(&mut self, song: &str, _singer: &str) -> Result<Option<SongInfo>> {
+        let search_info = format!("{song}");
         let limit = 1;
         let offset = 0;
         let mut song_info = None;
@@ -239,7 +239,7 @@ impl Client for NeteaseClient {
             .await?;
 
         for x in result {
-            if x.singer.eq(singer) && x.name.eq(song) {
+            if x.name.to_lowercase().eq(&song.to_lowercase()) {
                 song_info = Some(x);
                 break;
             }

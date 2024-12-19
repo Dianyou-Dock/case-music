@@ -1,15 +1,11 @@
 use crate::application::resp::{ApplicationResp, ListResp};
-use crate::application::RandCache;
 use crate::types::ai_recommend_info::{AiBenchmarkInfo, AiRecommendSongInfo};
-use crate::types::constants::{
-    MusicSource, RAND_RECOMMENDS_BENCHMARK_COUNT, RAND_RECOMMENDS_COUNT,
-};
+use crate::types::constants::MusicSource;
 use crate::types::error::ApplicationError::AiNotUse;
 use crate::types::error::ErrorHandle;
-use crate::types::error::MusicClientError::{LikeListNotExist, NotLogin};
-use crate::types::play_list_info::PlayListInfoData;
+use crate::types::error::MusicClientError::NotLogin;
 use crate::types::song_info::{SongInfo, SongInfoData};
-use crate::{utils, INSTANCE};
+use crate::INSTANCE;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
@@ -278,7 +274,7 @@ pub async fn rand_recommends(
 
     if instance.rand_cache.songs.is_empty() {
         // update
-        instance.refresh_rand_cache(source).await.map_err(|e|{
+        instance.refresh_rand_cache(source).await.map_err(|e| {
             instance.update_rand_cache = false;
             InvokeError::from_anyhow(e)
         })?;
@@ -315,7 +311,10 @@ pub async fn refresh_rand_cache(source: MusicSource) -> Result<ApplicationResp<(
 
     let mut instance = INSTANCE.write().await;
 
-    instance.refresh_rand_cache(source).await.map_err(InvokeError::from_anyhow)?;
+    instance
+        .refresh_rand_cache(source)
+        .await
+        .map_err(InvokeError::from_anyhow)?;
 
     Ok(ApplicationResp::success())
 }

@@ -35,15 +35,25 @@ export function MusicHeader({
           <p className="text-lg text-muted-foreground">{subtitle}</p>
         </div>
         <div className="flex flex-row gap-4">
-          <Button size="lg" className="w-fit gap-2" onClick={handlePlayAllClick}>
+          {/* Play All Button */}
+          <Button
+            size="lg"
+            className="w-fit gap-2 bg-transparent border-2 border-green-500 text-green-500 hover:bg-green-100"
+            onClick={handlePlayAllClick}
+          >
             <Play className="h-5 w-5"/> Play All
           </Button>
-          <Button size="lg" className="w-fit gap-2 bg-purple-500 hover:bg-purple-600 text-white" onClick={handleRefreshClick}>
+
+          {/* Refresh Button */}
+          <Button
+            size="lg"
+            className="w-fit gap-2 bg-transparent border-2 border-purple-500 text-purple-500 hover:bg-purple-100"
+            onClick={handleRefreshClick}
+          >
             <RefreshCcw className="h-5 w-5"/> Refresh
           </Button>
         </div>
       </div>
-
     </div>
   );
 }

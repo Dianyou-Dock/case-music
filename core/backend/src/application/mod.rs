@@ -2,16 +2,18 @@ use crate::ai_client::impls::kimi::Kimi;
 use crate::ai_client::Client as AiClient;
 use crate::modules::impls::netesae::NetesaeModule;
 use crate::modules::MusicModule;
-use crate::types::constants::{MusicSource, DATA_PATH, RAND_RECOMMENDS_BENCHMARK_COUNT, RAND_RECOMMENDS_COUNT};
-use crate::types::song_info::{SongInfo, SongInfoData};
-use std::collections::BTreeMap;
-use std::path::PathBuf;
-use anyhow::Result;
 use crate::types::ai_recommend_info::AiRecommendSongInfo;
+use crate::types::constants::{
+    MusicSource, DATA_PATH, RAND_RECOMMENDS_BENCHMARK_COUNT, RAND_RECOMMENDS_COUNT,
+};
 use crate::types::error::ErrorHandle;
 use crate::types::error::MusicClientError::LikeListNotExist;
 use crate::types::play_list_info::PlayListInfoData;
+use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::utils;
+use anyhow::Result;
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 pub mod ai;
 
@@ -124,11 +126,7 @@ impl Application {
                     }
                 }
 
-                let songs_info = self
-                    .netesae
-                    .client()
-                    .song_infos(&songs_id)
-                    .await?;
+                let songs_info = self.netesae.client().song_infos(&songs_id).await?;
 
                 (songs_info, likeds)
             }
@@ -143,9 +141,7 @@ impl Application {
             }
         };
 
-        let rc = RandCache{
-            songs: list,
-        };
+        let rc = RandCache { songs: list };
 
         self.rand_cache = rc;
 

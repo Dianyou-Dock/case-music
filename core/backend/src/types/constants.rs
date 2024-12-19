@@ -185,17 +185,7 @@ pub fn gen_recommend_singer_content(
     }
 }
 
-pub fn gen_rand_recommend_content(song_list: &str, count: u64, exclude_artist: &str) -> String {
-    // let template = format!(
-    //     "song list: '{song_list}', \
-    //     {AI_RAND_RECOMMEND_SONGS}, \
-    //     {AI_RECOMMEND_SONG_COUNT} {count}, \
-    //     {AI_RECOMMEND_RULES}, \
-    //     {AI_SONG_RESP_TEMPLATE}, \
-    //     exclude artist: {exclude_artist}"
-    // );
-
-
+pub fn gen_rand_recommend_content(song_list: &str, count: u64) -> String {
     let template = format!(
         "song list: '{song_list}', \
         {AI_RAND_RECOMMEND_SONGS}, \

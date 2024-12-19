@@ -167,7 +167,7 @@ export default function Player() {
                     className={`h-4 w-4 ${
                       liked
                         ? "fill-primary text-primary"
-                        : "text-muted-foreground hover:text-foreground"
+                        : "text-muted-foreground hover:text-foreground text-green-500"
                     }`}
                   />
                 </Button>
@@ -180,11 +180,11 @@ export default function Player() {
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-6">
               <SkipBack
-                className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
+                className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground text-green-500 "
                 onClick={() => playerControl.set.back()}
               />
-              <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary">
-                <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-primary">
+              <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-transparent ">
+                <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-transparent border-2 border-green-500 hover:bg-green-500">
                   {!isPlaying ? (
                     <Play
                       className="h-5 w-5 text-primary-foreground"
@@ -199,7 +199,7 @@ export default function Player() {
                 </div>
               </div>
               <SkipForward
-                className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
+                className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground text-green-500"
                 onClick={() => playerControl.set.next()}
               />
             </div>
@@ -220,14 +220,14 @@ export default function Player() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-green-500">
             <Volume2 className="h-5 w-5" />
             <Slider
               defaultValue={[volume]}
               max={100}
               step={1}
               onValueChange={(value) => setVolume(value[0])}
-              className="w-[100px]"
+              className="w-[100px] text-green-500 bg-transparent"
             />
           </div>
         </div>
