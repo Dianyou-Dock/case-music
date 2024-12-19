@@ -1,12 +1,11 @@
 "use client";
 
-
-import {AiSource} from "@/lib/ai-source.ts";
-import {cn} from "@/lib/utils.ts";
-import {Button} from "@/components/ui/button.tsx";
-import {useAiSource} from "@/hooks/use-ai-source.tsx";
-import {useState} from "react";
-import {AiDialog} from "@/components/ai-dialog.tsx";
+import { AiSource } from "@/lib/ai-source.ts";
+import { cn } from "@/lib/utils.ts";
+import { Button } from "@/components/ui/button.tsx";
+import { useAiSource } from "@/hooks/use-ai-source.tsx";
+import { useState } from "react";
+import { AiDialog } from "@/components/ai-dialog.tsx";
 
 export function AiSourceCard({ source }: { source: AiSource }) {
   const { aiSource, configureSource } = useAiSource();
@@ -17,12 +16,12 @@ export function AiSourceCard({ source }: { source: AiSource }) {
   // TODO: 这里要做互斥, 只能有一个ai源被使用
   const handleConnectClick = () => {
     if (isSelected) {
-      console.log(configureSource)
+      console.log(configureSource);
       setIsAiDialogOpen(false);
     } else {
       setIsAiDialogOpen(true);
     }
-  }
+  };
 
   return (
     <div

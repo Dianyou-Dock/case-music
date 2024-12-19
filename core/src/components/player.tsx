@@ -25,6 +25,7 @@ export default function Player() {
   const index = playerControl.useTracked.index();
   const isPlaying = playerControl.useTracked.isPlaying();
   const current = playerControl.useTracked.currentSong();
+  const isLast = playerControl.useTracked.isLastSong();
   const immediately = playerControl.useTracked.immediately();
   const [volume, setVolume] = useState(75);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
@@ -41,6 +42,10 @@ export default function Player() {
       playerControl.set.state((draft) => {
         draft.immediately = undefined;
       });
+    }
+    if (isLast) {
+      playerControl.set.pause();
+      return;
     }
     playerControl.set.pause();
     playerControl.set.next();
@@ -142,7 +147,7 @@ export default function Player() {
       <div className="border-t bg-background p-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           {current ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-1">
               <img
                 src={pictureUrl}
                 alt="Album art"
@@ -174,10 +179,10 @@ export default function Player() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-4"></div>
+            <div className="flex items-center gap-4 flex-1"></div>
           )}
 
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 flex-1">
             <div className="flex items-center gap-6">
               <SkipBack
                 className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground text-green-500 "
@@ -220,7 +225,7 @@ export default function Player() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-green-500">
+          <div className="flex items-center gap-2 text-green-500 flex-1 justify-end">
             <Volume2 className="h-5 w-5" />
             <Slider
               defaultValue={[volume]}

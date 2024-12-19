@@ -43,6 +43,11 @@ const playerControl = createStore("play-control")<PlayerControl>({
       });
     },
   }))
+  .extendSelectors((_, get) => ({
+    isLastSong() {
+      return get.index() === get.songs().length - 1;
+    },
+  }))
   .extendActions((set, get) => ({
     next() {
       if (get.immediately()) {
@@ -51,9 +56,8 @@ const playerControl = createStore("play-control")<PlayerControl>({
         });
       }
       const curIndex = get.index();
-      const songsLen = get.songs().length;
 
-      if (curIndex === songsLen - 1) {
+      if (get.isLastSong()) {
         return new Error("Already at the last song");
       }
 
