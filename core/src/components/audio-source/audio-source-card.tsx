@@ -66,6 +66,10 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
         variant={isSelected ? "outline" : "default"}
         onClick={handleConnectClick}
         disabled={disabled}
+        className={cn(
+          "w-fit gap-2 bg-transparent border-2 text-green-500 hover:bg-green-100", // Green border and text
+          isSelected && "border-green-500 text-green-500" // When selected, green border and text
+        )}
       >
         {isSelected ? "Disconnect" : "Connect"}
       </Button>

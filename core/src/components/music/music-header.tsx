@@ -1,6 +1,6 @@
 "use client";
 
-import { Play } from "lucide-react";
+import { Play, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MusicHeaderProps {
@@ -8,6 +8,7 @@ interface MusicHeaderProps {
   subtitle: string;
   coverUrl?: string;
   handlePlayAllClick: () => void;
+  handleRefreshClick: () => void;
 }
 
 export function MusicHeader({
@@ -15,6 +16,7 @@ export function MusicHeader({
   subtitle,
   coverUrl,
   handlePlayAllClick,
+  handleRefreshClick,
 }: MusicHeaderProps) {
   return (
     <div className="flex items-end gap-6">
@@ -32,9 +34,25 @@ export function MusicHeader({
           <h1 className="text-4xl font-bold">{title}</h1>
           <p className="text-lg text-muted-foreground">{subtitle}</p>
         </div>
-        <Button size="lg" className="w-fit gap-2" onClick={handlePlayAllClick}>
-          <Play className="h-5 w-5" /> Play All
-        </Button>
+        <div className="flex flex-row gap-4">
+          {/* Play All Button */}
+          <Button
+            size="lg"
+            className="w-fit gap-2 bg-transparent border-2 border-green-500 text-green-500 hover:bg-green-100"
+            onClick={handlePlayAllClick}
+          >
+            <Play className="h-5 w-5"/> Play All
+          </Button>
+
+          {/* Refresh Button */}
+          <Button
+            size="lg"
+            className="w-fit gap-2 bg-transparent border-2 border-purple-500 text-purple-500 hover:bg-purple-100"
+            onClick={handleRefreshClick}
+          >
+            <RefreshCcw className="h-5 w-5"/> Refresh
+          </Button>
+        </div>
       </div>
     </div>
   );

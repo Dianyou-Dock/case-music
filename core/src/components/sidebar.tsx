@@ -7,14 +7,7 @@ import { PlaylistButton } from "@/components/navigation/playlist-button";
 
 const playlists = [
   "Liked Playlist",
-  "Recently Added",
-  "Recently Played",
-  "Top Songs",
-  "Favorites",
-  "Workout Mix",
-  "Chill Vibes",
-  "Road Trip",
-  "90s Hits",
+  "Rand Recommend",
 ];
 
 const navigationLinks = [

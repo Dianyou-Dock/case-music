@@ -1,3 +1,4 @@
+use crate::types::song_info::SongInfo;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -43,4 +44,14 @@ where
             data: None,
         }
     }
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct ListResp {
+    pub id: u64,
+    pub name: String,
+    pub cover_img_url: String,
+    pub songs: Vec<SongInfo>,
+    pub likeds: Vec<bool>,
+    pub total: u64,
 }

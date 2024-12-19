@@ -1,6 +1,6 @@
-import { MusicSource, SongRate } from "@/types/constants.ts";
+import {AiSources, MusicSource, SongRate} from "@/types/constants.ts";
 import { SongInfo, SongUrl } from "@/types/song.ts";
-import {LoggedData} from "@/types/login.ts";
+import {AiLoggedData, LoggedData} from "@/types/login.ts";
 
 /*
  * backend default resp
@@ -115,6 +115,10 @@ export type SourceListResp = ApplicationResp<SourceData[]>;
 export type UserSourceConfig = Record<MusicSource, LoggedData>;
 
 export type UserSourceConfigRes = ApplicationResp<UserSourceConfig>;
+
+export type UserAiSourceConfig = Record<AiSources, AiLoggedData>;
+
+export type UserAiSourceConfigRes = ApplicationResp<UserAiSourceConfig>;
 
 export type PlayListInfo = {
   type: string;

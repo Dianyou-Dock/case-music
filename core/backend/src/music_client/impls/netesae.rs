@@ -227,30 +227,22 @@ impl Client for NeteaseClient {
         Ok(song_infos)
     }
 
-    async fn search_song(&mut self, song: &str, singer: &str) -> Result<Option<SongInfo>> {
-        let search_info = format!("{song} {singer}");
-        let limit = 50;
-        let mut offset = 0;
+    async fn search_song(&mut self, song: &str, _singer: &str) -> Result<Option<SongInfo>> {
+        let search_info = format!("{song}");
+        let limit = 1;
+        let offset = 0;
         let mut song_info = None;
 
-        loop {
-            let result = self
-                .api
-                .search_song(search_info.clone(), offset, limit)
-                .await?;
+        let result = self
+            .api
+            .search_song(search_info.clone(), offset, limit)
+            .await?;
 
-            if result.len() == 0 {
+        for x in result {
+            if x.name.to_lowercase().eq(&song.to_lowercase()) {
+                song_info = Some(x);
                 break;
             }
-
-            for x in result {
-                if x.singer.eq(singer) && x.name.eq(song) {
-                    song_info = Some(x);
-                    break;
-                }
-            }
-
-            offset += limit;
         }
 
         if let Some(song_info) = song_info {

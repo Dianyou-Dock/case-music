@@ -30,7 +30,9 @@ pub async fn run() {
             // system api
             application::system::login::get_qr,
             application::system::login::login_by_qr,
-            application::system::login::logged,
+            application::system::login::music_logged,
+            application::system::login::ai_logged,
+            application::system::login::set_api_key,
             application::system::logout::logout,
             application::system::constants::music_source_list,
             application::system::constants::ai_source_list,
@@ -47,6 +49,7 @@ pub async fn run() {
             application::ai::recommend::history_recommends,
             application::ai::recommend::current_recommends,
             application::ai::recommend::rand_recommends,
+            application::ai::recommend::refresh_rand_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -15,6 +15,7 @@ export interface Playlist {
   name: string;
   cover_img_url?: string;
   songs: SongInfo[];
+  likeds: boolean[];
   total: number;
 }
 

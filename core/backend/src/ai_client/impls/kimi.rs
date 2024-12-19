@@ -83,7 +83,7 @@ impl Kimi {
 
     pub fn gen_req(&self, content: &str) -> Result<Request> {
         let chat_req = ChatRequest {
-            model: "moonshot-v1-8k".to_string(),
+            model: "moonshot-v1-auto".to_string(),
             messages: vec![Message {
                 role: "user".to_string(),
                 content: content.to_string(),
@@ -178,10 +178,7 @@ impl Client for Kimi {
     ) -> Result<AiRecommendInfo> {
         let sample_playlist = serde_json::to_string_pretty(data)?;
 
-        let exclude_artist = data.iter().map(|v| v.singer.clone()).collect::<Vec<_>>();
-        let exclude_artist_str = serde_json::to_string_pretty(&exclude_artist)?;
-
-        let content = gen_rand_recommend_content(&sample_playlist, count, &exclude_artist_str);
+        let content = gen_rand_recommend_content(&sample_playlist, count);
 
         println!("content: {content}");
 
@@ -233,6 +230,10 @@ impl Client for Kimi {
         let resp = self.send(req).await?;
 
         Ok(resp)
+    }
+
+    fn ai_source(&self) -> AiSource {
+        AiSource::Kimi
     }
 }
 
