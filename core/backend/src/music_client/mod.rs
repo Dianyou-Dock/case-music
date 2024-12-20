@@ -31,5 +31,7 @@ pub trait Client: Sync + Send {
 
     async fn logged(&mut self) -> bool;
 
+    fn set_logged(&mut self, logged: bool);
+
     async fn login_info(&mut self) -> Result<LoginInfo>;
 }
