@@ -1,15 +1,14 @@
 "use client";
 
-import {AiSource} from "@/lib/ai-source.ts";
-import {createContext, useContext, useEffect, useState} from "react";
-import {invoke} from "@tauri-apps/api/core";
-import {SourceListResp, UserAiSourceConfigRes} from "@/types/application.ts";
-import {cloneDeep, set} from "lodash";
-
+import { AiSource } from "@/lib/ai-source.ts";
+import { createContext, useContext, useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { SourceListResp, UserAiSourceConfigRes } from "@/types/application.ts";
+import { cloneDeep, set } from "lodash";
 
 interface AiSourceContextType {
   aiSource: AiSource[] | null;
-  configureSource: (data: AiSource[]) => void;
+  configureSource: (status: boolean) => void;
 }
 
 const AiSourceContext = createContext<AiSourceContextType | undefined>(
@@ -30,19 +29,16 @@ const fetchUserAiSourceConfig = async () => {
   try {
     // fetch audio source from server
     const res = await invoke<UserAiSourceConfigRes>("ai_logged");
-    console.log("logged: ", res)
+    console.log("logged: ", res);
     return res.data;
   } catch (error) {
     console.error(error);
   }
 };
 
-export function AiSourceProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function AiSourceProvider({ children }: { children: React.ReactNode }) {
   const [aiSource, setAiSource] = useState<AiSource[] | null>(null);
+  const [reset, setReset] = useState(false);
 
   useEffect(() => {
     fetchAiSourceList().then((list) => {
@@ -61,11 +57,11 @@ export function AiSourceProvider({
         }
       });
     });
-  }, []);
+  }, [reset]);
 
-  const configureSource = (data: AiSource[]) => {
-    if (data) {
-      setAiSource(data);
+  const configureSource = (status: boolean) => {
+    if (status) {
+      setReset(!reset);
     }
   };
 
@@ -79,9 +75,7 @@ export function AiSourceProvider({
 export function useAiSource() {
   const context = useContext(AiSourceContext);
   if (context === undefined) {
-    throw new Error(
-      "useAiSource must be used within an AiSourceProvider"
-    );
+    throw new Error("useAiSource must be used within an AiSourceProvider");
   }
   return context;
 }
