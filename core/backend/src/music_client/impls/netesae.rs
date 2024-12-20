@@ -277,6 +277,10 @@ impl Client for NeteaseClient {
         self.logged
     }
 
+    fn set_logged(&mut self, logged: bool) {
+        self.logged = logged;
+    }
+
     async fn login_info(&mut self) -> Result<LoginInfo> {
         let info = self.api.login_status().await?;
         Ok(LoginInfo {

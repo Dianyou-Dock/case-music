@@ -58,6 +58,29 @@ pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, In
                 .map_err(InvokeError::from_anyhow)?;
 
             let msg = if code == 0 {
+                instance.netesae.client().set_logged(true);
+                let info = instance
+                    .netesae
+                    .client()
+                    .login_info()
+                    .await
+                    .map_err(InvokeError::from_anyhow)?;
+
+                let user_info = match &info.data {
+                    LoginInfoData::Netesae(v) => v,
+                };
+                let like_list = instance
+                    .netesae
+                    .client()
+                    .like_list(user_info.uid)
+                    .await
+                    .map_err(InvokeError::from_anyhow)?;
+                instance
+                    .netesae
+                    .set_like_list(like_list)
+                    .map_err(InvokeError::from_anyhow)?;
+
+                instance.netesae.set_login_info(info);
                 "".to_string()
             } else {
                 MusicClientError::from_code(code)
@@ -143,20 +166,21 @@ pub async fn music_logged(
         let empty = instance.netesae.like_list().is_none();
 
         if result && empty {
-            let login_info = instance.netesae.login_info().unwrap(); // safe
-            let user_info = match login_info.data {
-                LoginInfoData::Netesae(v) => v,
-            };
-            let like_list = instance
-                .netesae
-                .client()
-                .like_list(user_info.uid)
-                .await
-                .map_err(InvokeError::from_anyhow)?;
-            instance
-                .netesae
-                .set_like_list(like_list)
-                .map_err(InvokeError::from_anyhow)?;
+            if let Some(login_info) = instance.netesae.login_info() {
+                let user_info = match login_info.data {
+                    LoginInfoData::Netesae(v) => v,
+                };
+                let like_list = instance
+                    .netesae
+                    .client()
+                    .like_list(user_info.uid)
+                    .await
+                    .map_err(InvokeError::from_anyhow)?;
+                instance
+                    .netesae
+                    .set_like_list(like_list)
+                    .map_err(InvokeError::from_anyhow)?;
+            }
         }
 
         map.insert(
