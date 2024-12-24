@@ -7,17 +7,33 @@ use strum_macros::{Display, EnumString};
 
 pub static KIMI_URL: &str = "https://api.moonshot.cn/v1/chat/completions";
 
+pub static AI_SONG_REQ_EXAMPLE: &str = r#"
+[
+        {
+            "name": "song name",
+            "singer": "singer name",
+            "song_type": "Song type"
+        },
+        {
+            "name": "song name",
+            "singer": "singer name",
+            "song_type": "Song type"
+        }
+]
+"#;
+
 pub static AI_SONG_RESP_TEMPLATE: &str = r#"
-return format should be like this:
 {
     "recommends": [
         {
             "name": "song name",
-            "singer": "singer name"
+            "singer": "singer name",
+            "song_type": "Song type"
         },
         {
             "name": "song name",
-            "singer": "singer name"
+            "singer": "singer name",
+            "song_type": "Song type"
         }
     ],
     "benchmark": {
@@ -26,11 +42,9 @@ return format should be like this:
         "recommend_detail": "Briefly describe the playlist you want to recommend"
     }
 }
-
 "#;
 
 pub static AI_RESP_SINGER_TEMPLATE: &str = r#"
-return format should be like this:
 {
     "benchmark": {
         "song_type": "Song type, at least 3 types",
@@ -41,25 +55,28 @@ return format should be like this:
         "singer name": [
             {
                 "name": "song name",
-                "singer": "singer name"
+                "singer": "singer name",
+                "song_type": "Song type"
             },
             {
                 "name": "song name",
-                "singer": "singer name"
+                "singer": "singer name",
+                "song_type": "Song type"
             }
         ],
         "singer name": [
             {
                 "name": "song name",
-                "singer": "singer name"
+                "singer": "singer name",
+                "song_type": "Song type"
             },
             {
                 "name": "song name",
-                "singer": "singer name"
+                "singer": "singer name",
+                "song_type": "Song type"
             }
         ]
     }
-
 }
 "#;
 
@@ -80,11 +97,14 @@ pub static AI_RECOMMEND_SINGER_COUNT: &str = r#"recommend artists count:"#;
 pub static AI_RECOMMEND_SINGER_SONG_COUNT: &str = r#"recommend each artists song count:"#;
 
 pub static AI_RECOMMEND_RULES: &str = r#"
-resp rule:
-1. no text outside the template,
-2. `song_type` reply in english,
-3. `song_detail` 用中文回复,
-4. `recommend_detail` 用中文回复,
+1. `song_type` reply in english.
+2. `song_detail` 用中文回复.
+3. `recommend_detail` 用中文回复.
+4. 你返回的歌手和歌曲必须准确对应,不能出现匹配不上的情况
+5. 你收到过的歌曲不能返回.
+6. 返回的列表中要包含多种语言.
+7. 返回的歌曲要冷门小众的.
+8. 返回的歌曲要非常随机.
 "#;
 
 pub static DATA_DIR: &str = ".fma";
@@ -149,7 +169,7 @@ pub fn gen_recommend_song_content(song: &str, count: u64, previous: Option<Strin
 
 pub fn gen_recommend_style_content(song: &str, count: u64, previous: Option<String>) -> String {
     let template = format!(
-        "song: '{song}', \
+        "Example song: '{song}', \
         {AI_RECOMMEND_STYLE}, \
         {AI_RECOMMEND_SONG_COUNT} {count}, \
         {AI_RECOMMEND_RULES}, \
@@ -163,6 +183,26 @@ pub fn gen_recommend_style_content(song: &str, count: u64, previous: Option<Stri
     }
 }
 
+pub fn gen_ai_singer_prompt() -> String {
+    format!(
+        r#"
+你将收到一个音乐列表,格式如下:
+
+{AI_SONG_REQ_EXAMPLE}
+
+根据用户输入的示例来返回相对应的音乐,返回结构如下格式:
+
+{AI_SONG_RESP_TEMPLATE}
+
+返回的数据有如下规则:
+
+{AI_RECOMMEND_RULES}
+
+平均每个示例对应返回{RAND_RECOMMEND_AVG}首, 返回的推荐列表必须包含{RAND_RECOMMENDS_COUNT}首
+    "#
+    )
+}
+
 pub fn gen_recommend_singer_content(
     singer: &str,
     song_count: u64,
@@ -170,7 +210,7 @@ pub fn gen_recommend_singer_content(
     previous: Option<String>,
 ) -> String {
     let template = format!(
-        "artist: '{singer}', \
+        "Example artist: '{singer}', \
         {AI_RECOMMEND_SINGER}, \
         {AI_RECOMMEND_SONG_COUNT} {song_count}, \
         {AI_RECOMMEND_SINGER_COUNT} {singer_count} ,\
@@ -185,14 +225,8 @@ pub fn gen_recommend_singer_content(
     }
 }
 
-pub fn gen_rand_recommend_content(song_list: &str, count: u64) -> String {
-    let template = format!(
-        "song list: '{song_list}', \
-        {AI_RAND_RECOMMEND_SONGS}, \
-        {AI_RECOMMEND_SONG_COUNT} {count}, \
-        {AI_RECOMMEND_RULES}, \
-        {AI_SONG_RESP_TEMPLATE}, "
-    );
+pub fn gen_rand_recommend_content(song_list: &str, _count: u64) -> String {
+    let template = format!("Example song list: '{song_list}'");
 
     template
 }
@@ -260,4 +294,6 @@ impl AiSource {
 }
 
 pub static RAND_RECOMMENDS_BENCHMARK_COUNT: usize = 3;
-pub static RAND_RECOMMENDS_COUNT: usize = 30;
+pub static RAND_RECOMMENDS_COUNT: usize = 15;
+
+pub static RAND_RECOMMEND_AVG: usize = RAND_RECOMMENDS_COUNT / RAND_RECOMMENDS_BENCHMARK_COUNT;

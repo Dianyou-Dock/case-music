@@ -5,12 +5,14 @@ use std::collections::HashMap;
 pub struct AiRecommendSongInfo {
     pub name: String,
     pub singer: String,
+    pub song_type: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AiRecommendSongData {
     pub name: String,
     pub singer: String,
+    pub song_type: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

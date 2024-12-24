@@ -41,6 +41,7 @@ pub async fn recommend_song(
     let recommend_param = AiRecommendSongInfo {
         name: req.song,
         singer: req.singer,
+        song_type: "".to_string(),
     };
 
     let recommend_result = ai
@@ -107,6 +108,7 @@ pub async fn recommend_style(
     let recommend_param = AiRecommendSongInfo {
         name: req.song,
         singer: req.singer,
+        song_type: "".to_string(),
     };
 
     let recommend_result = ai
@@ -173,6 +175,7 @@ pub async fn recommend_singer(
     let recommend_param = AiRecommendSongInfo {
         name: req.song,
         singer: req.singer,
+        song_type: "".to_string(),
     };
 
     let previous = if let Some(pre) = req.previous {
@@ -274,10 +277,10 @@ pub async fn rand_recommends(
 
     if instance.rand_cache.songs.is_empty() {
         // update
-        instance.refresh_rand_cache(source).await.map_err(|e| {
-            instance.update_rand_cache = false;
-            InvokeError::from_anyhow(e)
-        })?;
+        instance
+            .refresh_rand_cache(source)
+            .await
+            .map_err(|e| InvokeError::from_anyhow(e))?;
     }
 
     let songs = instance.rand_cache.songs.clone();

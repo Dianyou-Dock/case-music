@@ -4,16 +4,20 @@ use crate::types::ai_recommend_info::{
 };
 use crate::types::apikey::AiApiKey;
 use crate::types::constants::{
-    gen_rand_recommend_content, gen_recommend_singer_content, gen_recommend_song_content,
-    gen_recommend_style_content, AiSource, APIKEY_DIR, APIKEY_FILE, DATA_PATH, KIMI_URL,
+    gen_ai_singer_prompt, gen_rand_recommend_content, gen_recommend_singer_content,
+    gen_recommend_song_content, gen_recommend_style_content, AiSource, APIKEY_DIR, APIKEY_FILE,
+    DATA_PATH, KIMI_URL,
 };
 use crate::types::error::{AiError, ErrorHandle};
 use anyhow::Result;
 use async_trait::async_trait;
+use err_logging::ctx;
+use err_logging::error_logging::ErrorLogging;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::{Method, Request};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::path::PathBuf;
 use tokio::fs;
 
@@ -27,6 +31,7 @@ pub struct ChatRequest {
     model: String,
     messages: Vec<Message>,
     temperature: f64,
+    response_format: Value,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -81,14 +86,21 @@ impl Kimi {
         })
     }
 
-    pub fn gen_req(&self, content: &str) -> Result<Request> {
+    pub fn gen_req(&self, content: &str, prompt: &str) -> Result<Request> {
         let chat_req = ChatRequest {
-            model: "moonshot-v1-auto".to_string(),
-            messages: vec![Message {
-                role: "user".to_string(),
-                content: content.to_string(),
-            }],
-            temperature: 0.3,
+            model: "moonshot-v1-128k".to_string(),
+            messages: vec![
+                Message {
+                    role: "system".to_string(),
+                    content: prompt.to_string(),
+                },
+                Message {
+                    role: "user".to_string(),
+                    content: content.to_string(),
+                },
+            ],
+            response_format: json!({"type": "json_object"}),
+            temperature: 1.0,
         };
 
         let req = self.client.request(Method::POST, KIMI_URL);
@@ -122,12 +134,12 @@ impl Kimi {
     }
 
     pub async fn send<T: DeserializeOwned>(&self, req: Request) -> Result<T> {
-        let resp = self.client.execute(req).await?;
+        let resp = self.client.execute(req).await.elog(ctx!())?;
 
         if !resp.status().is_success() {
             let code = resp.status();
-            let bytes = resp.bytes().await?;
-            let msg = String::from_utf8(bytes.to_vec())?;
+            let bytes = resp.bytes().await.elog(ctx!())?;
+            let msg = String::from_utf8(bytes.to_vec()).elog(ctx!())?;
             return Err(anyhow::anyhow!(
                 "Kimi server responded with code: {}, error: {}",
                 code,
@@ -135,10 +147,10 @@ impl Kimi {
             ));
         }
 
-        let chat_resp = resp.json::<ChatResp>().await?;
+        let chat_resp = resp.json::<ChatResp>().await.elog(ctx!())?;
         let data = if let Some(data) = chat_resp.choices.get(0) {
             let content = data.message.content.clone();
-            let data = serde_json::from_str::<T>(&content)?;
+            let data = serde_json::from_str::<T>(&content).elog(ctx!())?;
             data
         } else {
             return Err(AiError::KimiRespNotExistContent.anyhow_err());
@@ -163,8 +175,9 @@ impl Client for Kimi {
         };
 
         let content = gen_recommend_song_content(&data.name, count, pre);
+        let prompt = gen_ai_singer_prompt();
 
-        let req = self.gen_req(&content)?;
+        let req = self.gen_req(&content, &prompt)?;
 
         let resp = self.send(req).await?;
 
@@ -176,15 +189,16 @@ impl Client for Kimi {
         data: &[AiRecommendSongInfo],
         count: u64,
     ) -> Result<AiRecommendInfo> {
-        let sample_playlist = serde_json::to_string_pretty(data)?;
+        let sample_playlist = serde_json::to_string_pretty(data).elog(ctx!())?;
 
         let content = gen_rand_recommend_content(&sample_playlist, count);
+        let prompt = gen_ai_singer_prompt();
 
         println!("content: {content}");
 
-        let req = self.gen_req(&content)?;
+        let req = self.gen_req(&content, &prompt).elog(ctx!())?;
 
-        let resp = self.send(req).await?;
+        let resp = self.send(req).await.elog(ctx!())?;
 
         Ok(resp)
     }
@@ -202,8 +216,9 @@ impl Client for Kimi {
         };
 
         let content = gen_recommend_style_content(&data.name, count, pre);
+        let prompt = gen_ai_singer_prompt();
 
-        let req = self.gen_req(&content)?;
+        let req = self.gen_req(&content, &prompt)?;
 
         let resp = self.send(req).await?;
 
@@ -224,8 +239,9 @@ impl Client for Kimi {
         };
 
         let content = gen_recommend_singer_content(&data.singer, song_count, singer_count, pre);
+        let prompt = gen_ai_singer_prompt();
 
-        let req = self.gen_req(&content)?;
+        let req = self.gen_req(&content, &prompt)?;
 
         let resp = self.send(req).await?;
 

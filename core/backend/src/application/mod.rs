@@ -12,8 +12,12 @@ use crate::types::play_list_info::PlayListInfoData;
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::utils;
 use anyhow::Result;
+use err_logging::ctx;
+use err_logging::error_logging::ErrorLogging;
+use log::debug;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
+use tokio::time::Instant;
 
 pub mod ai;
 
@@ -34,7 +38,6 @@ pub struct Application {
     pub history_recommends: BTreeMap<u64, SongInfo>,
     pub current_recommends: BTreeMap<u64, SongInfo>,
     pub rand_cache: RandCache,
-    pub update_rand_cache: bool,
 }
 
 impl Application {
@@ -46,7 +49,6 @@ impl Application {
             history_recommends: BTreeMap::new(),
             current_recommends: BTreeMap::new(),
             rand_cache: RandCache::default(),
-            update_rand_cache: false,
         };
 
         // TODO:
@@ -87,20 +89,28 @@ impl Application {
                     let recommend_req = AiRecommendSongInfo {
                         name: song.name,
                         singer: song.singer,
+                        song_type: "".to_string(),
                     };
 
                     recommends.push(recommend_req);
                 }
 
                 let ai = self.ai.as_ref().unwrap();
+
+                let start = Instant::now();
                 let recommend_result = ai
                     .rand_recommends(&recommends, RAND_RECOMMENDS_COUNT as u64)
-                    .await?;
+                    .await
+                    .elog(ctx!())?;
+                let duration = start.elapsed();
+                debug!("recommend duration sec: {}", duration.as_secs());
 
                 let mut songs_id = vec![];
                 let mut likeds = vec![];
 
-                println!("recommend_result: {recommend_result:?}");
+                debug!("recommend_result: {recommend_result:?}");
+
+                let start = Instant::now();
                 for recommend_info in recommend_result.recommends {
                     let result = self
                         .netesae
@@ -120,13 +130,25 @@ impl Application {
                             }
                         }
                         Err(e) => {
-                            println!("recommend_error: {e}");
+                            debug!("recommend_error: {e}");
                             continue;
                         }
                     }
                 }
+                let duration = start.elapsed();
+                debug!("reach songs duration: {}", duration.as_secs());
 
-                let songs_info = self.netesae.client().song_infos(&songs_id).await?;
+                let songs_info = if !songs_id.is_empty() {
+                    self.netesae
+                        .client()
+                        .song_infos(&songs_id)
+                        .await
+                        .elog(ctx!())?
+                } else {
+                    vec![]
+                };
+
+                debug!("songs_id: {songs_id:?}");
 
                 (songs_info, likeds)
             }
