@@ -25,17 +25,23 @@ interface MusicListProps {
 export function MusicList({ songs }: MusicListProps) {
   const { currentSource } = useAudioSource();
   const [likes, setLikes] = useState<number[]>([]);
+  const songsStore = playerControl.useTracked.songs();
 
   useEffect(() => {
     if (songs) {
-      setLikes(songs
-        .filter((item) => item.liked)
-        .map((item) => item.content.id)
+      setLikes(
+        songs.filter((item) => item.liked).map((item) => item.content.id)
       );
     }
   }, [songs]);
 
   function handlePlayClick(song: SongInfo) {
+    if (songsStore.length === 0) {
+      playerControl.set.songs([song]);
+      playerControl.set.index(0);
+      playerControl.set.play();
+      return;
+    }
     playerControl.set.state((draft) => {
       draft.immediately = song;
     });
