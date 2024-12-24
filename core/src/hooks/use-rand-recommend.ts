@@ -17,7 +17,15 @@ const useRandRecommend = ({ source }: Props) => {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+      onError: (err) => {
+        // TODO: better use dialog print error?
+        console.log("rand_recommends err: ", err);
+      },
+      onErrorRetry: (err) => {
+        console.log("rand_recommends err: ", err);
+        return
+      }
+    },
   );
 
   return {

@@ -10,6 +10,8 @@ use crate::types::song_url::{SongRate, SongUrl, SongUrlData};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use cookie_store::CookieStore;
+use err_logging::ctx;
+use err_logging::error_logging::ErrorLogging;
 use ncm_api::{CookieBuilder, CookieJar, MusicApi};
 use std::fs;
 use std::path::PathBuf;
@@ -236,7 +238,8 @@ impl Client for NeteaseClient {
         let result = self
             .api
             .search_song(search_info.clone(), offset, limit)
-            .await?;
+            .await
+            .elog(ctx!())?;
 
         for x in result {
             if x.name.to_lowercase().eq(&song.to_lowercase()) {

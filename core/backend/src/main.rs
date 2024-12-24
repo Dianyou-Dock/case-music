@@ -3,5 +3,6 @@
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     core_lib::run().await
 }
