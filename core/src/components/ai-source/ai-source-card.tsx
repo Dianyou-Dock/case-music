@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button.tsx";
 import { useAiSource } from "@/hooks/use-ai-source.tsx";
 import { useState } from "react";
 import { AiDialog } from "@/components/ai-dialog.tsx";
+import {useTranslation} from "react-i18next";
 
 export function AiSourceCard({ source }: { source: AiSource }) {
   const { aiSource, configureSource } = useAiSource();
   const isSelected = aiSource?.find((s) => s.id === source.id)?.used;
   const disabled = aiSource?.find((s) => s.id === source.id)?.disabled;
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+  const { t } = useTranslation();
 
   // TODO: 这里要做互斥, 只能有一个ai源被使用
   const handleConnectClick = () => {
@@ -33,7 +35,9 @@ export function AiSourceCard({ source }: { source: AiSource }) {
       <div className="flex items-center gap-4">
         <div>
           <h3 className="font-medium">{source.name}</h3>
-          <p className="text-sm text-muted-foreground">{source.desc}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("setting_ai_card_desc", { name: source.name })}
+          </p>
         </div>
       </div>
 
@@ -46,7 +50,7 @@ export function AiSourceCard({ source }: { source: AiSource }) {
           isSelected && "border-green-500 text-green-500" // When selected, green border and text
         )}
       >
-        {isSelected ? "Used" : "Use"}
+        {isSelected ? t("used") : t("use")}
       </Button>
 
       <AiDialog

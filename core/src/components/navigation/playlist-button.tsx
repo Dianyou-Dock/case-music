@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface PlaylistButtonProps {
   name: string;
@@ -10,8 +11,10 @@ interface PlaylistButtonProps {
 
 export function PlaylistButton({ name }: PlaylistButtonProps) {
   const pathname = usePathname();
+  const i18nKey = name.toLowerCase().replace(/ /g, "_")
   const href = `/${name.toLowerCase().replace(/ /g, "-")}`;
   const isActive = pathname === href;
+  const { t } = useTranslation(); // 使用 i18n 的 Hook
 
   return (
     <Link
@@ -21,7 +24,7 @@ export function PlaylistButton({ name }: PlaylistButtonProps) {
         isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
       )}
     >
-      {name}
+      {t(i18nKey)}
     </Link>
   );
 }

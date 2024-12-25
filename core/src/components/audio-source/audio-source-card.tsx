@@ -8,12 +8,14 @@ import { useState } from "react";
 import { AudioSource } from "@/lib/audio-sources";
 import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application.ts";
+import {useTranslation} from "react-i18next";
 
 export function AudioSourceCard({ source }: { source: AudioSource }) {
   const { audioSource, configureSource } = useAudioSource();
   const isSelected = audioSource?.find((s) => s.id === source.id)?.connected;
   const disabled = audioSource?.find((s) => s.id === source.id)?.disabled;
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const { t } = useTranslation();
 
   async function logout(): Promise<ApplicationResp<any> | undefined> {
     try {
@@ -58,7 +60,9 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
       <div className="flex items-center gap-4">
         <div>
           <h3 className="font-medium">{source.name}</h3>
-          <p className="text-sm text-muted-foreground">{source.desc}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("setting_music_card_desc", { name: source.name })}
+          </p>
         </div>
       </div>
 
@@ -71,7 +75,7 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
           isSelected && "border-green-500 text-green-500" // When selected, green border and text
         )}
       >
-        {isSelected ? "Disconnect" : "Connect"}
+        {isSelected ? t("disconnect") : t("connect")}
       </Button>
 
       <AuthDialog

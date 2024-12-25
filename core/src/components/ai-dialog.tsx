@@ -22,6 +22,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application.ts";
 import { AiSource } from "@/lib/ai-source.ts";
 import { useAiSource } from "@/hooks/use-ai-source";
+import {useTranslation} from "react-i18next";
 
 export function AiDialog({
   isOpen,
@@ -33,6 +34,7 @@ export function AiDialog({
   source: AiSource;
 }) {
   const { configureSource } = useAiSource();
+  const { t } = useTranslation();
 
   const form = useForm({
     defaultValues: {
@@ -62,10 +64,8 @@ export function AiDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Set Ai Apikey</DialogTitle>
-          <DialogDescription>
-            Enter the apikey of the ai manufacturer you registered
-          </DialogDescription>
+          <DialogTitle>{t("ai_apikey_title")}</DialogTitle>
+          <DialogDescription>{t("ai_apikey_desc")}</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -77,14 +77,14 @@ export function AiDialog({
                 <FormItem>
                   <FormLabel>ApiKey</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your apikey" {...field} />
+                    <Input placeholder={t("ai_apikey_input_desc")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <div className="flex flex-col gap-2">
-              <Button type="submit">Submit</Button>
+              <Button type="submit">{t("submit")}</Button>
             </div>
           </form>
         </Form>

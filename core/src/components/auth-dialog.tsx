@@ -30,6 +30,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp, LoginReq } from "@/types/application.ts";
 import { useAudioSource } from "@/hooks/use-audio-source";
 import { AudioSource } from "@/lib/audio-sources";
+import {useTranslation} from "react-i18next";
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -52,6 +53,7 @@ export function AuthDialog({
   );
   const [selectedTab, setSelectedTab] = useState("credentials");
   const { configureSource, audioSource } = useAudioSource();
+  const { t } = useTranslation();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -144,12 +146,12 @@ export function AuthDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {mode === "login" ? "Welcome back" : "Create an account"}
+            {mode === "login" ? t("welcome") : t("create_account")}
           </DialogTitle>
           <DialogDescription>
             {mode === "login"
-              ? "Sign in to your account to continue"
-              : "Enter your details to create an account"}
+              ? t("login_desc")
+              : t("create_desc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -160,8 +162,8 @@ export function AuthDialog({
           onValueChange={setSelectedTab}
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="qr">QR Code</TabsTrigger>
-            <TabsTrigger value="credentials">Credentials</TabsTrigger>
+            <TabsTrigger value="qr">{t("qr")}</TabsTrigger>
+            <TabsTrigger value="credentials">{t("credentials")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="credentials">
@@ -175,9 +177,9 @@ export function AuthDialog({
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t("email")}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your email" {...field} />
+                        <Input placeholder={t("input_email_desc")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -188,11 +190,11 @@ export function AuthDialog({
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>{t("password")}</FormLabel>
                       <FormControl>
                         <Input
                           type="password"
-                          placeholder="Enter your password"
+                          placeholder={t("input_password_desc")}
                           {...field}
                         />
                       </FormControl>
@@ -202,7 +204,7 @@ export function AuthDialog({
                 />
                 <div className="flex flex-col gap-2">
                   <Button type="submit">
-                    {mode === "login" ? "Sign In" : "Sign Up"}
+                    {mode === "login" ? t("login") : t("register")}
                   </Button>
                   <Button
                     type="button"
@@ -212,8 +214,8 @@ export function AuthDialog({
                     }
                   >
                     {mode === "login"
-                      ? "Don't have an account? Sign up"
-                      : "Already have an account? Sign in"}
+                      ?  t("submit_login_desc")
+                      : t("submit_create_desc")}
                   </Button>
                 </div>
               </form>
@@ -230,7 +232,7 @@ export function AuthDialog({
               />
             </div>
             <p className="text-center text-sm text-muted-foreground">
-              Scan this QR code with your mobile device to sign in instantly
+              {t("qr_desc")}
             </p>
           </TabsContent>
         </Tabs>

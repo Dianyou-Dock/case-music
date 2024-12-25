@@ -7,8 +7,9 @@ import Player from "@/components/player";
 import Sidebar from "@/components/sidebar";
 import { AiSourceProvider } from "@/hooks/use-ai-source.tsx";
 
-const inter = Inter({ subsets: ["latin"] });
+import "@/hooks/i18n.ts"; // 导入 I18nProvider
 
+const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
@@ -16,31 +17,33 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <AudioSourceProvider>
-              <AiSourceProvider>
-              <div className="flex h-screen flex-col">
-                <div className="flex flex-1 overflow-hidden">
-                  <Sidebar />
-                  <main className="flex-1 overflow-y-auto bg-background">
-                    {children}
-                  </main>
-                </div>
-                <Player />
+    <html lang="zh" suppressHydrationWarning>
+    <body className={inter.className}>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem
+      disableTransitionOnChange
+    >
+
+      <AuthProvider>
+        <AudioSourceProvider>
+          <AiSourceProvider>
+            <div className="flex h-screen flex-col">
+              <div className="flex flex-1 overflow-hidden">
+                <Sidebar/>
+                <main className="flex-1 overflow-y-auto bg-background">
+                  {children}
+                </main>
               </div>
-              </AiSourceProvider>
-            </AudioSourceProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </body>
+              <Player/>
+            </div>
+          </AiSourceProvider>
+        </AudioSourceProvider>
+      </AuthProvider>
+
+    </ThemeProvider>
+    </body>
     </html>
   );
 }
