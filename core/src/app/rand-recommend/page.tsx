@@ -9,6 +9,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application.ts";
 import { useMemo, useState } from "react";
 import { PlaylistSkeleton } from "@/components/playlist-skeleton";
+import {useTranslation} from "react-i18next";
 
 export default function RandomRecommendPage() {
   const [loading, setLoading] = useState(false);
@@ -16,6 +17,7 @@ export default function RandomRecommendPage() {
   const { data, isLoading, mutate } = useRandRecommend({
     source: currentSource,
   });
+  const { t } = useTranslation();
 
   const handlePlayAll = () => {
     playerControl.set.songs(data?.songs || []);
@@ -48,7 +50,7 @@ export default function RandomRecommendPage() {
         ) : (
           <>
             <MusicHeader
-              title={data?.name || "Playlist"}
+              title={t("rand_recommend_title")}
               subtitle={`${data?.songs?.length || 0} songs`}
               coverUrl={data?.cover_img_url}
               handlePlayAllClick={handlePlayAll}

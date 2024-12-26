@@ -27,7 +27,7 @@ export default function Player() {
   const current = playerControl.useTracked.currentSong();
   const isLast = playerControl.useTracked.isLastSong();
   const immediately = playerControl.useTracked.immediately();
-  const [volume, setVolume] = useState(75);
+  const [volume, setVolume] = useState(50);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
   const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined);
   const [progress, setProgress] = useState(0); // 播放进度
@@ -116,18 +116,24 @@ export default function Player() {
     }
     if (index >= 0) {
       get_song_url(current);
+      setLiked(current.liked)
     }
-  }, [index, current]);
+  }, [index, current?.content]);
 
   async function handleHeartClick(id: number) {
     const newLiked = !liked;
 
-    // update local state
-    setLiked(newLiked);
+    setLiked(newLiked)
 
     await invoke<ApplicationResp<boolean>>("like_song", {
       req: { source: currentSource, song_id: id, is_like: newLiked },
     });
+
+    if (immediately) {
+      playerControl.set.likeImmediately(newLiked);
+    } else {
+      playerControl.set.likeCurrent(newLiked);
+    }
   }
 
   return (
