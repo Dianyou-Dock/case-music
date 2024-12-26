@@ -118,7 +118,7 @@ export default function Player() {
       get_song_url(current);
       setLiked(current.liked)
     }
-  }, [index]);
+  }, [index, current?.content]);
 
   async function handleHeartClick(id: number) {
     const newLiked = !liked;
