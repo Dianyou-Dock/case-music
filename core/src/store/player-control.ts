@@ -81,6 +81,23 @@ const playerControl = createStore("play-control")<PlayerControl>({
         draft.isPlaying = false;
       });
     },
+  }))
+  .extendActions((set) => ({
+    likeCurrent(isLike: boolean) {
+      set.state((draft) => {
+        const currentIdx = draft.index;
+        draft.songs[currentIdx].liked = isLike
+      })
+    }
+  }))
+  .extendActions((set) => ({
+    likeImmediately(isLike: boolean) {
+      set.state((draft) => {
+        if (draft.immediately){
+          draft.immediately.liked = isLike
+        }
+      })
+    }
   }));
 
 export default playerControl;

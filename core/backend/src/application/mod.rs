@@ -14,7 +14,7 @@ use crate::utils;
 use anyhow::Result;
 use err_logging::ctx;
 use err_logging::error_logging::ErrorLogging;
-use log::debug;
+use log::{error, info};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tokio::time::Instant;
@@ -103,12 +103,12 @@ impl Application {
                     .await
                     .elog(ctx!())?;
                 let duration = start.elapsed();
-                debug!("recommend duration sec: {}", duration.as_secs());
+                info!("recommend duration sec: {}", duration.as_secs());
 
                 let mut songs_id = vec![];
                 let mut likeds = vec![];
 
-                debug!("recommend_result: {recommend_result:?}");
+                info!("recommend_result: {recommend_result:?}");
 
                 let start = Instant::now();
                 for recommend_info in recommend_result.recommends {
@@ -130,13 +130,13 @@ impl Application {
                             }
                         }
                         Err(e) => {
-                            debug!("recommend_error: {e}");
+                            error!("recommend_error: {e}");
                             continue;
                         }
                     }
                 }
                 let duration = start.elapsed();
-                debug!("reach songs duration: {}", duration.as_secs());
+                info!("reach songs duration: {}", duration.as_secs());
 
                 let songs_info = if !songs_id.is_empty() {
                     self.netesae
@@ -147,8 +147,6 @@ impl Application {
                 } else {
                     vec![]
                 };
-
-                debug!("songs_id: {songs_id:?}");
 
                 (songs_info, likeds)
             }
