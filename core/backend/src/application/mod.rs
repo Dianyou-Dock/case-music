@@ -148,6 +148,8 @@ impl Application {
                     vec![]
                 };
 
+                info!("refresh_rand_cache songs info: {songs_info:?}");
+
                 (songs_info, likeds)
             }
             MusicSource::Spotify => {
