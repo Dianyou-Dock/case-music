@@ -44,7 +44,7 @@
 
 ### ⚙️ **流畅的设置体验**
 *轻松调整设置，享受个性化体验。*  
-![完成设置](../picture/zh/zhn_setting_complete.gif)
+![完成设置](../picture/zh/zh_setting_complete.gif)
 
 ### ❤️ **探索你的喜欢列表**
 *轻松访问你收藏的“喜欢的歌曲”列表。*  
