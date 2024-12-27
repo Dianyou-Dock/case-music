@@ -21,6 +21,7 @@ export default function RandomRecommendPage() {
 
   const handlePlayAll = () => {
     playerControl.set.songs(data?.songs || []);
+    playerControl.set.playlistId(data?.id || -1);
     playerControl.set.index(0);
     playerControl.set.play();
   };

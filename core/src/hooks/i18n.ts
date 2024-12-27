@@ -12,8 +12,7 @@ i18n
   .use(LanguageDetector) // 自动检测语言
   .use(initReactI18next) // 绑定到 React
   .init({
-    fallbackLng: "zh", // 默认语言
-    lng: "zh", // 强制指定语言
+    fallbackLng: "en", // 默认语言
     debug: true, // 启用调试模式
     interpolation: {
       escapeValue: false, // React 已经内置防止 XSS

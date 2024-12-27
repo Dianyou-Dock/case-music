@@ -62,6 +62,7 @@
     "react-hook-form": "^7.53.2",
     "react-howler": "^5.2.0",
     "react-i18next": "^15.2.0",
+    "react-infinite-scroll-component": "^6.1.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.13.3",
     "sonner": "^1.7.0",
