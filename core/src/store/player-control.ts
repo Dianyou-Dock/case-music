@@ -10,6 +10,8 @@ type PlayerControl = {
   isPlaying: boolean;
   // 插播的音乐
   immediately: SongInfo | undefined;
+  // 播放列表的id
+  playlistId: number;
 };
 
 const playerControl = createStore("play-control")<PlayerControl>({
@@ -17,6 +19,7 @@ const playerControl = createStore("play-control")<PlayerControl>({
   index: -1,
   isPlaying: false,
   immediately: undefined,
+  playlistId: -1,
 })
   .extendSelectors((_, get) => ({
     currentSong() {
