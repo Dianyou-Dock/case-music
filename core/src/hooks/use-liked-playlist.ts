@@ -13,7 +13,7 @@ const useLikedPlaylist = ({ source, pageIndex }: Props) => {
     source ? ["like_list", source, pageIndex] : null,
     () =>
       invoke<PlaylistRes>("like_list", {
-        req: { source, offset: pageIndex, limit: 60 },
+        req: { source, offset: pageIndex, limit: 100 },
       }).then((res) => res.data)
   );
 

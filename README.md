@@ -28,6 +28,16 @@ If any of these resonate with you, **CASE MUSIC** is here to transform your musi
 
 🎧 **Say goodbye to music frustration and hello to effortless discovery.** Try CASE MUSIC today and let the music play!  
 
+### 🎉 Upcoming Features in Version 2.0
+
+- [ ] **Infinite scrolling for Likelist**: Enjoy a smoother experience with seamless scrolling through your favorite tracks.
+- [ ] **Multiple playback modes**: Single loop, shuffle, playlist loop—choose the mode that fits your listening style.
+- [ ] **Support for QQ Music source**: Access a wider range of music with integrated QQ Music.
+- [ ] **More accurate recommendation system**: AI-driven recommendations tailored to your taste.
+- [ ] **Support for Apple devices**: Full compatibility with the iOS ecosystem, enabling seamless music enjoyment across devices.
+
+✨ **Stay tuned! Version 2.0 will elevate your music experience to the next level!**
+
 
 ### PC Version
 
