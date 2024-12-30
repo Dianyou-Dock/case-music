@@ -84,22 +84,22 @@ impl Application {
                     }
                 }
 
-                let mut recommends = vec![];
-                for song in bench_mark_list {
+                let mut recommends_req = vec![];
+                for song in &bench_mark_list {
                     let recommend_req = AiRecommendSongInfo {
-                        name: song.name,
-                        singer: song.singer,
+                        name: song.name.clone(),
+                        singer: song.singer.clone(),
                         song_type: "".to_string(),
                     };
 
-                    recommends.push(recommend_req);
+                    recommends_req.push(recommend_req);
                 }
 
                 let ai = self.ai.as_ref().unwrap();
 
                 let start = Instant::now();
                 let recommend_result = ai
-                    .rand_recommends(&recommends, RAND_RECOMMENDS_COUNT as u64)
+                    .rand_recommends(&recommends_req, RAND_RECOMMENDS_COUNT as u64)
                     .await
                     .elog(ctx!())?;
                 let duration = start.elapsed();
@@ -138,7 +138,7 @@ impl Application {
                 let duration = start.elapsed();
                 info!("reach songs duration: {}", duration.as_secs());
 
-                let songs_info = if !songs_id.is_empty() {
+                let mut songs_info = if !songs_id.is_empty() {
                     self.netesae
                         .client()
                         .song_infos(&songs_id)
@@ -147,6 +147,10 @@ impl Application {
                 } else {
                     vec![]
                 };
+
+                for (idx, si) in bench_mark_list.into_iter().enumerate() {
+                    songs_info.insert(idx, SongInfo{ data: SongInfoData::Netesae(si) });
+                }
 
                 info!("refresh_rand_cache songs info: {songs_info:?}");
 

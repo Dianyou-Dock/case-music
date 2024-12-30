@@ -26,13 +26,20 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<ListResp>, In
     let mut instance = INSTANCE.write().await;
 
     let skip = req.offset * req.limit;
-    let take = req.limit;
 
     let resp = match req.source {
         MusicSource::Netesae => {
+
+
             let list_info = instance.netesae.like_list().unwrap();
             let data = match &list_info.data {
                 PlayListInfoData::Netesae(v) => v,
+            };
+
+            let take = if req.limit == 0 {
+                data.songs.len()
+            } else {
+                req.limit
             };
 
             let total = data.songs.len();
