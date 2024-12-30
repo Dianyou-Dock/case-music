@@ -20,7 +20,7 @@ export function MusicHeader({
 }: MusicHeaderProps) {
   return (
     <div className="flex items-end gap-6">
-      <div className="h-48 w-48 overflow-hidden rounded-lg bg-accent">
+      <div className="h-48 w-48 overflow-hidden rounded-lg bg-accent hidden md:block">
         {coverUrl && (
           <img
             src={coverUrl}

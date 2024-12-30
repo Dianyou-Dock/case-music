@@ -63,67 +63,88 @@ export function MusicList({ songs }: MusicListProps) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Title</TableHead>
-          <TableHead>Artist</TableHead>
-          <TableHead>Album</TableHead>
-          <TableHead className="w-[100px]">
-            <Clock className="h-4 w-4" />
-          </TableHead>
-          <TableHead className="w-[100px]"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {songs.map((track) => (
-          <TableRow key={track.content.id}>
-            <TableCell>
-              <div className="flex items-center gap-3">
-                <img
-                  src={track.content.pic_url}
-                  alt={track.content.name}
-                  className="h-10 w-10 rounded object-cover"
-                />
-                <span className="font-medium">{track.content.name}</span>
-              </div>
-            </TableCell>
-            <TableCell>{track.content.singer}</TableCell>
-            <TableCell>{track.content.album}</TableCell>
-            <TableCell>{formatDuration(track.content.duration)}</TableCell>
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Heart
-                    className={`h-4 w-4 ${
-                      likes.includes(track.content.id)
-                        ? "fill-primary text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    onClick={() =>
-                      handleHeartClick(
-                        track.content.id,
-                        likes.includes(track.content.id)
-                      )
-                    }
-                  />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Play
-                    className="h-4 w-4"
-                    onClick={() => {
-                      handlePlayClick(track);
-                    }}
-                  />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </TableCell>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="hidden md:table-cell">Title</TableHead>
+            <TableHead className="hidden md:table-cell">Artist</TableHead>
+            <TableHead className="hidden md:table-cell">Album</TableHead>
+            <TableHead className="hidden sm:table-cell w-[100px]">
+              <Clock className="h-4 w-4" />
+            </TableHead>
+            <TableHead className="w-[100px]"></TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {songs.map((track) => (
+            <TableRow
+              key={track.content.id}
+              onClick={() => handlePlayClick(track)}
+            >
+              <TableCell>
+                <div className="flex items-center gap-3 pr-6">
+                  <img
+                    src={track.content.pic_url}
+                    alt={track.content.name}
+                    className="h-10 w-10 rounded object-cover"
+                  />
+                  <span className="font-medium min-w-24">
+                    {track.content.name}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell>{track.content.singer}</TableCell>
+              <TableCell className="hidden md:table-cell">
+                {track.content.album}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {formatDuration(track.content.duration)}
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Heart
+                      className={`h-4 w-4 ${
+                        likes.includes(track.content.id)
+                          ? "fill-primary text-primary"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleHeartClick(
+                          track.content.id,
+                          likes.includes(track.content.id)
+                        );
+                      }}
+                    />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 hidden md:table-cell"
+                  >
+                    <Play
+                      className="h-4 w-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayClick(track);
+                      }}
+                    />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 hidden"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

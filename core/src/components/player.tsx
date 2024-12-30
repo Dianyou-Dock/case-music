@@ -156,7 +156,7 @@ export default function Player({ className }: PlayerProps) {
         />
       )}
       <div className={cn("border-t bg-background p-4", className)}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
+        <div className="mx-auto flex w-full items-center justify-between">
           {current ? (
             <div className="flex items-center gap-4 flex-1">
               <img

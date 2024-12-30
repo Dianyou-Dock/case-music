@@ -4,7 +4,6 @@ import { Play, Pause, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import playerControl from "@/store/player-control";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { MobilePlaybackView } from "./mobile-playback-view";
 
 export function MobilePlayer() {
   const currentTrack = playerControl.useTracked.currentSong();
@@ -65,7 +64,7 @@ export function MobilePlayer() {
         </div>
       </SheetTrigger>
       <SheetContent side="bottom" className="h-[100dvh] p-0">
-        {/* <MobilePlaybackView /> */}
+        {/* TODO: add a mobile player view */}
       </SheetContent>
     </Sheet>
   );
