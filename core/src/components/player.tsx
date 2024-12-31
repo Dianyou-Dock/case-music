@@ -19,8 +19,13 @@ import { SongRate } from "@/types/constants.ts";
 import playerControl from "@/store/player-control";
 import { formatDuration, formatProgress } from "@/lib/format.ts";
 import { useAudioSource } from "@/hooks/use-audio-source";
+import { cn } from "@/lib/utils";
 
-export default function Player() {
+interface PlayerProps {
+  className?: string;
+}
+
+export default function Player({ className }: PlayerProps) {
   const { currentSource } = useAudioSource();
   const index = playerControl.useTracked.index();
   const isPlaying = playerControl.useTracked.isPlaying();
@@ -116,14 +121,14 @@ export default function Player() {
     }
     if (index >= 0) {
       get_song_url(current);
-      setLiked(current.liked)
+      setLiked(current.liked);
     }
   }, [index, current?.content]);
 
   async function handleHeartClick(id: number) {
     const newLiked = !liked;
 
-    setLiked(newLiked)
+    setLiked(newLiked);
 
     await invoke<ApplicationResp<boolean>>("like_song", {
       req: { source: currentSource, song_id: id, is_like: newLiked },
@@ -150,8 +155,8 @@ export default function Player() {
           onPlay={handlePlay}
         />
       )}
-      <div className="border-t bg-background p-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
+      <div className={cn("border-t bg-background p-4", className)}>
+        <div className="mx-auto flex w-full items-center justify-between">
           {current ? (
             <div className="flex items-center gap-4 flex-1">
               <img

@@ -6,6 +6,8 @@ import { AudioSourceProvider } from "@/hooks/use-audio-source";
 import Player from "@/components/player";
 import Sidebar from "@/components/sidebar";
 import { AiSourceProvider } from "@/hooks/use-ai-source.tsx";
+import MobileNav from "@/components/mobile-nav";
+import { MobilePlayer } from "@/components/mobile-player";
 
 import "@/hooks/i18n.ts"; // 导入 I18nProvider
 
@@ -18,32 +20,32 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh" suppressHydrationWarning>
-    <body className={inter.className}>
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="dark"
-      enableSystem
-      disableTransitionOnChange
-    >
-
-      <AuthProvider>
-        <AudioSourceProvider>
-          <AiSourceProvider>
-            <div className="flex h-screen flex-col">
-              <div className="flex flex-1 overflow-hidden">
-                <Sidebar/>
-                <main className="flex-1 overflow-y-auto bg-background">
-                  {children}
-                </main>
-              </div>
-              <Player/>
-            </div>
-          </AiSourceProvider>
-        </AudioSourceProvider>
-      </AuthProvider>
-
-    </ThemeProvider>
-    </body>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <AudioSourceProvider>
+              <AiSourceProvider>
+                <div className="flex h-screen flex-col">
+                  <div className="flex flex-1 overflow-hidden">
+                    <Sidebar className="hidden md:flex" />
+                    <main className="flex-1 overflow-y-auto bg-background">
+                      {children}
+                    </main>
+                  </div>
+                  <MobilePlayer />
+                  <Player className="hidden md:flex" />
+                  <MobileNav className="md:hidden" />
+                </div>
+              </AiSourceProvider>
+            </AudioSourceProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
