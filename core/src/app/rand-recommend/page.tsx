@@ -106,7 +106,7 @@ function RecommendationContent() {
         title={isSampleMode ? t("song_recommend_title") : t("rand_recommend_title")}
         subtitle={isSampleMode
           ? t("song_recommend_sample", { song, singer })
-          : `${songs.length} songs`}
+          : t("song_count", { count: songs.length })}
         coverUrl={isSampleMode ? undefined : random.data?.cover_img_url}
         handlePlayAllClick={handlePlayAll}
         handleRefreshClick={handleRefresh}

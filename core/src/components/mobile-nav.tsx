@@ -4,12 +4,13 @@ import { Home, Wand, Heart, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const navigationLinks = [
-  { href: "/", icon: Home, label: "Home" },
-  { href: "/liked-playlist", icon: Heart, label: "Liked" },
-  { href: "/rand-recommend", icon: Wand, label: "Recommend" },
-  { href: "/settings", icon: Settings, label: "Settings" },
+  { href: "/", icon: Home, label: "home" },
+  { href: "/liked-playlist", icon: Heart, label: "liked_nav" },
+  { href: "/rand-recommend", icon: Wand, label: "recommend_nav" },
+  { href: "/settings", icon: Settings, label: "settings" },
 ];
 
 interface MobileNavProps {
@@ -18,6 +19,7 @@ interface MobileNavProps {
 
 export default function MobileNav({ className }: MobileNavProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   return (
     <nav className={cn("shrink-0 border-t bg-background", className)}>
@@ -35,7 +37,7 @@ export default function MobileNav({ className }: MobileNavProps) {
               )}
             >
               <Icon className="h-6 w-6" />
-              <span className="text-xs">{link.label}</span>
+              <span className="text-xs">{t(link.label)}</span>
             </Link>
           );
         })}

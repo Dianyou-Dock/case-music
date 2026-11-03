@@ -97,25 +97,22 @@ pub fn to_lyric(json: String) -> Result<Lyrics> {
     let value = &serde_json::from_str::<Value>(&json)?;
     let code: i64 = get_val!(value, "code")?;
     if code == 200 {
-        let mut lyric: Vec<String> = Vec::new();
-        let lrc: String = get_val!(value, "lrc", "lyric")?;
-        lyric = lrc
-            .split('\n')
-            .collect::<Vec<&str>>()
-            .iter()
-            .map(|s| (*s).to_string())
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<String>>();
-        let lrc: String = get_val!(value, "tlyric", "lyric")?;
-        let mut tlyric: Vec<String> = Vec::new();
-        tlyric = lrc
-            .split('\n')
-            .collect::<Vec<&str>>()
-            .iter()
-            .map(|s| (*s).to_string())
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<String>>();
-        return Ok(Lyrics { lyric, tlyric });
+        let lines = |key: &str| {
+            value
+                .get(key)
+                .and_then(|item| item.get("lyric"))
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .lines()
+                .map(str::trim)
+                .filter(|line| !line.is_empty())
+                .map(str::to_string)
+                .collect()
+        };
+        return Ok(Lyrics {
+            lyric: lines("lrc"),
+            tlyric: lines("tlyric"),
+        });
     }
     Err(anyhow!("none"))
 }
@@ -796,7 +793,6 @@ pub struct LoginInfo {
 
 #[allow(unused)]
 pub fn to_login_info(json: String) -> Result<LoginInfo> {
-
     println!("to_login_info json: {json}");
 
     let value = &serde_json::from_str::<Value>(&json)?;
@@ -1036,7 +1032,16 @@ impl From<i32> for TargetType {
 
 #[cfg(test)]
 mod search_tests {
-    use super::{to_song_info, Parse};
+    use super::{to_lyric, to_song_info, Parse};
+
+    #[test]
+    fn parses_lyrics_without_optional_translation() {
+        let response =
+            r#"{"code":200,"lrc":{"lyric":"[00:01.00]First line\n[00:02.00]Second line"}}"#;
+        let lyrics = to_lyric(response.to_string()).unwrap();
+        assert_eq!(lyrics.lyric.len(), 2);
+        assert!(lyrics.tlyric.is_empty());
+    }
 
     #[test]
     fn parses_cloud_search_song() {

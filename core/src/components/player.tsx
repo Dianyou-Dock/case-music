@@ -13,7 +13,6 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import ReactHowler from "react-howler";
-import { SongInfo } from "@/types/song.ts";
 import { ApplicationResp } from "@/types/application.ts";
 import { SongRate } from "@/types/constants.ts";
 import playerControl from "@/store/player-control";
@@ -34,11 +33,10 @@ export default function Player({ className }: PlayerProps) {
   const immediately = playerControl.useTracked.immediately();
   const [volume, setVolume] = useState(50);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
-  const [pictureUrl, setPictureUrl] = useState<string | undefined>(undefined);
-  const [progress, setProgress] = useState(0); // 播放进度
-  const [duration, setDuration] = useState(0); // 总时长
+  const progress = playerControl.useTracked.progress();
+  const duration = playerControl.useTracked.duration();
+  const seekRequest = playerControl.useTracked.seekRequest();
   const howlerRef = useRef<ReactHowler | null>(null);
-  const [seekInterval, setSeekInterval] = useState<NodeJS.Timeout | null>(null);
   const [liked, setLiked] = useState(current?.liked || false);
 
   async function handleOnEnd() {
@@ -58,72 +56,64 @@ export default function Player({ className }: PlayerProps) {
   }
 
   useEffect(() => {
-    if (isPlaying && !seekInterval) {
-      const interval = setInterval(() => {
-        if (howlerRef.current) {
-          setProgress(howlerRef.current.seek());
-        }
-      }, 1000);
-      setSeekInterval(interval);
-    } else if (!isPlaying && seekInterval) {
-      clearInterval(seekInterval);
-      setSeekInterval(null);
-    }
-
-    return () => {
-      if (seekInterval) {
-        clearInterval(seekInterval);
+    if (!isPlaying || !songUrl) return;
+    const interval = setInterval(() => {
+      const position = howlerRef.current?.seek();
+      if (typeof position === "number" && Number.isFinite(position)) {
+        playerControl.set.progress(position);
       }
-    };
-  }, [isPlaying, seekInterval]);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [isPlaying, songUrl]);
+
+  useEffect(() => {
+    if (seekRequest && howlerRef.current) {
+      howlerRef.current.seek(seekRequest.position);
+    }
+  }, [seekRequest]);
 
   const handleSliderChange = (value: number[]) => {
     const newProgress = value[0];
-    setProgress(newProgress);
-    if (howlerRef?.current) {
-      howlerRef.current.seek(newProgress); // 设置播放器的新播放位置
-    }
+    playerControl.set.seek(newProgress);
   };
 
   const handleLoad = () => {
     if (howlerRef?.current) {
       const songDuration = howlerRef.current.duration();
-      setDuration(songDuration); // 获取歌曲总时长
+      playerControl.set.duration(songDuration);
     }
   };
 
   const handlePlay = () => {
     if (howlerRef?.current) {
       const currentProgress = howlerRef.current.seek() as number;
-      setProgress(currentProgress);
+      playerControl.set.progress(currentProgress);
     }
   };
 
-  async function get_song_url(songInfo: SongInfo) {
+  useEffect(() => {
+    setSongUrl(null);
+    playerControl.set.progress(0);
+    playerControl.set.duration(current ? current.content.duration / 1000 : 0);
+    if (!current) return;
+
+    let active = true;
+    setLiked(current.liked);
     const req = {
-      source: songInfo.type,
-      songs: [songInfo.content.id],
+      source: current.type,
+      songs: [current.content.id],
       rate: SongRate.L,
     };
-
-    invoke<ApplicationResp<any>>("songs_url", { req: req }).then((res) => {
-      if (res.data) {
-        const url = res.data.urls[0].content.url;
-        setSongUrl(url);
-        setPictureUrl(songInfo.content.pic_url);
-      }
+    invoke<ApplicationResp<{ urls: { content: { url: string | null } }[] }>>(
+      "songs_url",
+      { req }
+    ).then((res) => {
+      if (active) setSongUrl(res.data?.urls?.[0]?.content?.url || null);
+    }).catch((error) => {
+      console.error("Could not load song URL", error);
     });
-  }
-
-  useEffect(() => {
-    if (!current) {
-      return;
-    }
-    if (index >= 0) {
-      get_song_url(current);
-      setLiked(current.liked);
-    }
-  }, [index, current?.content]);
+    return () => { active = false; };
+  }, [index, current?.content.id, current?.type]);
 
   async function handleHeartClick(id: number) {
     const newLiked = !liked;
@@ -145,6 +135,7 @@ export default function Player({ className }: PlayerProps) {
     <>
       {songUrl && (
         <ReactHowler
+          key={current?.content.id}
           src={songUrl}
           preload={true}
           playing={isPlaying}
@@ -160,7 +151,7 @@ export default function Player({ className }: PlayerProps) {
           {current ? (
             <div className="flex items-center gap-4 flex-1">
               <img
-                src={pictureUrl}
+                src={current?.content.pic_url}
                 alt="Album art"
                 className="h-12 w-12 rounded-lg object-cover"
               />
@@ -225,7 +216,7 @@ export default function Player({ className }: PlayerProps) {
               </span>
               <Slider
                 value={[progress]}
-                max={duration}
+                max={Math.max(duration, 1)}
                 step={1}
                 className="cursor-pointer"
                 onValueChange={handleSliderChange}

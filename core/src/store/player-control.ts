@@ -8,6 +8,9 @@ type PlayerControl = {
   index: number;
   // 播放状态
   isPlaying: boolean;
+  progress: number;
+  duration: number;
+  seekRequest: { position: number; id: number } | null;
   // 插播的音乐
   immediately: SongInfo | undefined;
 };
@@ -16,6 +19,9 @@ const playerControl = createStore("play-control")<PlayerControl>({
   songs: [],
   index: -1,
   isPlaying: false,
+  progress: 0,
+  duration: 0,
+  seekRequest: null,
   immediately: undefined,
 })
   .extendSelectors((_, get) => ({
@@ -79,6 +85,14 @@ const playerControl = createStore("play-control")<PlayerControl>({
     pause() {
       set.state((draft) => {
         draft.isPlaying = false;
+      });
+    },
+  }))
+  .extendActions((set) => ({
+    seek(position: number) {
+      set.state((draft) => {
+        draft.progress = position;
+        draft.seekRequest = { position, id: (draft.seekRequest?.id ?? 0) + 1 };
       });
     },
   }))

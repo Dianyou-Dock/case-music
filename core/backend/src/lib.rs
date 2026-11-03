@@ -3,9 +3,9 @@ use crate::application::Application;
 use crate::modules::impls::netesae::NetesaeModule;
 use anyhow::Result;
 use once_cell::sync::Lazy;
-use tokio::sync::RwLock;
 #[cfg(target_os = "android")]
 use tauri::Manager;
+use tokio::sync::RwLock;
 
 pub mod music_client;
 
@@ -56,6 +56,7 @@ pub async fn run() {
             application::music::like::like_list,
             application::music::like::like_song,
             application::music::song::songs_url,
+            application::music::song::song_lyrics,
             application::music::list::collect_list,
             application::music::list::list_songs,
             // ai api

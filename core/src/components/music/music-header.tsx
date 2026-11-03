@@ -2,6 +2,7 @@
 
 import { Play, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 interface MusicHeaderProps {
   title: string;
@@ -18,6 +19,7 @@ export function MusicHeader({
   handlePlayAllClick,
   handleRefreshClick,
 }: MusicHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-end gap-6">
       <div className="h-48 w-48 overflow-hidden rounded-lg bg-accent hidden md:block">
@@ -41,7 +43,7 @@ export function MusicHeader({
             className="w-fit gap-2 bg-transparent border-2 border-green-500 text-green-500 hover:bg-green-100"
             onClick={handlePlayAllClick}
           >
-            <Play className="h-5 w-5"/> Play All
+            <Play className="h-5 w-5"/> {t("play_all")}
           </Button>
 
           {/* Refresh Button */}
@@ -50,7 +52,7 @@ export function MusicHeader({
             className="w-fit gap-2 bg-transparent border-2 border-purple-500 text-purple-500 hover:bg-purple-100"
             onClick={handleRefreshClick}
           >
-            <RefreshCcw className="h-5 w-5"/> Refresh
+            <RefreshCcw className="h-5 w-5"/> {t("refresh")}
           </Button>
         </div>
       </div>

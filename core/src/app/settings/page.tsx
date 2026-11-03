@@ -14,25 +14,16 @@ import {useAiSource} from "@/hooks/use-ai-source.tsx";
 import {AiSourceCard} from "@/components/ai-source/ai-source-card.tsx";
 import {useTranslation} from "react-i18next";
 import {Select, SelectContent, SelectItem, SelectTrigger} from "@/components/ui/select.tsx";
-import i18n from "i18next";
-import {useEffect, useState} from "react";
 
 export default function SettingsPage() {
   const { audioSource } = useAudioSource();
   const { aiSource } = useAiSource();
-  const { t } = useTranslation();
-  const [currentLanguage, setCurrentLanguage] = useState("");
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "zh";
 
   const changeLanguage = (lng: string) => {
-    console.log("into changeLanguage")
-    i18n.changeLanguage(lng);
-    setCurrentLanguage(lng)
+    void i18n.changeLanguage(lng);
   };
-
-  useEffect(() => {
-    const lng = i18n.language;
-    setCurrentLanguage(lng)
-  })
 
   return (
     <div className="flex flex-col gap-8 p-6">

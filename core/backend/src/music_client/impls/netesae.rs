@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use cookie_store::CookieStore;
 use err_logging::ctx;
 use err_logging::error_logging::ErrorLogging;
-use ncm_api::{CookieBuilder, CookieJar, MusicApi};
+use ncm_api::{CookieBuilder, CookieJar, Lyrics, MusicApi};
 use std::fs;
 use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
@@ -269,6 +269,10 @@ impl Client for NeteaseClient {
         }
 
         Ok(list)
+    }
+
+    async fn song_lyrics(&mut self, song_id: u64) -> Result<Lyrics> {
+        self.api.song_lyric(song_id).await
     }
 
     async fn logged(&mut self) -> bool {

@@ -47,6 +47,7 @@ export function MusicList({ songs, onRecommend }: MusicListProps) {
     }
     playerControl.set.state((draft) => {
       draft.immediately = song;
+      draft.isPlaying = true;
     });
   }
 
@@ -151,9 +152,9 @@ export function MusicList({ songs, onRecommend }: MusicListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Artist</TableHead>
-              <TableHead>Album</TableHead>
+              <TableHead>{t("song_title")}</TableHead>
+              <TableHead>{t("song_artist")}</TableHead>
+              <TableHead>{t("song_album")}</TableHead>
               <TableHead className="w-[100px]">
                 <Clock className="h-4 w-4" />
               </TableHead>

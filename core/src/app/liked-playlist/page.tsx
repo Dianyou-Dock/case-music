@@ -9,9 +9,11 @@ import playerControl from "@/store/player-control";
 import { PlaylistSkeleton } from "@/components/playlist-skeleton";
 import { SongInfo } from "@/types/song.ts";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 
 export default function PlaylistPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { currentSource } = useAudioSource();
   const { data, isLoading } = useLikedPlaylist({
     source: currentSource,
@@ -45,8 +47,8 @@ export default function PlaylistPage() {
     <>
       <div className="flex flex-col gap-6 p-6">
         <MusicHeader
-          title={data?.name || "Playlist"}
-          subtitle={`${data?.songs?.length || 0} songs`}
+          title={t("liked_playlist")}
+          subtitle={t("song_count", { count: data?.songs?.length || 0 })}
           coverUrl={data?.cover_img_url}
           handlePlayAllClick={handlePlayAll}
           handleRefreshClick={handleRefresh}

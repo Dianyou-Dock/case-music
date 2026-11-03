@@ -6,6 +6,7 @@ use crate::types::song_info::SongInfo;
 use crate::types::song_url::{SongRate, SongUrl};
 use anyhow::Result;
 use async_trait::async_trait;
+use ncm_api::Lyrics;
 
 #[async_trait]
 pub trait Client: Sync + Send {
@@ -28,6 +29,8 @@ pub trait Client: Sync + Send {
     async fn like_song(&mut self, song_id: u64, is_like: bool) -> Result<bool>;
 
     async fn songs_url(&mut self, songs: &[u64], song_rate: SongRate) -> Result<Vec<SongUrl>>;
+
+    async fn song_lyrics(&mut self, song_id: u64) -> Result<Lyrics>;
 
     async fn logged(&mut self) -> bool;
 

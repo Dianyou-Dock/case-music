@@ -13,8 +13,8 @@ i18n
   .use(initReactI18next) // 绑定到 React
   .init({
     fallbackLng: "zh", // 默认语言
-    lng: "zh", // 强制指定语言
-    debug: true, // 启用调试模式
+    detection: { order: ["localStorage", "navigator"], caches: ["localStorage"] },
+    debug: false,
     interpolation: {
       escapeValue: false, // React 已经内置防止 XSS
     },

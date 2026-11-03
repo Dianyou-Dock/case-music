@@ -4,6 +4,7 @@ use crate::types::error::ErrorHandle;
 use crate::types::error::MusicClientError::NotLogin;
 use crate::types::song_url::{SongRate, SongUrl};
 use crate::INSTANCE;
+use ncm_api::Lyrics;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use tauri::ipc::InvokeError;
@@ -13,6 +14,47 @@ pub struct SongsUrlReq {
     pub source: MusicSource,
     pub songs: Vec<u64>,
     pub rate: SongRate,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SongLyricsReq {
+    pub source: MusicSource,
+    pub song_id: u64,
+}
+
+#[tauri::command]
+pub async fn song_lyrics(req: SongLyricsReq) -> Result<ApplicationResp<Lyrics>, InvokeError> {
+    let mut instance = INSTANCE.write().await;
+    let lyrics = match req.source {
+        MusicSource::Netesae => instance.netesae.client().song_lyrics(req.song_id).await,
+        _ => {
+            return Ok(ApplicationResp::success_data(Lyrics {
+                lyric: vec![],
+                tlyric: vec![],
+            }))
+        }
+    };
+    match lyrics {
+        Ok(lyrics) => Ok(ApplicationResp::success_data(lyrics)),
+        Err(error) => {
+            log::warn!("Could not load lyrics for song {}: {error:#}", req.song_id);
+            Ok(ApplicationResp::success_data(Lyrics {
+                lyric: vec![],
+                tlyric: vec![],
+            }))
+        }
+    }
+}
+
+#[cfg(test)]
+mod lyric_tests {
+    #[test]
+    fn missing_translation_does_not_hide_original_lyrics() {
+        let response = r#"{"code":200,"lrc":{"lyric":"[00:01.00]First line\n[00:02.00]Second line"}}"#;
+        let lyrics = ncm_api::to_lyric(response.to_string()).unwrap();
+        assert_eq!(lyrics.lyric.len(), 2);
+        assert!(lyrics.tlyric.is_empty());
+    }
 }
 
 #[derive(Serialize, Debug, Clone)]
