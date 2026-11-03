@@ -1,4 +1,5 @@
 import "./globals.css";
+import type { Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -12,6 +13,14 @@ import { MobilePlayer } from "@/components/mobile-player";
 import "@/hooks/i18n.ts"; // 导入 I18nProvider
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export default function RootLayout({
   children,

@@ -57,3 +57,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media (pointer: coarse) {
+  html {
+    touch-action: pan-x pan-y;
+  }
+}
