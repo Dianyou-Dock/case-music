@@ -10,6 +10,7 @@ import { PlaylistSkeleton } from "@/components/playlist-skeleton";
 import { SongInfo } from "@/types/song.ts";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { startSampleRecommendation } from "@/store/recommendation-task";
 
 export default function PlaylistPage() {
   const router = useRouter();
@@ -31,12 +32,10 @@ export default function PlaylistPage() {
   const handleRefresh = () => {};
 
   const handleRecommend = (song: SongInfo) => {
-    const params = new URLSearchParams({
-      song: song.content.name,
-      singer: song.content.singer,
-      request: String(Date.now()),
-    });
-    router.push(`/rand-recommend?${params.toString()}`);
+    if (currentSource) {
+      startSampleRecommendation(currentSource, song.content.name, song.content.singer);
+    }
+    router.push("/rand-recommend");
   };
 
   if (isLoading) {

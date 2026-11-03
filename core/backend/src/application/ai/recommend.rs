@@ -11,7 +11,16 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::time::Duration;
 use tauri::ipc::InvokeError;
+use tokio::sync::{Mutex, MutexGuard};
 use tokio::time::sleep;
+
+static RECOMMEND_TASK: Mutex<()> = Mutex::const_new(());
+
+fn try_recommend_task() -> Result<MutexGuard<'static, ()>, InvokeError> {
+    RECOMMEND_TASK.try_lock().map_err(|_| {
+        InvokeError::from_anyhow(anyhow::anyhow!("Recommendation already running"))
+    })
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RecommendReq {
@@ -33,6 +42,7 @@ pub struct RecommendSongResp<T: Serialize + Clone + Debug> {
 pub async fn recommend_song(
     req: RecommendReq,
 ) -> Result<ApplicationResp<RecommendSongResp<SongInfo>>, InvokeError> {
+    let _task = try_recommend_task()?;
     if INSTANCE.read().await.ai.is_none() {
         return Err(InvokeError::from_anyhow(AiNotUse.anyhow_err()));
     }
@@ -121,6 +131,7 @@ pub async fn recommend_song(
 pub async fn recommend_style(
     req: RecommendReq,
 ) -> Result<ApplicationResp<RecommendSongResp<SongInfo>>, InvokeError> {
+    let _task = try_recommend_task()?;
     if INSTANCE.read().await.ai.is_none() {
         return Err(InvokeError::from_anyhow(AiNotUse.anyhow_err()));
     }
@@ -188,6 +199,7 @@ pub async fn recommend_style(
 pub async fn recommend_singer(
     req: RecommendReq,
 ) -> Result<ApplicationResp<RecommendSongResp<SongInfo>>, InvokeError> {
+    let _task = try_recommend_task()?;
     if INSTANCE.read().await.ai.is_none() {
         return Err(InvokeError::from_anyhow(AiNotUse.anyhow_err()));
     }
@@ -287,6 +299,7 @@ pub async fn current_recommends() -> Result<ApplicationResp<BTreeMap<u64, SongIn
 pub async fn rand_recommends(
     source: MusicSource,
 ) -> Result<ApplicationResp<ListResp>, InvokeError> {
+    let _task = try_recommend_task()?;
     if INSTANCE.read().await.netesae.login_info().is_none() {
         return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
     };
@@ -331,6 +344,7 @@ pub async fn rand_recommends(
 
 #[tauri::command]
 pub async fn refresh_rand_cache(source: MusicSource) -> Result<ApplicationResp<()>, InvokeError> {
+    let _task = try_recommend_task()?;
     if INSTANCE.read().await.ai.is_none() {
         return Err(InvokeError::from_anyhow(AiNotUse.anyhow_err()));
     }
