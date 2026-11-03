@@ -14,6 +14,7 @@ import { SongInfo } from "@/types/song";
 import playerControl from "@/store/player-control";
 import {
   hydrateRecommendationState,
+  showCurrentRecommendationEvent,
   startRandomRecommendation,
   startSampleRecommendation,
   useRecommendationState,
@@ -34,6 +35,15 @@ export default function RecommendationPage() {
     && task.status !== "running" && task.status !== "idle";
 
   useEffect(() => hydrateRecommendationState(), []);
+
+  useEffect(() => {
+    const showCurrent = () => {
+      setShowHistory(false);
+      setSelectedHistoryId(null);
+    };
+    window.addEventListener(showCurrentRecommendationEvent, showCurrent);
+    return () => window.removeEventListener(showCurrentRecommendationEvent, showCurrent);
+  }, []);
 
   useEffect(() => {
     if (hydrated && currentSource && hasAiSource && task.status === "idle") {
@@ -170,11 +180,6 @@ export default function RecommendationPage() {
               </Button>
             }
           />
-          {isSampleMode && (
-            <Button variant="outline" className="self-start" onClick={() => startRandomRecommendation(currentSource, true)}>
-              {t("rand_recommend_title")}
-            </Button>
-          )}
           {task.error && (
             <div role="alert" className="space-y-3 rounded-lg border border-destructive p-4">
               <p>{t("recommend_failed")}: {task.error === "recommend_interrupted" ? t(task.error) : task.error}</p>

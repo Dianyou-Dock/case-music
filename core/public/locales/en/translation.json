@@ -7,6 +7,7 @@
   "liked_load_failed": "Could not load liked songs",
   "liked_nav": "Liked",
   "recommend_nav": "Recommend",
+  "recommend_loading_nav": "Recommending...",
   "rand_recommend": "Rand Recommend",
   "home": "Home",
   "home_title": "Discover",

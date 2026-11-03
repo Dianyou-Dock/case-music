@@ -7,6 +7,7 @@
   "liked_load_failed": "加载喜爱歌曲失败",
   "liked_nav": "喜欢",
   "recommend_nav": "推荐",
+  "recommend_loading_nav": "推荐中...",
   "rand_recommend": "随机推荐",
   "home": "主页",
   "home_title": "发现",

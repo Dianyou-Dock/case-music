@@ -34,6 +34,7 @@ type RecommendationState = {
 };
 
 const storageKey = "case-music:recommendation-history:v1";
+export const showCurrentRecommendationEvent = "case-music:show-current-recommendation";
 const initialTask: RecommendationTask = { kind: null, status: "idle", songs: [] };
 const initialState: RecommendationState = { hydrated: false, task: initialTask, history: [] };
 let state = initialState;
@@ -81,6 +82,11 @@ export function hydrateRecommendationState() {
     console.warn("Could not load recommendation history", error);
   }
   setState({ hydrated: true, task, history });
+}
+
+export function getRecommendationState() {
+  hydrateRecommendationState();
+  return state;
 }
 
 function run(
