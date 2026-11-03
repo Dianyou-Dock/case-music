@@ -15,15 +15,15 @@ name = "core_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-shell = "2"
+tauri = { version = "2.12.5", features = [] }
+tauri-plugin-shell = "2.5.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-ncm-api = { git = "https://github.com/malefooo/netease-cloud-music-api.git", branch = "master", package = "netease-cloud-music-api" }
+ncm-api = { path = "vendor/netease-cloud-music-api", package = "netease-cloud-music-api" }
 #ncm-api = {path = "../../../netease-cloud-music-api", package = "netease-cloud-music-api"}
 anyhow = { version = "1.0.93", features = ["backtrace"] }
 reqwest = { version = "0.12.9", features = ["json"] }
@@ -40,4 +40,3 @@ openssl-sys = { version = "0.9", features = ["vendored"] }
 err-logging = "0.1.1"
 log = "0.4.22"
 env_logger = "0.11.5"
-

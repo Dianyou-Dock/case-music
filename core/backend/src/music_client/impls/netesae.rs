@@ -1,6 +1,6 @@
 use crate::music_client::Client;
 use crate::types::constants::{
-    MusicSource, AUTH_DIR, AUTH_FILE, BASE_NETESAE_URL_LIST, DATA_PATH, NETEASE_DOMAIN,
+    data_path, MusicSource, AUTH_DIR, AUTH_FILE, BASE_NETESAE_URL_LIST, NETEASE_DOMAIN,
 };
 use crate::types::error::{ErrorHandle, MusicClientError};
 use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
@@ -55,7 +55,7 @@ pub struct NeteaseClient {
 
 impl NeteaseClient {
     pub fn new() -> Result<NeteaseClient> {
-        let auth_data = DATA_PATH
+        let auth_data = data_path()
             .join(AUTH_DIR)
             .join(MusicSource::Netesae.to_string());
         if !auth_data.exists() {
@@ -142,11 +142,7 @@ impl Client for NeteaseClient {
     }
 
     async fn login_by_unikey(&mut self, unikey: String) -> Result<(i32, Option<LoginInfo>)> {
-        println!("unikey: {unikey}");
-
         let result = self.api.login_qr_check(unikey).await?;
-
-        println!("result: {result:?}");
         let check_qr_code = CheckQrCode::from_i32(result.code);
         match check_qr_code {
             CheckQrCode::Timeout => Ok((MusicClientError::QrTimeout.code(), None)),
@@ -229,28 +225,27 @@ impl Client for NeteaseClient {
         Ok(song_infos)
     }
 
-    async fn search_song(&mut self, song: &str, _singer: &str) -> Result<Option<SongInfo>> {
-        let search_info = format!("{song}");
-        let limit = 1;
+    async fn search_song(&mut self, song: &str, singer: &str) -> Result<Option<SongInfo>> {
+        let search_info = song.to_string();
+        let limit = 20;
         let offset = 0;
-        let mut song_info = None;
 
         let result = self
             .api
-            .search_song(search_info.clone(), offset, limit)
+            .search_song(search_info, offset, limit)
             .await
             .elog(ctx!())?;
 
-        for x in result {
-            if x.name.to_lowercase().eq(&song.to_lowercase()) {
-                song_info = Some(x);
-                break;
-            }
-        }
+        let song_name = song.trim().to_lowercase();
+        let singer_name = singer.trim().to_lowercase();
+        let song_info = result.iter().find(|x| {
+            x.name.trim().to_lowercase() == song_name
+                && x.singer.to_lowercase().contains(&singer_name)
+        });
 
         if let Some(song_info) = song_info {
             Ok(Some(SongInfo {
-                data: SongInfoData::Netesae(song_info),
+                data: SongInfoData::Netesae(song_info.clone()),
             }))
         } else {
             Ok(None)

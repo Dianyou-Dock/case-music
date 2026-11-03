@@ -10,10 +10,13 @@ type Props = {
 const useRandRecommend = ({ source }: Props) => {
   const { data, isLoading, mutate, error } = useSWR(
     source ? ["rand_recommends", source] : null,
-    () =>
-      invoke<PlaylistRes>("rand_recommends", { source }).then(
-        (res) => res.data
-      ),
+    async () => {
+      const res = await invoke<PlaylistRes>("rand_recommends", { source });
+      if (res.code !== 0 || !res.data) {
+        throw new Error(res.msg || "Recommendation failed");
+      }
+      return res.data;
+    },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,

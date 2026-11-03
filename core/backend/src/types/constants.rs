@@ -1,11 +1,13 @@
 use dirs_next::home_dir;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use strum_macros::{Display, EnumString};
 
 pub static KIMI_URL: &str = "https://api.moonshot.cn/v1/chat/completions";
+pub static DEEPSEEK_URL: &str = "https://api.deepseek.com/chat/completions";
+pub static ACTIVE_AI_SOURCE_FILE: &str = "active-ai-source.json";
 
 pub static AI_SONG_REQ_EXAMPLE: &str = r#"
 [
@@ -116,23 +118,21 @@ pub static AUTH_FILE: &str = "auth.json";
 
 pub static APIKEY_FILE: &str = "apikey.json";
 
-pub static DATA_PATH: Lazy<PathBuf> = Lazy::new(|| {
-    if let Some(home_dir) = home_dir() {
-        let data_dir = home_dir.join(DATA_DIR);
-        if !data_dir.exists() {
-            fs::create_dir_all(&data_dir).unwrap();
-        }
+static DATA_PATH: OnceLock<PathBuf> = OnceLock::new();
 
-        let cookie_dir = home_dir.join(AUTH_DIR);
-        if !cookie_dir.exists() {
-            fs::create_dir_all(&cookie_dir).unwrap();
-        }
+pub fn set_data_path(path: PathBuf) -> std::io::Result<()> {
+    fs::create_dir_all(&path)?;
+    DATA_PATH.set(path).expect("Data path already initialized");
+    Ok(())
+}
 
-        data_dir
-    } else {
-        panic!("Home directory not found");
-    }
-});
+pub fn data_path() -> &'static PathBuf {
+    DATA_PATH.get_or_init(|| {
+        let path = home_dir().expect("Home directory not found").join(DATA_DIR);
+        fs::create_dir_all(&path).expect("Could not create data directory");
+        path
+    })
+}
 
 pub const BASE_NETESAE_URL_LIST: [&str; 12] = [
     "https://music.163.com/",
@@ -151,12 +151,27 @@ pub const BASE_NETESAE_URL_LIST: [&str; 12] = [
 
 pub static NETEASE_DOMAIN: &str = "music.163.com";
 
-pub fn gen_recommend_song_content(song: &str, count: u64, previous: Option<String>) -> String {
+pub fn gen_recommend_song_content(
+    song: &str,
+    singer: &str,
+    count: u64,
+    previous: Option<String>,
+) -> String {
     let template = format!(
-        "song: '{song}', \
-        {AI_RECOMMEND_SONG}, \
-        {AI_RECOMMEND_SONG_COUNT} {count}, \
-        {AI_RECOMMEND_RULES}, \
+        "Sample recording: song '{song}', artist '{singer}'. \
+        First identify its primary genre/subgenre and its defining groove, tempo, vocals, \
+        instrumentation and era. Recommend up to {count} REAL, searchable recordings that \
+        closely match the sample's PRIMARY subgenre and at least two of those musical traits. \
+        Prefer the same subgenre and era over artist popularity, language, novelty or variety. \
+        Do not recommend a song solely because its artist is adjacent, it shares a broad genre, \
+        or it is commonly found on a generic mood playlist. Do not include remixes, covers, \
+        unrelated genres or the sample itself. Be conservative: return fewer than {count} \
+        songs if you cannot identify enough close matches. For every result, put its actual \
+        primary genre/subgenre in song_type; do not copy the sample's genre when it is untrue. \
+        In benchmark.song_type identify the sample's primary genre FIRST, then any more precise \
+        subgenres. Explain the shared musical traits in recommend_detail. \
+        song_type must be in English; song_detail and recommend_detail must be in Chinese. \
+        Song title and artist must identify the same real recording. Return only this JSON shape: \
         {AI_SONG_RESP_TEMPLATE}"
     );
 
@@ -165,6 +180,37 @@ pub fn gen_recommend_song_content(song: &str, count: u64, previous: Option<Strin
     } else {
         template
     }
+}
+
+pub fn gen_single_song_prompt() -> String {
+    format!(
+        "You are a careful music similarity curator. A single song and artist identify the \
+        recording to match. Prioritize the actual sound and primary subgenre over diversity. \
+        Do not pad the list. If unsure whether a recording has the same core style, omit it. \
+        Return only a valid JSON object in this shape: {AI_SONG_RESP_TEMPLATE}"
+    )
+}
+
+pub fn gen_single_song_review_content(
+    song: &str,
+    singer: &str,
+    benchmark: &str,
+    candidates: &str,
+) -> String {
+    format!(
+        "Audit these proposed recommendations for the recording '{song}' by '{singer}'. \
+        The first pass described the sample as: {benchmark}. \
+        Independently check each candidate's ACTUAL recording and style. A match needs the \
+        same primary subgenre AND at least two of groove, vocal style, production, tempo and era. \
+        Reject broad R&B/pop adjacency, genre crossover dominated by another style, \
+        uncertain song/artist identities, and songs you do not know well enough to judge. \
+        Do not trust the candidate's song_type label without checking it. \
+        Candidates in order: {candidates}. \
+        Return JSON only: {{\"reviews\":[{{\"index\":0,\"close_match\":true,\"score\":90}}]}}. \
+        Include EVERY candidate exactly once; index is zero-based. Only set close_match=true \
+        when the match is strong, and score strong matches at least 80. Be strict; fewer songs \
+        are preferable to unrelated songs."
+    )
 }
 
 pub fn gen_recommend_style_content(song: &str, count: u64, previous: Option<String>) -> String {
@@ -277,19 +323,28 @@ impl MusicSource {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, EnumString, Display)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, EnumString, Display)]
 pub enum AiSource {
     #[strum(serialize = "Kimi")]
     Kimi,
+    #[strum(serialize = "DeepSeek")]
+    DeepSeek,
 }
 
 impl AiSource {
     pub fn display_list() -> Vec<DisplayData> {
-        vec![DisplayData {
-            id: AiSource::Kimi.to_string(),
-            name: "Kimi Ai".to_string(),
-            desc: "Set your Kimi api key".to_string(),
-        }]
+        vec![
+            DisplayData {
+                id: AiSource::Kimi.to_string(),
+                name: "Kimi AI".to_string(),
+                desc: "Set your Kimi API key".to_string(),
+            },
+            DisplayData {
+                id: AiSource::DeepSeek.to_string(),
+                name: "DeepSeek".to_string(),
+                desc: "Set your DeepSeek API key".to_string(),
+            },
+        ]
     }
 }
 

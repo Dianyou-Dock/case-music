@@ -23,6 +23,7 @@ import { ApplicationResp } from "@/types/application.ts";
 import { AiSource } from "@/lib/ai-source.ts";
 import { useAiSource } from "@/hooks/use-ai-source";
 import {useTranslation} from "react-i18next";
+import { useState } from "react";
 
 export function AiDialog({
   isOpen,
@@ -35,6 +36,8 @@ export function AiDialog({
 }) {
   const { configureSource } = useAiSource();
   const { t } = useTranslation();
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -43,20 +46,24 @@ export function AiDialog({
   });
 
   async function onSubmit(value: { apikey: string }) {
+    setError("");
+    if (!value.apikey.trim()) {
+      setError(t("ai_key_required"));
+      return;
+    }
+    setIsSaving(true);
     try {
-      const res = await invoke<ApplicationResp<any>>("set_api_key", {
-        req: { source: source.id, api_key: value.apikey },
+      const res = await invoke<ApplicationResp<void>>("set_api_key", {
+        req: { source: source.id, api_key: value.apikey.trim() },
       });
-      console.log("set api key res", res);
-      if (res) {
-        if (res.code == 0) {
-          setIsOpen(false);
-          configureSource(true);
-          console.log("set apikey success");
-        }
-      }
+      if (res.code !== 0) throw new Error(res.msg || t("ai_save_failed"));
+      form.reset();
+      setIsOpen(false);
+      configureSource(true);
     } catch (err) {
-      console.log("set api key err: ", err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -77,14 +84,15 @@ export function AiDialog({
                 <FormItem>
                   <FormLabel>ApiKey</FormLabel>
                   <FormControl>
-                    <Input placeholder={t("ai_apikey_input_desc")} {...field} />
+                    <Input type="password" autoComplete="off" placeholder={t("ai_apikey_input_desc")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
             <div className="flex flex-col gap-2">
-              <Button type="submit">{t("submit")}</Button>
+              <Button type="submit" disabled={isSaving}>{isSaving ? t("ai_saving") : t("submit")}</Button>
             </div>
           </form>
         </Form>

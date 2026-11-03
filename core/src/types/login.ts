@@ -20,5 +20,6 @@ export interface LoggedData {
 
 export interface AiLoggedData {
   used: boolean;
-  disable: boolean;
+  disabled: boolean;
+  configured: boolean;
 }

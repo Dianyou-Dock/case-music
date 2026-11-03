@@ -51,7 +51,10 @@ export function AuthDialog({
   const [loginQrInfo, setLoginQrInfo] = useState<LoginQrInfo | undefined>(
     undefined
   );
-  const [selectedTab, setSelectedTab] = useState("credentials");
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrFailed, setQrFailed] = useState(false);
+  const [qrRetry, setQrRetry] = useState(0);
+  const [selectedTab, setSelectedTab] = useState("qr");
   const { configureSource, audioSource } = useAudioSource();
   const { t } = useTranslation();
 
@@ -72,24 +75,7 @@ export function AuthDialog({
     setIsOpen(false);
   }
 
-  async function fetchQrInfo(): Promise<LoginQrInfo | undefined> {
-    try {
-      const res = await invoke<ApplicationResp<any>>("get_qr", {
-        source: source.id,
-      });
-      if (res.data !== undefined) {
-        console.log("fetch qr info success");
-        const info = res.data as LoginQrInfo;
-        return info;
-      }
-    } catch (e) {
-      console.error(e);
-      return undefined;
-    }
-  }
-
   async function qrLoginCheck(info: LoginQrInfo) {
-    console.log("checking qr login");
     const req: LoginReq = {
       source: source.id as MusicSource,
       unikey: info.unikey,
@@ -99,7 +85,10 @@ export function AuthDialog({
         req: req,
       });
       if (res.code == 0) {
-        return true;
+        return "success";
+      }
+      if (res.code === -100) {
+        return "expired";
       }
     } catch (e) {
       console.error(e);
@@ -107,20 +96,41 @@ export function AuthDialog({
   }
 
   useEffect(() => {
-    if (selectedTab === "qr") {
-      fetchQrInfo().then((info) => {
-        setLoginQrInfo(info);
+    if (!isOpen || selectedTab !== "qr") return;
+    let active = true;
+    setLoginQrInfo(undefined);
+    setQrFailed(false);
+    setQrLoading(true);
+    invoke<ApplicationResp<LoginQrInfo>>("get_qr", { source: source.id })
+      .then((res) => {
+        if (!active) return;
+        if (res.code === 0 && res.data?.url && res.data?.unikey) {
+          setLoginQrInfo(res.data);
+        } else {
+          setQrFailed(true);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load login QR code", error);
+        if (active) setQrFailed(true);
+      })
+      .finally(() => {
+        if (active) setQrLoading(false);
       });
-    }
-  }, [selectedTab]);
+    return () => { active = false; };
+  }, [isOpen, selectedTab, source.id, qrRetry]);
 
   useEffect(() => {
-    let key: NodeJS.Timeout;
-    if (isOpen && selectedTab === "qr") {
-      key = setInterval(() => {
-        if (loginQrInfo) {
-          qrLoginCheck(loginQrInfo).then((isSuccess) => {
-            if (isSuccess) {
+    if (isOpen && selectedTab === "qr" && loginQrInfo) {
+      let checking = false;
+      const key = setInterval(async () => {
+        if (checking) return;
+        checking = true;
+        try {
+          const result = await qrLoginCheck(loginQrInfo);
+          if (result === "expired") {
+            setQrRetry((retry) => retry + 1);
+          } else if (result === "success") {
               // default operation
               setLoginQrInfo(undefined)
               setSelectedTab("credentials");
@@ -131,13 +141,12 @@ export function AuthDialog({
                   s.id === source.id ? { ...s, connected: true } : s
                 ) || []),
               ]);
-            }
-          });
+          }
+        } finally {
+          checking = false;
         }
       }, 2000);
-    }
-    return () => {
-      clearInterval(key);
+      return () => clearInterval(key);
     }
   }, [loginQrInfo, selectedTab, isOpen]);
 
@@ -223,17 +232,21 @@ export function AuthDialog({
           </TabsContent>
 
           <TabsContent value="qr" className="flex flex-col items-center gap-4">
-            <div className="rounded-xl border bg-card p-4">
-              <QRCodeSVG
-                value={loginQrInfo?.url || ""}
-                size={200}
-                level="H"
-                includeMargin
-              />
-            </div>
-            <p className="text-center text-sm text-muted-foreground">
-              {t("qr_desc")}
-            </p>
+            {loginQrInfo ? (
+              <>
+                <div className="rounded-xl border bg-card p-4">
+                  <QRCodeSVG value={loginQrInfo.url} size={200} level="H" includeMargin />
+                </div>
+                <p className="text-center text-sm text-muted-foreground">{t("qr_desc")}</p>
+              </>
+            ) : qrLoading ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">{t("qr_loading")}</p>
+            ) : qrFailed ? (
+              <div className="flex flex-col items-center gap-3 py-12">
+                <p className="text-center text-sm text-muted-foreground">{t("qr_load_failed")}</p>
+                <Button type="button" onClick={() => setQrRetry((retry) => retry + 1)}>{t("qr_retry")}</Button>
+              </div>
+            ) : null}
           </TabsContent>
         </Tabs>
       </DialogContent>

@@ -4,6 +4,8 @@ use crate::modules::impls::netesae::NetesaeModule;
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use tokio::sync::RwLock;
+#[cfg(target_os = "android")]
+use tauri::Manager;
 
 pub mod music_client;
 
@@ -22,9 +24,22 @@ pub static INSTANCE: Lazy<RwLock<Application>> = Lazy::new(|| {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
+    #[cfg(not(target_os = "android"))]
     init_module().await.unwrap();
 
     tauri::Builder::default()
+        .setup(|app| {
+            #[cfg(target_os = "android")]
+            {
+                crate::types::constants::set_data_path(app.path().app_data_dir()?)?;
+                tauri::async_runtime::spawn(async {
+                    if let Err(err) = init_module().await {
+                        log::error!("Failed to initialize application: {err:#}");
+                    }
+                });
+            }
+            Ok(())
+        })
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             // system api
@@ -33,6 +48,7 @@ pub async fn run() {
             application::system::login::music_logged,
             application::system::login::ai_logged,
             application::system::login::set_api_key,
+            application::system::login::select_ai_source,
             application::system::logout::logout,
             application::system::constants::music_source_list,
             application::system::constants::ai_source_list,

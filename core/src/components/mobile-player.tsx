@@ -14,7 +14,7 @@ export function MobilePlayer() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <div className="fixed bottom-[4.5rem] left-0 right-0 border-t bg-background p-3 md:hidden">
+        <div className="shrink-0 border-t bg-background p-3 md:hidden">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img

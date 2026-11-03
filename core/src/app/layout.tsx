@@ -30,10 +30,10 @@ export default function RootLayout({
           <AuthProvider>
             <AudioSourceProvider>
               <AiSourceProvider>
-                <div className="flex h-screen flex-col">
-                  <div className="flex flex-1 overflow-hidden">
+                <div className="flex h-screen h-dvh flex-col">
+                  <div className="flex min-h-0 flex-1 overflow-hidden">
                     <Sidebar className="hidden md:flex" />
-                    <main className="flex-1 overflow-y-auto bg-background">
+                    <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background">
                       {children}
                     </main>
                   </div>

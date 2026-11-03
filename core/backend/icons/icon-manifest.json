@@ -1,0 +1,5 @@
+{
+  "default": "origin.png",
+  "bg_color": "#FFFFFF",
+  "android_fg": "android-foreground.png"
+}

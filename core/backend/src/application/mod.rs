@@ -1,10 +1,10 @@
-use crate::ai_client::impls::kimi::Kimi;
+use crate::ai_client::impls::kimi::ChatClient;
 use crate::ai_client::Client as AiClient;
 use crate::modules::impls::netesae::NetesaeModule;
 use crate::modules::MusicModule;
 use crate::types::ai_recommend_info::AiRecommendSongInfo;
 use crate::types::constants::{
-    MusicSource, DATA_PATH, RAND_RECOMMENDS_BENCHMARK_COUNT, RAND_RECOMMENDS_COUNT,
+    data_path, AiSource, MusicSource, ACTIVE_AI_SOURCE_FILE, RAND_RECOMMENDS_BENCHMARK_COUNT, RAND_RECOMMENDS_COUNT,
 };
 use crate::types::error::ErrorHandle;
 use crate::types::error::MusicClientError::LikeListNotExist;
@@ -45,18 +45,19 @@ impl Application {
         let mut app = Application {
             netesae: Box::new(netesae),
             ai: None,
-            data_path: DATA_PATH.clone(),
+            data_path: data_path().clone(),
             history_recommends: BTreeMap::new(),
             current_recommends: BTreeMap::new(),
             rand_cache: RandCache::default(),
         };
 
-        // TODO:
-        // Kimi is used temporarily here.
-        // It will become variable after adding new configuration files.
-        // Of course, Kimi is still the default.
-        let kimi = Kimi::load().unwrap();
-        kimi.map(|v| app.ai.replace(Box::new(v)));
+        let selected = std::fs::read_to_string(data_path().join(ACTIVE_AI_SOURCE_FILE))
+            .ok()
+            .and_then(|value| serde_json::from_str::<AiSource>(&value).ok())
+            .unwrap_or(AiSource::Kimi);
+        if let Ok(Some(client)) = ChatClient::load_for(selected) {
+            app.ai = Some(Box::new(client));
+        }
 
         app
     }

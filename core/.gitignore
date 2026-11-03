@@ -26,3 +26,24 @@ dist-ssr
 .next
 out
 *.lock
+!backend/Cargo.lock
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+key.properties
+local.properties
+auth.json
+apikey.json
+
+# Installable build outputs
+*.apk
+*.aab
+*.apks

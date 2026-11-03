@@ -45,7 +45,7 @@ export interface RecommendSongInfo {
 }
 
 export interface RecommendSongResp {
-  song_infos: SongInfo;
+  song_infos: SongInfo[];
   benchmark_info: BenchmarkInfo;
 }
 

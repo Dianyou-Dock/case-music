@@ -4,4 +4,5 @@ export type AiSource = {
   desc: string;
   used: boolean;
   disabled: boolean;
+  configured: boolean;
 };

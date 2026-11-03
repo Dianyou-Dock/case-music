@@ -4,11 +4,10 @@ use crate::types::ai_recommend_info::{
 };
 use crate::types::apikey::AiApiKey;
 use crate::types::constants::{
-    gen_ai_singer_prompt, gen_rand_recommend_content, gen_recommend_singer_content,
-    gen_recommend_song_content, gen_recommend_style_content, AiSource, APIKEY_DIR, APIKEY_FILE,
-    DATA_PATH, KIMI_URL,
+    data_path, gen_ai_singer_prompt, gen_rand_recommend_content, gen_recommend_singer_content,
+    gen_recommend_song_content, gen_recommend_style_content, gen_single_song_prompt,
+    gen_single_song_review_content, AiSource, APIKEY_DIR, APIKEY_FILE, DEEPSEEK_URL, KIMI_URL,
 };
-use crate::types::error::{AiError, ErrorHandle};
 use anyhow::Result;
 use async_trait::async_trait;
 use err_logging::ctx;
@@ -18,6 +17,7 @@ use reqwest::{Method, Request};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tokio::fs;
 
@@ -32,43 +32,82 @@ pub struct ChatRequest {
     messages: Vec<Message>,
     temperature: f64,
     response_format: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    thinking: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 struct Choice {
-    index: usize,
-    message: Message,
-    finish_reason: String,
+    message: ResponseMessage,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Usage {
-    prompt_tokens: usize,
-    completion_tokens: usize,
-    total_tokens: usize,
+#[derive(Deserialize, Debug)]
+struct ResponseMessage {
+    content: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 struct ChatResp {
-    id: String,
-    object: String,
-    created: u64,
-    model: String,
     choices: Vec<Choice>,
-    usage: Usage,
+}
+
+#[derive(Deserialize)]
+struct SongReviewResult {
+    reviews: Vec<SongReview>,
+}
+
+#[derive(Deserialize)]
+struct SongReview {
+    index: usize,
+    close_match: bool,
+    score: u8,
+}
+
+fn keep_close_matches(
+    candidates: Vec<AiRecommendSongInfo>,
+    reviews: SongReviewResult,
+    count: u64,
+) -> Vec<AiRecommendSongInfo> {
+    let accepted: BTreeMap<usize, u8> = reviews
+        .reviews
+        .into_iter()
+        .filter(|review| review.close_match && review.score >= 80)
+        .map(|review| (review.index, review.score))
+        .collect();
+
+    let mut ranked: Vec<_> = candidates
+        .into_iter()
+        .enumerate()
+        .filter_map(|(index, song)| accepted.get(&index).map(|score| (*score, index, song)))
+        .collect();
+    ranked.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    ranked
+        .into_iter()
+        .take(count as usize)
+        .map(|(_, _, song)| song)
+        .collect()
 }
 
 #[allow(dead_code)]
-pub struct Kimi {
+pub struct ChatClient {
     client: reqwest::Client,
     apikey: AiApiKey,
     apikey_path: Option<PathBuf>,
+    source: AiSource,
 }
 
-impl Kimi {
-    pub async fn new(api_key: String) -> Result<Kimi> {
+pub type Kimi = ChatClient;
+
+impl ChatClient {
+    pub async fn new(api_key: String) -> Result<Self> {
+        Self::new_for(AiSource::Kimi, api_key).await
+    }
+
+    pub async fn new_for(source: AiSource, api_key: String) -> Result<Self> {
         let client = reqwest::Client::new();
-        let apikey_dir = DATA_PATH.join(APIKEY_DIR).join(AiSource::Kimi.to_string());
+        let apikey_dir = data_path().join(APIKEY_DIR).join(source.to_string());
         let apikey_file = apikey_dir.join(APIKEY_FILE);
 
         if !apikey_dir.exists() {
@@ -79,20 +118,38 @@ impl Kimi {
         let json = serde_json::to_string_pretty(&apikey)?;
         fs::write(&apikey_file, &json).await?;
 
-        Ok(Kimi {
+        Ok(Self {
             client,
             apikey,
             apikey_path: Some(apikey_file),
+            source,
         })
     }
 
     pub fn gen_req(&self, content: &str, prompt: &str) -> Result<Request> {
+        self.gen_req_with_temperature(content, prompt, 1.0)
+    }
+
+    fn gen_req_with_temperature(
+        &self,
+        content: &str,
+        prompt: &str,
+        temperature: f64,
+    ) -> Result<Request> {
         let chat_req = ChatRequest {
-            model: "moonshot-v1-128k".to_string(),
+            model: match self.source {
+                AiSource::Kimi => "moonshot-v1-128k",
+                AiSource::DeepSeek => "deepseek-flash",
+            }
+            .to_string(),
             messages: vec![
                 Message {
                     role: "system".to_string(),
-                    content: prompt.to_string(),
+                    content: if self.source == AiSource::DeepSeek {
+                        format!("{prompt}\nReturn only a valid JSON object.")
+                    } else {
+                        prompt.to_string()
+                    },
                 },
                 Message {
                     role: "user".to_string(),
@@ -100,10 +157,16 @@ impl Kimi {
                 },
             ],
             response_format: json!({"type": "json_object"}),
-            temperature: 1.0,
+            temperature,
+            thinking: (self.source == AiSource::DeepSeek).then(|| json!({"type": "disabled"})),
+            max_tokens: (self.source == AiSource::DeepSeek).then_some(8192),
         };
 
-        let req = self.client.request(Method::POST, KIMI_URL);
+        let url = match self.source {
+            AiSource::Kimi => KIMI_URL,
+            AiSource::DeepSeek => DEEPSEEK_URL,
+        };
+        let req = self.client.request(Method::POST, url);
 
         let req = req
             .header(CONTENT_TYPE, "application/json")
@@ -114,8 +177,8 @@ impl Kimi {
         Ok(req)
     }
 
-    pub(crate) fn load() -> Result<Option<Kimi>> {
-        let apikey_dir = DATA_PATH.join(APIKEY_DIR).join(AiSource::Kimi.to_string());
+    pub(crate) fn load_for(source: AiSource) -> Result<Option<Self>> {
+        let apikey_dir = data_path().join(APIKEY_DIR).join(source.to_string());
         let apikey_file = apikey_dir.join(APIKEY_FILE);
 
         if !apikey_file.exists() {
@@ -128,6 +191,7 @@ impl Kimi {
             client: reqwest::Client::new(),
             apikey,
             apikey_path: Some(apikey_file),
+            source,
         };
 
         Ok(Some(kimi))
@@ -141,19 +205,25 @@ impl Kimi {
             let bytes = resp.bytes().await.elog(ctx!())?;
             let msg = String::from_utf8(bytes.to_vec()).elog(ctx!())?;
             return Err(anyhow::anyhow!(
-                "Kimi server responded with code: {}, error: {}",
+                "{} server responded with code: {}, error: {}",
+                self.source,
                 code,
                 msg
             ));
         }
 
         let chat_resp = resp.json::<ChatResp>().await.elog(ctx!())?;
-        let data = if let Some(data) = chat_resp.choices.get(0) {
-            let content = data.message.content.clone();
-            let data = serde_json::from_str::<T>(&content).elog(ctx!())?;
+        let data = if let Some(data) = chat_resp.choices.first() {
+            let content = data
+                .message
+                .content
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+                .ok_or_else(|| anyhow::anyhow!("{} response has no content", self.source))?;
+            let data = serde_json::from_str::<T>(content).elog(ctx!())?;
             data
         } else {
-            return Err(AiError::KimiRespNotExistContent.anyhow_err());
+            return Err(anyhow::anyhow!("{} response has no content", self.source));
         };
 
         Ok(data)
@@ -161,7 +231,7 @@ impl Kimi {
 }
 
 #[async_trait]
-impl Client for Kimi {
+impl Client for ChatClient {
     async fn recommend_song(
         &self,
         data: AiRecommendSongInfo,
@@ -174,12 +244,26 @@ impl Client for Kimi {
             None
         };
 
-        let content = gen_recommend_song_content(&data.name, count, pre);
-        let prompt = gen_ai_singer_prompt();
+        let candidate_count = count.saturating_mul(2).min(30);
+        let content = gen_recommend_song_content(&data.name, &data.singer, candidate_count, pre);
+        let prompt = gen_single_song_prompt();
 
-        let req = self.gen_req(&content, &prompt)?;
+        let req = self.gen_req_with_temperature(&content, &prompt, 0.2)?;
 
-        let resp = self.send(req).await?;
+        let mut resp: AiRecommendInfo = self.send(req).await?;
+        if resp.recommends.is_empty() {
+            return Ok(resp);
+        }
+
+        let benchmark = serde_json::to_string(&resp.benchmark)?;
+        let candidates = serde_json::to_string(&resp.recommends)?;
+        let review_content =
+            gen_single_song_review_content(&data.name, &data.singer, &benchmark, &candidates);
+        let review_prompt =
+            "You independently audit music similarity. Be conservative. Return only JSON.";
+        let review_req = self.gen_req_with_temperature(&review_content, review_prompt, 0.0)?;
+        let reviews: SongReviewResult = self.send(review_req).await?;
+        resp.recommends = keep_close_matches(resp.recommends, reviews, count);
 
         Ok(resp)
     }
@@ -249,7 +333,7 @@ impl Client for Kimi {
     }
 
     fn ai_source(&self) -> AiSource {
-        AiSource::Kimi
+        self.source
     }
 }
 
@@ -257,6 +341,75 @@ impl Client for Kimi {
 mod test {
     use super::*;
     use std::env;
+
+    #[test]
+    fn similarity_audit_rejects_weak_songs_without_padding() {
+        let candidates: Vec<_> = ["close", "weak", "unreviewed", "also close"]
+            .into_iter()
+            .map(|name| AiRecommendSongInfo {
+                name: name.to_string(),
+                singer: "artist".to_string(),
+                song_type: "R&B".to_string(),
+            })
+            .collect();
+        let reviews = SongReviewResult {
+            reviews: vec![
+                SongReview {
+                    index: 3,
+                    close_match: true,
+                    score: 90,
+                },
+                SongReview {
+                    index: 1,
+                    close_match: true,
+                    score: 79,
+                },
+                SongReview {
+                    index: 0,
+                    close_match: true,
+                    score: 84,
+                },
+                SongReview {
+                    index: 100,
+                    close_match: true,
+                    score: 99,
+                },
+            ],
+        };
+        let filtered = keep_close_matches(candidates, reviews, 15);
+        assert_eq!(
+            filtered
+                .iter()
+                .map(|song| song.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["also close", "close"]
+        );
+    }
+
+    #[test]
+    fn deepseek_request_uses_json_mode() {
+        let ai_client = ChatClient {
+            client: reqwest::Client::new(),
+            apikey: AiApiKey {
+                key: "test-key".to_string(),
+            },
+            apikey_path: None,
+            source: AiSource::DeepSeek,
+        };
+        let request = ai_client
+            .gen_req("recommend a song", "music assistant")
+            .unwrap();
+        assert_eq!(request.url().as_str(), DEEPSEEK_URL);
+        let body: Value =
+            serde_json::from_slice(request.body().unwrap().as_bytes().unwrap()).unwrap();
+        assert_eq!(body["model"], "deepseek-flash");
+        assert_eq!(body["thinking"]["type"], "disabled");
+        assert_eq!(body["response_format"]["type"], "json_object");
+        assert!(body["messages"][0]["content"]
+            .as_str()
+            .unwrap()
+            .contains("JSON"));
+    }
 
     fn runtime() -> tokio::runtime::Runtime {
         let rt = tokio::runtime::Builder::new_current_thread()
@@ -281,6 +434,7 @@ mod test {
                     AiRecommendSongInfo {
                         name: song.to_string(),
                         singer: singer.to_string(),
+                        song_type: String::new(),
                     },
                     10,
                     None,
@@ -296,6 +450,7 @@ mod test {
                     AiRecommendSongInfo {
                         name: song.to_string(),
                         singer: singer.to_string(),
+                        song_type: String::new(),
                     },
                     10,
                     Some(result.recommends),
@@ -322,6 +477,7 @@ mod test {
                     AiRecommendSongInfo {
                         name: song.to_string(),
                         singer: singer.to_string(),
+                        song_type: String::new(),
                     },
                     3,
                     None,
@@ -337,6 +493,7 @@ mod test {
                     AiRecommendSongInfo {
                         name: song.to_string(),
                         singer: singer.to_string(),
+                        song_type: String::new(),
                     },
                     3,
                     Some(result.recommends),
@@ -363,6 +520,7 @@ mod test {
                     AiRecommendSongInfo {
                         name: song.to_string(),
                         singer: singer.to_string(),
+                        song_type: String::new(),
                     },
                     2,
                     3,
@@ -380,6 +538,7 @@ mod test {
                     AiRecommendSongInfo {
                         name: song.to_string(),
                         singer: singer.to_string(),
+                        song_type: String::new(),
                     },
                     2,
                     3,
@@ -408,14 +567,17 @@ mod test {
                 AiRecommendSongInfo {
                     name: song1.to_string(),
                     singer: singer1.to_string(),
+                    song_type: String::new(),
                 },
                 AiRecommendSongInfo {
                     name: song2.to_string(),
                     singer: singer2.to_string(),
+                    song_type: String::new(),
                 },
                 AiRecommendSongInfo {
                     name: song3.to_string(),
                     singer: singer3.to_string(),
+                    song_type: String::new(),
                 },
             ];
 

@@ -9,7 +9,9 @@ use crate::INSTANCE;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
+use std::time::Duration;
 use tauri::ipc::InvokeError;
+use tokio::time::sleep;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RecommendReq {
@@ -51,22 +53,37 @@ pub async fn recommend_song(
 
     let mut list = vec![];
     let mut map = BTreeMap::new();
+    let mut search_error = None;
 
     match req.source {
         MusicSource::Netesae => {
-            for x in recommend_result.recommends {
-                if let Some(info) = instance
+            for (index, x) in recommend_result.recommends.into_iter().enumerate() {
+                if index > 0 {
+                    sleep(Duration::from_millis(700)).await;
+                }
+                match instance
                     .netesae
                     .client()
                     .search_song(&x.name, &x.singer)
                     .await
-                    .map_err(InvokeError::from_anyhow)?
                 {
-                    let song_id = match &info.data {
-                        SongInfoData::Netesae(d) => d.id,
-                    };
-                    map.insert(song_id, info.clone());
-                    list.push(info);
+                    Ok(Some(info)) => {
+                        let song_id = match &info.data {
+                            SongInfoData::Netesae(d) => d.id,
+                        };
+                        if map.insert(song_id, info.clone()).is_none() {
+                            list.push(info);
+                        }
+                    }
+                    Ok(None) => {}
+                    Err(error) => {
+                        log::warn!(
+                            "Could not find recommended song '{}' by '{}': {error:#}",
+                            x.name,
+                            x.singer
+                        );
+                        search_error = Some(error);
+                    }
                 }
             }
         }
@@ -78,6 +95,12 @@ pub async fn recommend_song(
         }
         MusicSource::Apple => {
             todo!()
+        }
+    }
+
+    if list.is_empty() {
+        if let Some(error) = search_error {
+            return Ok(ApplicationResp::msg_code(error.to_string(), -2));
         }
     }
 

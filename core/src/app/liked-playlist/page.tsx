@@ -7,8 +7,11 @@ import { MusicHeader } from "@/components/music/music-header";
 import { useEffect } from "react";
 import playerControl from "@/store/player-control";
 import { PlaylistSkeleton } from "@/components/playlist-skeleton";
+import { SongInfo } from "@/types/song.ts";
+import { useRouter } from "next/navigation";
 
 export default function PlaylistPage() {
+  const router = useRouter();
   const { currentSource } = useAudioSource();
   const { data, isLoading } = useLikedPlaylist({
     source: currentSource,
@@ -25,6 +28,15 @@ export default function PlaylistPage() {
 
   const handleRefresh = () => {};
 
+  const handleRecommend = (song: SongInfo) => {
+    const params = new URLSearchParams({
+      song: song.content.name,
+      singer: song.content.singer,
+      request: String(Date.now()),
+    });
+    router.push(`/rand-recommend?${params.toString()}`);
+  };
+
   if (isLoading) {
     return <PlaylistSkeleton />;
   }
@@ -39,7 +51,7 @@ export default function PlaylistPage() {
           handlePlayAllClick={handlePlayAll}
           handleRefreshClick={handleRefresh}
         />
-        <MusicList songs={data?.songs || []} />
+        <MusicList songs={data?.songs || []} onRecommend={handleRecommend} />
       </div>
     </>
   );

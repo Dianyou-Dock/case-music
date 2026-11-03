@@ -1,6 +1,8 @@
-use crate::ai_client::impls::kimi::Kimi;
+use crate::ai_client::impls::kimi::ChatClient;
 use crate::application::resp::ApplicationResp;
-use crate::types::constants::{AiSource, MusicSource};
+use crate::types::constants::{
+    data_path, AiSource, MusicSource, ACTIVE_AI_SOURCE_FILE, APIKEY_DIR, APIKEY_FILE,
+};
 use crate::types::error::MusicClientError;
 use crate::types::login_info::{LoginInfo, LoginInfoData, LoginQrInfo};
 use crate::INSTANCE;
@@ -114,6 +116,7 @@ pub async fn login_by_qr(req: LoginReq) -> Result<ApplicationResp<LoginInfo>, In
 pub struct AiLoggedData {
     pub used: bool,
     pub disabled: bool,
+    pub configured: bool,
 }
 
 #[tauri::command]
@@ -128,6 +131,11 @@ pub async fn ai_logged() -> Result<ApplicationResp<BTreeMap<String, AiLoggedData
             AiLoggedData {
                 used: false,
                 disabled: false,
+                configured: data_path()
+                    .join(APIKEY_DIR)
+                    .join(&ai.id)
+                    .join(APIKEY_FILE)
+                    .exists(),
             },
         );
     });
@@ -140,6 +148,7 @@ pub async fn ai_logged() -> Result<ApplicationResp<BTreeMap<String, AiLoggedData
             AiLoggedData {
                 used: true,
                 disabled: false,
+                configured: true,
             },
         );
     };
@@ -238,17 +247,41 @@ pub struct AiSetApiKeyReq {
 pub async fn set_api_key(
     req: AiSetApiKeyReq,
 ) -> std::result::Result<ApplicationResp<()>, InvokeError> {
-    let mut instance = INSTANCE.write().await;
-
-    match req.source {
-        AiSource::Kimi => {
-            let kimi = Kimi::new(req.api_key)
-                .await
-                .map_err(InvokeError::from_anyhow)?;
-
-            instance.ai.replace(Box::new(kimi));
-        }
+    let key = req.api_key.trim().to_string();
+    if key.is_empty() {
+        return Err(InvokeError::from_anyhow(anyhow::anyhow!(
+            "API key cannot be empty"
+        )));
     }
+    let client = ChatClient::new_for(req.source, key)
+        .await
+        .map_err(InvokeError::from_anyhow)?;
+    save_active_ai_source(req.source)
+        .await
+        .map_err(InvokeError::from_anyhow)?;
+    INSTANCE.write().await.ai = Some(Box::new(client));
 
     Ok(ApplicationResp::success())
+}
+
+#[tauri::command]
+pub async fn select_ai_source(
+    source: AiSource,
+) -> std::result::Result<ApplicationResp<()>, InvokeError> {
+    let client = ChatClient::load_for(source)
+        .map_err(InvokeError::from_anyhow)?
+        .ok_or_else(|| {
+            InvokeError::from_anyhow(anyhow::anyhow!("API key is not configured for {source}"))
+        })?;
+    save_active_ai_source(source)
+        .await
+        .map_err(InvokeError::from_anyhow)?;
+    INSTANCE.write().await.ai = Some(Box::new(client));
+    Ok(ApplicationResp::success())
+}
+
+async fn save_active_ai_source(source: AiSource) -> Result<()> {
+    let value = serde_json::to_string(&source)?;
+    tokio::fs::write(data_path().join(ACTIVE_AI_SOURCE_FILE), value).await?;
+    Ok(())
 }

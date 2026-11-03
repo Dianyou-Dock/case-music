@@ -49,7 +49,8 @@ export function AiSourceProvider({ children }: { children: React.ReactNode }) {
             result.forEach((source) => {
               if (source.id === key) {
                 set(source, "used", value.used);
-                set(source, "disabled", value.disable);
+                set(source, "disabled", value.disabled);
+                set(source, "configured", value.configured);
               }
             });
           });
@@ -61,7 +62,7 @@ export function AiSourceProvider({ children }: { children: React.ReactNode }) {
 
   const configureSource = (status: boolean) => {
     if (status) {
-      setReset(!reset);
+      setReset((current) => !current);
     }
   };
 

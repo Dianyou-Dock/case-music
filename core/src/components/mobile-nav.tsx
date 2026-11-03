@@ -20,7 +20,7 @@ export default function MobileNav({ className }: MobileNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className={cn("border-t bg-background", className)}>
+    <nav className={cn("shrink-0 border-t bg-background", className)}>
       <div className="flex items-center justify-around py-3">
         {navigationLinks.map((link) => {
           const isActive = pathname === link.href;

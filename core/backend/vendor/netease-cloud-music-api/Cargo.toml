@@ -1,0 +1,23 @@
+[package]
+name = "netease-cloud-music-api"
+version = "1.5.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+isahc = { version = "^1", features = ["cookies"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-webpki-roots"] }
+lazy_static = "*"
+regex = "*"
+urlqstring = "*"
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+rand = "0.8"
+openssl = "*"
+anyhow = "*"
+hex = "*"
+base64 = "*"
+
+[dev-dependencies]
+async-std = { features = ["attributes"], version = "*" }
