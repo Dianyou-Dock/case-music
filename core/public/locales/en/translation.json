@@ -54,6 +54,7 @@
   "ai_apikey_input_desc": "Enter your apikey",
   "rand_recommend_title": "Rand Recommend",
   "recommend_history": "Recommendation History",
+  "recommend_history_button": "History",
   "recommend_current": "Current Recommendation",
   "recommend_history_empty": "No recommendation history yet. Completed recommendations will appear here.",
   "recommend_interrupted": "The previous recommendation was interrupted. Please retry.",

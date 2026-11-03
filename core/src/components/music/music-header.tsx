@@ -3,6 +3,7 @@
 import { Play, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import type { ReactNode } from "react";
 
 interface MusicHeaderProps {
   title: string;
@@ -10,6 +11,7 @@ interface MusicHeaderProps {
   coverUrl?: string;
   handlePlayAllClick: () => void;
   handleRefreshClick: () => void;
+  extraAction?: ReactNode;
 }
 
 export function MusicHeader({
@@ -18,6 +20,7 @@ export function MusicHeader({
   coverUrl,
   handlePlayAllClick,
   handleRefreshClick,
+  extraAction,
 }: MusicHeaderProps) {
   const { t } = useTranslation();
   return (
@@ -31,29 +34,30 @@ export function MusicHeader({
           />
         )}
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
         <div>
           <h1 className="text-4xl font-bold">{title}</h1>
           <p className="text-lg text-muted-foreground">{subtitle}</p>
         </div>
-        <div className="flex flex-row gap-4">
+        <div className="flex w-full min-w-0 flex-nowrap gap-1.5 sm:gap-3">
           {/* Play All Button */}
           <Button
             size="lg"
-            className="w-fit gap-2 bg-transparent border-2 border-green-500 text-green-500 hover:bg-green-100"
+            className="min-w-0 flex-1 gap-1 border-2 border-green-500 bg-transparent px-1 text-xs text-green-500 hover:bg-green-100 sm:flex-none sm:gap-2 sm:px-4 sm:text-sm"
             onClick={handlePlayAllClick}
           >
-            <Play className="h-5 w-5"/> {t("play_all")}
+            <Play className="h-4 w-4 shrink-0 sm:h-5 sm:w-5"/> {t("play_all")}
           </Button>
 
           {/* Refresh Button */}
           <Button
             size="lg"
-            className="w-fit gap-2 bg-transparent border-2 border-purple-500 text-purple-500 hover:bg-purple-100"
+            className="min-w-0 flex-1 gap-1 border-2 border-purple-500 bg-transparent px-1 text-xs text-purple-500 hover:bg-purple-100 sm:flex-none sm:gap-2 sm:px-4 sm:text-sm"
             onClick={handleRefreshClick}
           >
-            <RefreshCcw className="h-5 w-5"/> {t("refresh")}
+            <RefreshCcw className="h-4 w-4 shrink-0 sm:h-5 sm:w-5"/> {t("refresh")}
           </Button>
+          {extraAction}
         </div>
       </div>
     </div>

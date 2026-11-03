@@ -29,6 +29,9 @@ export default function RecommendationPage() {
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const selectedRecord = history.find((record) => record.id === selectedHistoryId);
   const isSampleMode = task.kind === "sample";
+  const hasHeader = !showHistory && audioSource !== null && aiSource !== null
+    && Boolean(currentSource && hasAiSource)
+    && task.status !== "running" && task.status !== "idle";
 
   useEffect(() => hydrateRecommendationState(), []);
 
@@ -58,23 +61,23 @@ export default function RecommendationPage() {
     ? t("song_recommend_sample", { song: record.song, singer: record.singer })
     : t("rand_recommend_title");
 
+  const toggleHistory = () => {
+    setShowHistory(!showHistory);
+    setSelectedHistoryId(null);
+  };
+
   if (!hydrated) {
     return <PlaylistSkeleton />;
   }
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <Button
-        variant="outline"
-        className="self-start gap-2"
-        onClick={() => {
-          setShowHistory(!showHistory);
-          setSelectedHistoryId(null);
-        }}
-      >
-        <History className="h-4 w-4" />
-        {showHistory ? t("recommend_current") : t("recommend_history")}
-      </Button>
+      {!hasHeader && (
+        <Button variant="outline" className="self-start gap-2" onClick={toggleHistory}>
+          <History className="h-4 w-4" />
+          {showHistory ? t("recommend_current") : t("recommend_history")}
+        </Button>
+      )}
 
       {showHistory ? (
         selectedRecord ? (
@@ -154,6 +157,18 @@ export default function RecommendationPage() {
             coverUrl={task.coverUrl}
             handlePlayAllClick={() => handlePlayAll(task.songs)}
             handleRefreshClick={handleRefresh}
+            extraAction={
+              <Button
+                variant="outline"
+                className="min-w-0 flex-1 gap-1 border-2 border-white bg-background px-1 text-xs text-white hover:bg-background hover:text-white sm:flex-none sm:gap-2 sm:px-4 sm:text-sm"
+                title={t("recommend_history")}
+                aria-label={t("recommend_history")}
+                onClick={toggleHistory}
+              >
+                <History className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+                {t("recommend_history_button")}
+              </Button>
+            }
           />
           {isSampleMode && (
             <Button variant="outline" className="self-start" onClick={() => startRandomRecommendation(currentSource, true)}>
