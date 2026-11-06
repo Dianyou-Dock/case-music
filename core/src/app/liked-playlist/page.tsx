@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useLayoutEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import useLikedPlaylist, {
   getLikedScroll,
@@ -14,14 +16,18 @@ import { MusicList } from "@/components/music/music-list";
 import { MusicHeader } from "@/components/music/music-header";
 import { PlaylistSkeleton } from "@/components/playlist-skeleton";
 import { Button } from "@/components/ui/button";
+import { musicSourceName } from "@/lib/audio-sources";
+import { SpotifyTracks } from "@/components/spotify/spotify-tracks";
 import { SongInfo } from "@/types/song";
 import playerControl from "@/store/player-control";
 import { startSampleRecommendation } from "@/store/recommendation-task";
 
-export default function PlaylistPage() {
+function LikedPlaylistDetail() {
   const router = useRouter();
-  const { t } = useTranslation();
-  const { currentSource } = useAudioSource();
+  const { t, i18n } = useTranslation();
+  const selectedSource = useSearchParams().get("source");
+  const { audioSource } = useAudioSource();
+  const currentSource = audioSource?.find((source) => source.id === selectedSource && source.connected)?.id as import("@/types/constants").MusicSource | undefined;
   const { songs, total, coverUrl, loaded, loading, error, hasMore } = useLikedPlaylist(currentSource);
   const pageRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -77,25 +83,27 @@ export default function PlaylistPage() {
 
   const handleRecommend = (song: SongInfo) => {
     if (currentSource) {
-      startSampleRecommendation(currentSource, song.content.name, song.content.singer);
+      const runId = startSampleRecommendation(currentSource, song.content.name, song.content.singer);
+      if (runId) router.push(`/rand-recommend/netease?pending=${encodeURIComponent(runId)}`);
     }
-    router.push("/rand-recommend");
   };
 
   return (
     <div ref={pageRef} className="flex flex-col gap-6 p-6">
-      {!loaded && !error ? <PlaylistSkeleton /> : (
+      <Button asChild variant="ghost" className="self-start gap-2"><Link href="/liked-sources"><ArrowLeft className="h-4 w-4" />{t("liked_playlist")}</Link></Button>
+      {audioSource && !currentSource && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
+      {currentSource && (!loaded && !error ? <PlaylistSkeleton /> : (
         <>
           <MusicHeader
-            title={t("liked_playlist")}
-            subtitle={t("liked_loaded_count", { loaded: songs.length, total })}
+            title={currentSource ? `${t("liked_playlist")} · ${musicSourceName(currentSource, i18n.language)}` : t("liked_playlist")}
+            subtitle={t("song_count", { count: total })}
             coverUrl={coverUrl}
             handlePlayAllClick={handlePlayAll}
             handleRefreshClick={handleRefresh}
           />
           <MusicList songs={songs} onRecommend={handleRecommend} />
         </>
-      )}
+      ))}
       {error && (
         <div role="alert" className="space-y-3 rounded-lg border border-destructive p-4">
           <p>{t("liked_load_failed")}: {error}</p>
@@ -108,4 +116,15 @@ export default function PlaylistPage() {
       {loaded && loading && <p role="status" className="text-center text-muted-foreground">{t("liked_loading_more")}</p>}
     </div>
   );
+}
+
+export default function PlaylistPage() {
+  return <Suspense fallback={null}><SourceDetail /></Suspense>;
+}
+
+function SourceDetail() {
+  const source = useSearchParams().get("source");
+  const { t, i18n } = useTranslation();
+  if (source === "Spotify") return <SpotifyTracks kind="liked" title={t("source_liked", { source: musicSourceName("Spotify", i18n.language) })} />;
+  return <LikedPlaylistDetail />;
 }

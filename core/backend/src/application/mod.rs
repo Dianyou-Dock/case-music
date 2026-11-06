@@ -8,18 +8,20 @@ use crate::types::constants::{
 };
 use crate::types::error::ErrorHandle;
 use crate::types::error::MusicClientError::LikeListNotExist;
-use crate::types::play_list_info::PlayListInfoData;
+use crate::types::play_list_info::{PlayListInfo, PlayListInfoData};
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::utils;
 use anyhow::Result;
 use err_logging::ctx;
 use err_logging::error_logging::ErrorLogging;
 use log::{error, info};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::PathBuf;
+use serde::Deserialize;
 use tokio::time::Instant;
 
 pub mod ai;
+pub mod recommendation_engine;
 
 pub mod music;
 
@@ -31,6 +33,20 @@ pub struct RandCache {
     pub songs: Vec<SongInfo>,
 }
 
+#[derive(Default, Deserialize, Clone)]
+pub struct RecommendationFeedback {
+    #[serde(default)]
+    pub liked: Vec<u64>,
+    #[serde(default)]
+    pub completed: Vec<u64>,
+    #[serde(default)]
+    pub skipped: Vec<u64>,
+    #[serde(default)]
+    pub excluded_song_ids: Vec<u64>,
+    #[serde(default)]
+    pub recently_recommended: Vec<AiRecommendSongInfo>,
+}
+
 pub struct Application {
     pub netesae: Box<dyn MusicModule>,
     pub ai: Option<Box<dyn AiClient>>,
@@ -38,6 +54,7 @@ pub struct Application {
     pub history_recommends: BTreeMap<u64, SongInfo>,
     pub current_recommends: BTreeMap<u64, SongInfo>,
     pub rand_cache: RandCache,
+    pub playlist_cache: HashMap<u64, PlayListInfo>,
 }
 
 impl Application {
@@ -49,6 +66,7 @@ impl Application {
             history_recommends: BTreeMap::new(),
             current_recommends: BTreeMap::new(),
             rand_cache: RandCache::default(),
+            playlist_cache: HashMap::new(),
         };
 
         let selected = std::fs::read_to_string(data_path().join(ACTIVE_AI_SOURCE_FILE))
@@ -62,8 +80,8 @@ impl Application {
         app
     }
 
-    pub async fn refresh_rand_cache(&mut self, source: MusicSource) -> Result<()> {
-        let (list, _likeds) = match source {
+    pub async fn refresh_rand_cache(&mut self, source: MusicSource, feedback: &RecommendationFeedback) -> Result<()> {
+        let list = match source {
             MusicSource::Netesae => {
                 if self.netesae.like_list().is_none() {
                     return Err(LikeListNotExist.anyhow_err());
@@ -73,14 +91,34 @@ impl Application {
                 let like_list = match &like_list_info.data {
                     PlayListInfoData::Netesae(v) => v.songs.clone(),
                 };
-                let like_list_set = self.netesae.likeds().unwrap();
-
-                let len = like_list.len();
-                let bench_mark_idxs = utils::random_num(len, RAND_RECOMMENDS_BENCHMARK_COUNT);
-
                 let mut bench_mark_list = vec![];
-                for idx in bench_mark_idxs {
-                    if let Some(song) = like_list.get(idx) {
+                let mut selected = HashSet::new();
+                let skipped: HashSet<_> = feedback.skipped.iter().chain(&feedback.excluded_song_ids).copied().collect();
+                for id in &feedback.liked {
+                    if bench_mark_list.len() >= RAND_RECOMMENDS_BENCHMARK_COUNT / 2 { break; }
+                    if !skipped.contains(id) {
+                        if let Some(song) = like_list.iter().find(|song| song.id == *id) {
+                            if selected.insert(*id) { bench_mark_list.push(song.clone()); }
+                        }
+                    }
+                }
+                let completed_ids: Vec<_> = feedback.liked.iter().chain(feedback.completed.iter()).copied()
+                    .filter(|id| !selected.contains(id) && !skipped.contains(id))
+                    .take(RAND_RECOMMENDS_BENCHMARK_COUNT / 2)
+                    .collect();
+                if !completed_ids.is_empty() {
+                    if let Ok(completed_songs) = self.netesae.client().song_infos(&completed_ids).await {
+                        for info in completed_songs {
+                            let SongInfoData::Netesae(song) = info.data;
+                            if bench_mark_list.len() >= RAND_RECOMMENDS_BENCHMARK_COUNT / 2 { break; }
+                            if selected.insert(song.id) { bench_mark_list.push(song); }
+                        }
+                    }
+                }
+                for idx in utils::random_num(like_list.len(), like_list.len()) {
+                    if bench_mark_list.len() >= RAND_RECOMMENDS_BENCHMARK_COUNT { break; }
+                    let song = &like_list[idx];
+                    if selected.insert(song.id) && !skipped.contains(&song.id) {
                         bench_mark_list.push(song.clone());
                     }
                 }
@@ -100,19 +138,30 @@ impl Application {
 
                 let start = Instant::now();
                 let recommend_result = ai
-                    .rand_recommends(&recommends_req, RAND_RECOMMENDS_COUNT as u64)
+                    .rand_recommends(&recommends_req, RAND_RECOMMENDS_COUNT as u64, &feedback.recently_recommended)
                     .await
                     .elog(ctx!())?;
                 let duration = start.elapsed();
                 info!("recommend duration sec: {}", duration.as_secs());
 
-                let mut songs_id = vec![];
-                let mut likeds = vec![];
+                let mut candidates = vec![];
+                let mut candidate_artists = HashMap::<u64, String>::new();
+                let mut artist_counts = HashMap::<String, usize>::new();
+                let mut seen_songs = HashSet::new();
+                let mut song_types = HashMap::<u64, String>::new();
+                let mut album_dates = HashMap::<u64, Option<(i32, String)>>::new();
+                let mut release_dates = HashMap::<u64, Option<(i32, String)>>::new();
 
                 info!("recommend_result: {recommend_result:?}");
 
                 let start = Instant::now();
-                for recommend_info in recommend_result.recommends {
+                let primary_style = recommend_result.benchmark.song_type.clone();
+                let familiar_artists: HashSet<_> = like_list.iter().map(|song| song.singer.trim().to_lowercase()).collect();
+                let mut pending = recommend_result.recommends;
+                for pass in 0..2 {
+                for recommend_info in pending {
+                    let artist = recommend_info.singer.trim().to_lowercase();
+                    if artist_counts.get(&artist).copied().unwrap_or(0) >= 2 { continue; }
                     let result = self
                         .netesae
                         .client()
@@ -122,12 +171,25 @@ impl Application {
                     match result {
                         Ok(song_info) => {
                             if let Some(v) = song_info {
-                                let song_id = match &v.data {
-                                    SongInfoData::Netesae(v) => v.id,
+                                let (song_id, album_id) = match &v.data {
+                                    SongInfoData::Netesae(v) => (v.id, v.album_id),
                                 };
 
-                                likeds.push(like_list_set.contains(&song_id));
-                                songs_id.push(song_id);
+                                if !skipped.contains(&song_id) && seen_songs.insert(song_id) {
+                                    *artist_counts.entry(artist.clone()).or_default() += 1;
+                                    song_types.insert(song_id, recommend_info.song_type);
+                                    let date = if let Some(date) = album_dates.get(&album_id) {
+                                        date.clone()
+                                    } else {
+                                        let date = self.netesae.client().album_release_date(album_id).await.ok().flatten();
+                                        album_dates.insert(album_id, date.clone());
+                                        date
+                                    };
+                                    let year = date.as_ref().map(|(year, _)| *year);
+                                    release_dates.insert(song_id, date);
+                                    candidate_artists.insert(song_id, artist.clone());
+                                    candidates.push((song_id, year));
+                                }
                             }
                         }
                         Err(e) => {
@@ -136,8 +198,35 @@ impl Application {
                         }
                     }
                 }
+                if pass == 1 { break; }
+                let present: HashSet<i32> = candidates.iter().filter_map(|(_, year)| year.map(|year| year / 10 * 10)).collect();
+                let current_year = time::OffsetDateTime::now_utc().year();
+                let mut missing: Vec<i32> = (1960..=(current_year / 10 * 10)).step_by(10).filter(|decade| !present.contains(decade)).collect();
+                if !candidates.iter().any(|(_, year)| *year == Some(current_year)) { missing.push(current_year); }
+                if missing.is_empty() { break; }
+                pending = match self.ai.as_ref().unwrap().fill_decades(&recommends_req, &missing).await {
+                    Ok(extra) => extra.recommends,
+                    Err(error) => {
+                        log::warn!("Could not fill missing release decades: {error:#}");
+                        break;
+                    }
+                };
+                }
                 let duration = start.elapsed();
                 info!("reach songs duration: {}", duration.as_secs());
+
+                let ranked = candidates.iter().map(|(id, year)| {
+                    let artist = candidate_artists.get(id).cloned().unwrap_or_default();
+                    recommendation_engine::Candidate {
+                        id: *id,
+                        familiar_artist: familiar_artists.contains(&artist),
+                        seed_artist: false,
+                        style: song_types.get(id).cloned().unwrap_or_default(),
+                        artist,
+                        year: *year,
+                    }
+                }).collect::<Vec<_>>();
+                let songs_id = recommendation_engine::select_balanced(&ranked, RAND_RECOMMENDS_COUNT, &primary_style, time::OffsetDateTime::now_utc().year());
 
                 let mut songs_info = if !songs_id.is_empty() {
                     self.netesae
@@ -149,13 +238,20 @@ impl Application {
                     vec![]
                 };
 
-                for (idx, si) in bench_mark_list.into_iter().enumerate() {
-                    songs_info.insert(idx, SongInfo{ data: SongInfoData::Netesae(si) });
+                for song in &mut songs_info {
+                    let SongInfoData::Netesae(data) = &song.data;
+                    if let Some(song_type) = song_types.remove(&data.id) {
+                        if !song_type.trim().is_empty() { song.song_type = Some(song_type); }
+                    }
+                    if let Some(Some((year, date))) = release_dates.get(&data.id) {
+                        song.release_year = Some(*year);
+                        song.release_date = Some(date.clone());
+                    }
                 }
 
                 info!("refresh_rand_cache songs info: {songs_info:?}");
 
-                (songs_info, likeds)
+                songs_info
             }
             MusicSource::Spotify => {
                 todo!()

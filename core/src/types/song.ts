@@ -16,6 +16,9 @@ export interface SongInfoData {
   type: MusicSource;
   content: SongContent;
   liked: boolean;
+  song_type?: string;
+  release_year?: number;
+  release_date?: string;
 }
 
 export interface SongInfo extends SongInfoData {}

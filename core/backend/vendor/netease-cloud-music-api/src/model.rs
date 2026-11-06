@@ -498,6 +498,8 @@ pub struct PlayListDetail {
 
     pub track_update_time: u64,
 
+    pub track_ids: Vec<u64>,
+
     pub songs: Vec<SongInfo>,
 }
 
@@ -541,6 +543,10 @@ pub fn to_mix_detail(json: &Value) -> Result<PlayListDetail> {
             description: get_val!(value, "playlist", "description").unwrap_or_default(),
             create_time: get_val!(value, "playlist", "createTime")?,
             track_update_time: get_val!(value, "playlist", "trackUpdateTime")?,
+
+            track_ids: value["playlist"]["trackIds"].as_array()
+                .map(|items| items.iter().filter_map(|item| item["id"].as_u64()).collect())
+                .unwrap_or_default(),
 
             songs,
         });

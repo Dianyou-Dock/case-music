@@ -159,10 +159,10 @@ pub fn gen_recommend_song_content(
 ) -> String {
     let template = format!(
         "Sample recording: song '{song}', artist '{singer}'. \
-        First identify its primary genre/subgenre and its defining groove, tempo, vocals, \
-        instrumentation and era. Recommend up to {count} REAL, searchable recordings that \
-        closely match the sample's PRIMARY subgenre and at least two of those musical traits. \
-        Prefer the same subgenre and era over artist popularity, language, novelty or variety. \
+        First identify its primary major genre and subgenre and its defining groove, tempo, vocals, \
+        instrumentation and era. Recommend up to {count} REAL, searchable recordings in the \
+        SAME primary major genre and matching at least two of those musical traits. \
+        Include different subgenres within that major genre when the sound still fits. \
         Do not recommend a song solely because its artist is adjacent, it shares a broad genre, \
         or it is commonly found on a generic mood playlist. Do not include remixes, covers, \
         unrelated genres or the sample itself. Be conservative: return fewer than {count} \
@@ -185,8 +185,11 @@ pub fn gen_recommend_song_content(
 pub fn gen_single_song_prompt() -> String {
     format!(
         "You are a careful music similarity curator. A single song and artist identify the \
-        recording to match. Prioritize the actual sound and primary subgenre over diversity. \
-        Do not pad the list. If unsure whether a recording has the same core style, omit it. \
+        recording to match. Keep its primary major genre fixed while exploring compatible \
+        subgenres within it. Do not pad the list. If unsure whether a recording has the \
+        same primary major genre, omit it. Include different artists and some new recordings \
+        by the sample artist; at most two recordings by the same artist. Seek both current-year \
+        recordings and recordings from at least ten years ago when real matches exist. \
         Return only a valid JSON object in this shape: {AI_SONG_RESP_TEMPLATE}"
     )
 }
@@ -201,7 +204,8 @@ pub fn gen_single_song_review_content(
         "Audit these proposed recommendations for the recording '{song}' by '{singer}'. \
         The first pass described the sample as: {benchmark}. \
         Independently check each candidate's ACTUAL recording and style. A match needs the \
-        same primary subgenre AND at least two of groove, vocal style, production, tempo and era. \
+        same primary major genre AND at least two of groove, vocal style, production and tempo. \
+        Compatible subgenres within that major genre are allowed. \
         Reject broad R&B/pop adjacency, genre crossover dominated by another style, \
         uncertain song/artist identities, and songs you do not know well enough to judge. \
         Do not trust the candidate's song_type label without checking it. \
@@ -230,21 +234,19 @@ pub fn gen_recommend_style_content(song: &str, count: u64, previous: Option<Stri
 }
 
 pub fn gen_ai_singer_prompt() -> String {
+    let year = time::OffsetDateTime::now_utc().year();
     format!(
         r#"
-你将收到一个音乐列表,格式如下:
+你将收到从用户喜欢的歌曲中抽取的列表，格式如下:
 
 {AI_SONG_REQ_EXAMPLE}
 
-根据用户输入的示例来返回相对应的音乐,返回结构如下格式:
+先找出样本里最有代表性的大风格，把它写入 benchmark.song_type。候选歌曲必须属于同一个大风格，可以在这个大风格内部探索不同细分风格；不接受只沾边或跨界但由其他大风格主导的歌曲。每个示例都应有一定代表，不要让某位歌手占据整张列表。不要为了随机性、冷门或语言多样性牺牲匹配度。不要返回示例歌曲。
+候选中要有样本歌手之外的新歌手，也允许样本歌手的新歌曲；同一歌手最多两首。尽量包含今年（{year}）发行的歌曲和至少十年前发行的歌曲，并横跨多个十年档位。不要把近期翻唱或再版当作旧歌。年代跨度不能牺牲风格匹配；找不到合格的歌曲就少推荐。返回结构如下格式:
 
 {AI_SONG_RESP_TEMPLATE}
 
-返回的数据有如下规则:
-
-{AI_RECOMMEND_RULES}
-
-平均每个示例对应返回{RAND_RECOMMEND_AVG}首, 返回的推荐列表必须包含{RAND_RECOMMENDS_COUNT}首
+歌曲名与歌手必须准确对应，优先选择能在音源中搜索到的歌曲。每次按用户要求返回足量候选；同一歌手最多两首。song_type 用英文，song_detail 和 recommend_detail 用中文。
     "#
     )
 }
@@ -271,8 +273,8 @@ pub fn gen_recommend_singer_content(
     }
 }
 
-pub fn gen_rand_recommend_content(song_list: &str, _count: u64) -> String {
-    let template = format!("Example song list: '{song_list}'");
+pub fn gen_rand_recommend_content(song_list: &str, count: u64) -> String {
+    let template = format!("Liked songs sampled from the user's library: {song_list}. Choose the dominant primary genre and put it in benchmark.song_type. Recommend up to {count} distinct real songs in that SAME primary genre. Include unfamiliar artists and allow new recordings by familiar artists. Cover old and current-year releases where genuine same-genre candidates exist. Vary subgenres within that primary genre. Mark each candidate's actual style in song_type; do not relabel a mismatched recording. Return fewer songs rather than cross-genre filler. Return only valid JSON.");
 
     template
 }
@@ -348,7 +350,7 @@ impl AiSource {
     }
 }
 
-pub static RAND_RECOMMENDS_BENCHMARK_COUNT: usize = 3;
+pub static RAND_RECOMMENDS_BENCHMARK_COUNT: usize = 6;
 pub static RAND_RECOMMENDS_COUNT: usize = 15;
 
 pub static RAND_RECOMMEND_AVG: usize = RAND_RECOMMENDS_COUNT / RAND_RECOMMENDS_BENCHMARK_COUNT;

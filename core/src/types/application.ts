@@ -37,11 +37,13 @@ export interface RecommendReq {
   recommend_song_count: number;
   recommend_singer_count: number;
   previous?: RecommendSongInfo[];
+  excluded_song_ids?: number[];
 }
 
 export interface RecommendSongInfo {
   name: string;
   singer: string;
+  song_type?: string;
 }
 
 export interface RecommendSongResp {

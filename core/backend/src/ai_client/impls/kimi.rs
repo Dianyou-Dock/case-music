@@ -17,7 +17,7 @@ use reqwest::{Method, Request};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use tokio::fs;
 
@@ -83,10 +83,17 @@ fn keep_close_matches(
         .filter_map(|(index, song)| accepted.get(&index).map(|score| (*score, index, song)))
         .collect();
     ranked.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    let mut artist_counts = HashMap::<String, usize>::new();
     ranked
         .into_iter()
-        .take(count as usize)
         .map(|(_, _, song)| song)
+        .filter(|song| {
+            let seen = artist_counts.entry(song.singer.trim().to_lowercase()).or_default();
+            if *seen >= 2 { return false; }
+            *seen += 1;
+            true
+        })
+        .take(count as usize)
         .collect()
 }
 
@@ -263,7 +270,7 @@ impl Client for ChatClient {
             "You independently audit music similarity. Be conservative. Return only JSON.";
         let review_req = self.gen_req_with_temperature(&review_content, review_prompt, 0.0)?;
         let reviews: SongReviewResult = self.send(review_req).await?;
-        resp.recommends = keep_close_matches(resp.recommends, reviews, count);
+        resp.recommends = keep_close_matches(resp.recommends, reviews, candidate_count);
 
         Ok(resp)
     }
@@ -272,18 +279,57 @@ impl Client for ChatClient {
         &self,
         data: &[AiRecommendSongInfo],
         count: u64,
+        previous: &[AiRecommendSongInfo],
     ) -> Result<AiRecommendInfo> {
         let sample_playlist = serde_json::to_string_pretty(data).elog(ctx!())?;
 
-        let content = gen_rand_recommend_content(&sample_playlist, count);
+        let candidate_count = count.saturating_mul(2).min(30);
+        let mut content = gen_rand_recommend_content(&sample_playlist, candidate_count);
+        if !previous.is_empty() {
+            content.push_str(&format!(" Exclude these recently recommended exact recordings (title and artist): {}.", serde_json::to_string(previous)?));
+        }
         let prompt = gen_ai_singer_prompt();
 
         println!("content: {content}");
 
-        let req = self.gen_req(&content, &prompt).elog(ctx!())?;
+        let req = self.gen_req_with_temperature(&content, &prompt, 0.5).elog(ctx!())?;
 
-        let resp = self.send(req).await.elog(ctx!())?;
+        let mut resp: AiRecommendInfo = self.send(req).await.elog(ctx!())?;
+        if !resp.recommends.is_empty() {
+            let candidates = serde_json::to_string(&resp.recommends)?;
+            let review = format!(
+                "User liked-song samples: {sample_playlist}. The proposed dominant primary genre is {genre}. Independently review each actual recording. Reject anything outside that primary genre, including generic adjacency and crossovers dominated by another genre. Within the same primary genre, accept different subgenres, old and new recordings, and unfamiliar artists if they fit the listener's preferences. Reject uncertain identities. Candidates: {candidates}. Return JSON only: {{\"reviews\":[{{\"index\":0,\"close_match\":true,\"score\":90}}]}}. Include every candidate with zero-based index. Set close_match=true and score >=80 only for strong fits.",
+                genre = resp.benchmark.song_type,
+            );
+            let review_req = self.gen_req_with_temperature(&review, "You are a strict music taste reviewer. Return valid JSON only.", 0.0)?;
+            let reviews: SongReviewResult = self.send(review_req).await?;
+            resp.recommends = keep_close_matches(resp.recommends, reviews, candidate_count);
+        }
+        Ok(resp)
+    }
 
+    async fn fill_decades(
+        &self,
+        data: &[AiRecommendSongInfo],
+        decades: &[i32],
+    ) -> Result<AiRecommendInfo> {
+        let samples = serde_json::to_string(data)?;
+        let content = format!(
+            "Liked-song samples: {samples}. The recommendation list is missing these release decades or exact years: {decades:?}. Suggest real, searchable recordings originally released in EACH requested decade or exact year, keeping the SAME dominant primary genre as the listener's samples. Allow compatible subgenres within that primary genre. Avoid recent covers, remixes and reissues of older recordings. Include the exact song name, artist and actual musical style. Return JSON only in this shape: {template}",
+            template = crate::types::constants::AI_SONG_RESP_TEMPLATE,
+        );
+        let req = self.gen_req_with_temperature(&content, "You curate accurate music recommendations across release decades. Return valid JSON only.", 0.4)?;
+        let mut resp: AiRecommendInfo = self.send(req).await?;
+        if !resp.recommends.is_empty() {
+            let candidates = serde_json::to_string(&resp.recommends)?;
+            let review = format!(
+                "Liked-song samples: {samples}. Independently verify that every candidate is a real recording in the SAME dominant primary genre as these samples and was originally released in one of the requested decades or exact years {decades:?}. Reject uncertain identities, genre-adjacent songs, remasters and recent covers. Candidates: {candidates}. Return JSON only: {{\"reviews\":[{{\"index\":0,\"close_match\":true,\"score\":90}}]}}. Include every candidate with a zero-based index; accept only strong matches with score >=80."
+            );
+            let review_req = self.gen_req_with_temperature(&review, "You are a strict music genre and release-date reviewer. Return valid JSON only.", 0.0)?;
+            let reviews: SongReviewResult = self.send(review_req).await?;
+            let count = resp.recommends.len() as u64;
+            resp.recommends = keep_close_matches(resp.recommends, reviews, count);
+        }
         Ok(resp)
     }
 
@@ -384,6 +430,24 @@ mod test {
                 .collect::<Vec<_>>(),
             vec!["also close", "close"]
         );
+    }
+
+    #[test]
+    fn similarity_audit_limits_each_artist_to_two_songs() {
+        let candidates: Vec<_> = ["A", "a", " A ", "B"]
+            .into_iter()
+            .enumerate()
+            .map(|(index, singer)| AiRecommendSongInfo {
+                name: format!("song {index}"),
+                singer: singer.to_string(),
+                song_type: "pop".to_string(),
+            })
+            .collect();
+        let reviews = SongReviewResult {
+            reviews: (0..4).map(|index| SongReview { index, close_match: true, score: 90 }).collect(),
+        };
+        let filtered = keep_close_matches(candidates, reviews, 4);
+        assert_eq!(filtered.iter().map(|song| song.name.as_str()).collect::<Vec<_>>(), vec!["song 0", "song 1", "song 3"]);
     }
 
     #[test]
@@ -585,7 +649,7 @@ mod test {
             let ai_client = Kimi::new(api_key.to_string()).await.unwrap();
 
             let result = ai_client
-                .rand_recommends(&sample_playlist, 15)
+                .rand_recommends(&sample_playlist, 15, &[])
                 .await
                 .unwrap();
 

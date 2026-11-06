@@ -16,10 +16,14 @@ pub async fn logout(source: MusicSource) -> anyhow::Result<ApplicationResp<()>, 
                 .await
                 .map_err(InvokeError::from_anyhow)?;
         }
-        MusicSource::Spotify => {}
+        MusicSource::Spotify => {
+            super::spotify::spotify_disconnect().await?;
+        }
         MusicSource::QQ => {}
         MusicSource::Apple => {}
     }
+
+    instance.playlist_cache.clear();
 
     Ok(ApplicationResp::success_data(()))
 }

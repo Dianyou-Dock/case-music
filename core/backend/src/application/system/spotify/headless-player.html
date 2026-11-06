@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Case Music Spotify Audio</title></head><body>
+<script>
+const base = "__BASE__";
+const post = (route, value) => fetch(base + route, {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value)
+}).catch(() => {});
+let player;
+window.onSpotifyWebPlaybackSDKReady = () => {
+  player = new Spotify.Player({
+    name: "壳音乐",
+    volume: 0.5,
+    getOAuthToken: callback => fetch(base + "/token").then(response => response.json()).then(value => callback(value.token))
+      .catch(error => post("/error", { message: String(error) }))
+  });
+  player.addListener("ready", value => post("/ready", value));
+  player.addListener("not_ready", () => post("/error", { message: "Spotify audio engine is not ready" }));
+  for (const event of ["initialization_error", "authentication_error", "account_error", "playback_error", "autoplay_failed"]) {
+    player.addListener(event, value => post("/error", { message: value?.message || event }));
+  }
+  const report = state => {
+    if (!state) return;
+    post("/state", {
+      track: state.track_window?.current_track || null,
+      paused: state.paused,
+      position_ms: state.position,
+      duration_ms: state.duration
+    });
+  };
+  player.addListener("player_state_changed", report);
+  setInterval(() => player.getCurrentState().then(report).catch(() => {}), 500);
+  setInterval(async () => {
+    try {
+      const commands = await (await fetch(base + "/commands")).json();
+      for (const command of commands) {
+        switch (command.action) {
+          case "toggle": await player.togglePlay(); break;
+          case "pause": if (!(await player.getCurrentState())?.paused) await player.togglePlay(); break;
+          case "next": await player.nextTrack(); break;
+          case "previous": await player.previousTrack(); break;
+          case "seek": await player.seek(command.value); break;
+          case "volume": await player.setVolume(command.value); break;
+        }
+      }
+    } catch (error) { post("/error", { message: String(error) }); }
+  }, 150);
+  player.connect().then(connected => {
+    if (!connected) post("/error", { message: "Spotify audio engine could not connect" });
+  }).catch(error => post("/error", { message: String(error) }));
+};
+</script>
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+</body></html>

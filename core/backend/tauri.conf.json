@@ -29,5 +29,10 @@
       "icons/icon.png",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "deep-link": {
+      "mobile": [{ "scheme": ["case-music"], "appLink": false }]
+    }
   }
 }

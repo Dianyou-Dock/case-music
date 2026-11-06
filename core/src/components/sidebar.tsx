@@ -1,6 +1,7 @@
 "use client";
 
-import {Home, Settings} from "lucide-react";
+import {Home, Settings, ListMusic, Heart} from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavigationLink } from "@/components/navigation/navigation-link";
 import { PlaylistButton } from "@/components/navigation/playlist-button";
@@ -10,11 +11,6 @@ import { cn } from "@/lib/utils";
 interface SidebarProps {
   className?: string;
 }
-
-const playlists = [
-  "Liked Playlist",
-  "Rand Recommend",
-];
 
 const navigationLinks = [
   { href: "/", icon: Home, label: "home" },
@@ -35,7 +31,7 @@ export default function Sidebar({ className }: SidebarProps) {
         </div>
       </div>
 
-      <nav className="flex flex-col gap-2">
+      <nav className="flex flex-col gap-1 text-sm">
         {navigationLinks.map((link) => (
           <NavigationLink
             key={link.href}
@@ -44,16 +40,10 @@ export default function Sidebar({ className }: SidebarProps) {
             isActive={pathname === link.href}
           />
         ))}
+        <Link href="/playlists" className={cn("flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent hover:text-accent-foreground", pathname === "/playlists" || pathname === "/playlist-source" || pathname === "/playlist" || pathname === "/spotify-playlist" ? "bg-accent text-accent-foreground" : "text-muted-foreground")}><ListMusic className="h-4 w-4" />{t("playlist_nav")}</Link>
+        <Link href="/liked-sources" className={cn("flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent hover:text-accent-foreground", pathname === "/liked-sources" || pathname === "/liked-playlist" ? "bg-accent text-accent-foreground" : "text-muted-foreground")}><Heart className="h-4 w-4" />{t("liked_playlist")}</Link>
+        <PlaylistButton name="Rand Recommend" />
       </nav>
-
-      <div className="flex flex-col gap-4">
-        <h2 className="px-3 text-sm font-semibold">{t("playlists")}</h2>
-        <div className="flex flex-col gap-1">
-          {playlists.map((playlist) => (
-            <PlaylistButton key={playlist} name={playlist} />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

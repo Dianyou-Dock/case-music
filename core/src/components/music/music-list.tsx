@@ -1,34 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock, Heart, Play, WandSparkles } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Heart, ListPlus, Play, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDuration } from "@/lib/format";
 import { SongInfo } from "@/types/song.ts";
 import playerControl from "@/store/player-control";
 import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application.ts";
 import { useAudioSource } from "@/hooks/use-audio-source";
 import { useTranslation } from "react-i18next";
+import { recordRecommendationFeedback } from "@/lib/recommendation-feedback";
+import { ReleaseDate } from "@/components/music/release-year";
+import { UnifiedMusicList } from "@/components/music/unified-music-list";
+import { RecommendationDislikeButton } from "@/components/recommendation/dislike-button";
 
 interface MusicListProps {
   songs: SongInfo[];
   onRecommend?: (song: SongInfo) => void;
+  showFeedback?: boolean;
 }
 
-export function MusicList({ songs, onRecommend }: MusicListProps) {
+export function MusicList({ songs, onRecommend, showFeedback = false }: MusicListProps) {
   const { currentSource } = useAudioSource();
   const { t } = useTranslation();
   const [likes, setLikes] = useState<number[]>([]);
-  const songsStore = playerControl.useTracked.songs();
+  const [dismissed, setDismissed] = useState<number[]>([]);
 
   useEffect(() => {
     if (songs) {
@@ -39,14 +35,12 @@ export function MusicList({ songs, onRecommend }: MusicListProps) {
   }, [songs]);
 
   function handlePlayClick(song: SongInfo) {
-    if (songsStore.length === 0) {
-      playerControl.set.songs([song]);
-      playerControl.set.index(0);
-      playerControl.set.play();
-      return;
-    }
+    const songIndex = songs.findIndex((item) => item.type === song.type && item.content.id === song.content.id);
+    if (songIndex < 0) return;
     playerControl.set.state((draft) => {
-      draft.immediately = song;
+      draft.songs = songs;
+      draft.index = songIndex;
+      draft.immediately = undefined;
       draft.isPlaying = true;
     });
   }
@@ -57,6 +51,8 @@ export function MusicList({ songs, onRecommend }: MusicListProps) {
     // update local state
     if (newLiked) {
       setLikes([...likes, id]);
+      const song = songs.find((item) => item.content.id === id);
+      if (song) recordRecommendationFeedback(song, "liked");
     } else {
       setLikes(likes.filter((item) => item !== id));
     }
@@ -71,6 +67,10 @@ export function MusicList({ songs, onRecommend }: MusicListProps) {
 
     return (
       <div className="flex shrink-0 items-center gap-1">
+        {showFeedback && <RecommendationDislikeButton source={track.type} id={track.content.id} name={track.content.name} onDislike={() => setDismissed((previous) => [...previous, track.content.id])} />}
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label={t("queue_add", { name: track.content.name })} title={t("queue_add", { name: track.content.name })} onClick={(event) => { event.stopPropagation(); playerControl.set.enqueue(track); }}>
+          <ListPlus className="h-4 w-4" />
+        </Button>
         {onRecommend && (
           <Button
             variant="ghost"
@@ -124,72 +124,19 @@ export function MusicList({ songs, onRecommend }: MusicListProps) {
     );
   }
 
-  return (
-    <>
-      <div className="w-full min-w-0 lg:hidden">
-        {songs.map((track) => (
-          <div
-            key={track.content.id}
-            className="flex w-full min-w-0 items-center gap-2 border-b py-2"
-            onClick={() => handlePlayClick(track)}
-          >
-            <img
-              src={track.content.pic_url}
-              alt=""
-              className="h-10 w-10 shrink-0 rounded object-cover"
-            />
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <p className="truncate font-medium">{track.content.name}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {track.content.singer}
-              </p>
-            </div>
-            {renderActions(track, false)}
-          </div>
-        ))}
-      </div>
-      <div className="hidden lg:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("song_title")}</TableHead>
-              <TableHead>{t("song_artist")}</TableHead>
-              <TableHead>{t("song_album")}</TableHead>
-              <TableHead className="w-[100px]">
-                <Clock className="h-4 w-4" />
-              </TableHead>
-              <TableHead
-                className={onRecommend ? "w-[144px]" : "w-[108px]"}
-              />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {songs.map((track) => (
-              <TableRow
-                key={track.content.id}
-                onClick={() => handlePlayClick(track)}
-              >
-                <TableCell>
-                  <div className="flex min-w-0 items-center gap-3 pr-6">
-                    <img
-                      src={track.content.pic_url}
-                      alt={track.content.name}
-                      className="h-10 w-10 shrink-0 rounded object-cover"
-                    />
-                    <span className="min-w-0 truncate font-medium">
-                      {track.content.name}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>{track.content.singer}</TableCell>
-                <TableCell>{track.content.album}</TableCell>
-                <TableCell>{formatDuration(track.content.duration)}</TableCell>
-                <TableCell>{renderActions(track, true)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </>
-  );
+  return <UnifiedMusicList
+    items={songs.filter((track) => !dismissed.includes(track.content.id))}
+    row={(track) => ({
+      key: `${track.type}-${track.content.id}`,
+      name: track.content.name,
+      artist: track.content.singer,
+      album: track.content.album,
+      style: track.song_type || t("song_style_unknown"),
+      releaseDate: <ReleaseDate albumId={track.content.album_id} date={track.release_date} />,
+      durationMs: track.content.duration,
+      imageUrl: track.content.pic_url,
+    })}
+    actions={(track, _index, showPlay) => renderActions(track, showPlay)}
+    onPlay={handlePlayClick}
+  />;
 }

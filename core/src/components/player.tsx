@@ -7,52 +7,68 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
-  Heart,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import ReactHowler from "react-howler";
 import { ApplicationResp } from "@/types/application.ts";
 import { SongRate } from "@/types/constants.ts";
 import playerControl from "@/store/player-control";
 import { formatDuration, formatProgress } from "@/lib/format.ts";
-import { useAudioSource } from "@/hooks/use-audio-source";
 import { cn } from "@/lib/utils";
+import { PlayQueue } from "@/components/play-queue";
+import { recordRecommendationFeedback } from "@/lib/recommendation-feedback";
+import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
+import { SpotifyDesktopPlayer } from "@/components/spotify/spotify-desktop-player";
+import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
 
 interface PlayerProps {
   className?: string;
 }
 
 export default function Player({ className }: PlayerProps) {
-  const { currentSource } = useAudioSource();
+  const spotify = useSpotifyPlayback();
   const index = playerControl.useTracked.index();
   const isPlaying = playerControl.useTracked.isPlaying();
   const current = playerControl.useTracked.currentSong();
-  const isLast = playerControl.useTracked.isLastSong();
-  const immediately = playerControl.useTracked.immediately();
   const [volume, setVolume] = useState(50);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
   const progress = playerControl.useTracked.progress();
   const duration = playerControl.useTracked.duration();
   const seekRequest = playerControl.useTracked.seekRequest();
   const howlerRef = useRef<ReactHowler | null>(null);
-  const [liked, setLiked] = useState(current?.liked || false);
+  const playbackRef = useRef({ progress: 0, duration: 0, completed: false });
 
-  async function handleOnEnd() {
-    if (immediately) {
-      // clear immediately song, and play with index
-      playerControl.set.state((draft) => {
+  useEffect(() => {
+    playbackRef.current.progress = progress;
+    playbackRef.current.duration = duration;
+  }, [progress, duration]);
+
+  useEffect(() => {
+    if (!current) return;
+    playbackRef.current = { progress: 0, duration: 0, completed: false };
+    return () => {
+      const played = playbackRef.current;
+      if (!played.completed && played.progress >= 5 && played.duration > 0 && played.progress / played.duration < 0.3) {
+        recordRecommendationFeedback(current, "skipped");
+      }
+    };
+  }, [current?.content.id, current?.type]);
+
+  function handleOnEnd() {
+    playbackRef.current.completed = true;
+    if (current) recordRecommendationFeedback(current, "completed");
+    playerControl.set.state((draft) => {
+      if (draft.immediately) {
         draft.immediately = undefined;
-      });
-    }
-    if (isLast) {
-      playerControl.set.pause();
-      return;
-    }
-    playerControl.set.pause();
-    playerControl.set.next();
-    playerControl.set.play();
+        draft.isPlaying = draft.index >= 0 && draft.index < draft.songs.length;
+      } else if (draft.index >= 0 && draft.index < draft.songs.length - 1) {
+        draft.index += 1;
+        draft.isPlaying = true;
+      } else {
+        draft.isPlaying = false;
+      }
+    });
   }
 
   useEffect(() => {
@@ -98,7 +114,6 @@ export default function Player({ className }: PlayerProps) {
     if (!current) return;
 
     let active = true;
-    setLiked(current.liked);
     const req = {
       source: current.type,
       songs: [current.content.id],
@@ -115,28 +130,14 @@ export default function Player({ className }: PlayerProps) {
     return () => { active = false; };
   }, [index, current?.content.id, current?.type]);
 
-  async function handleHeartClick(id: number) {
-    const newLiked = !liked;
-
-    setLiked(newLiked);
-
-    await invoke<ApplicationResp<boolean>>("like_song", {
-      req: { source: currentSource, song_id: id, is_like: newLiked },
-    });
-
-    if (immediately) {
-      playerControl.set.likeImmediately(newLiked);
-    } else {
-      playerControl.set.likeCurrent(newLiked);
-    }
-  }
-
   return (
     <>
+      {spotify.active ? <SpotifyDesktopPlayer className={className} /> : <>
       {songUrl && (
         <ReactHowler
           key={current?.content.id}
           src={songUrl}
+          html5={true}
           preload={true}
           playing={isPlaying}
           volume={volume / 100}
@@ -164,20 +165,7 @@ export default function Player({ className }: PlayerProps) {
                     {current?.content?.singer || ""}
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleHeartClick(current.content.id)}
-                >
-                  <Heart
-                    className={`h-4 w-4 ${
-                      liked
-                        ? "fill-primary text-primary"
-                        : "text-muted-foreground hover:text-foreground text-green-500"
-                    }`}
-                  />
-                </Button>
+                <NetEasePlayerHeart />
               </div>
             </div>
           ) : (
@@ -228,6 +216,7 @@ export default function Player({ className }: PlayerProps) {
           </div>
 
           <div className="flex items-center gap-2 text-green-500 flex-1 justify-end">
+            <PlayQueue />
             <Volume2 className="h-5 w-5" />
             <Slider
               defaultValue={[volume]}
@@ -239,6 +228,7 @@ export default function Player({ className }: PlayerProps) {
           </div>
         </div>
       </div>
+      </>}
     </>
   );
 }

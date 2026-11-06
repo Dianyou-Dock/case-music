@@ -225,11 +225,14 @@ pub async fn music_logged(
 
     // spotify
     {
+        let connected = super::spotify::spotify_status().await
+            .map(|response| response.data.is_some_and(|status| status.connected))
+            .unwrap_or(false);
         map.insert(
             MusicSource::Spotify.to_string(),
             MusicLoggedData {
-                logged: false,
-                disable: true,
+                logged: connected,
+                disable: false,
             },
         );
     }

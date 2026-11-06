@@ -50,6 +50,9 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<ListResp>, In
                 .take(take)
                 .map(|v| SongInfo {
                     data: SongInfoData::Netesae(v.clone()),
+                    song_type: None,
+                    release_year: None,
+                    release_date: None,
                 })
                 .collect::<Vec<_>>();
             ListResp {

@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use cookie_store::CookieStore;
 use err_logging::ctx;
 use err_logging::error_logging::ErrorLogging;
-use ncm_api::{CookieBuilder, CookieJar, Lyrics, MusicApi};
+use ncm_api::{CookieBuilder, CookieJar, Lyrics, MusicApi, PlayListDetail};
 use std::fs;
 use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
@@ -54,6 +54,19 @@ pub struct NeteaseClient {
 }
 
 impl NeteaseClient {
+    async fn complete_playlist(&mut self, id: u64) -> Result<PlayListDetail> {
+        let mut detail = self.api.song_list_detail(id).await?;
+        if detail.track_ids.len() > detail.songs.len() {
+            let known: std::collections::HashSet<u64> = detail.songs.iter().map(|song| song.id).collect();
+            let missing: Vec<u64> = detail.track_ids.iter().copied().filter(|id| !known.contains(id)).collect();
+            for batch in missing.chunks(100) {
+                detail.songs.extend(self.api.songs_detail(batch).await?);
+            }
+            let mut by_id: std::collections::HashMap<_, _> = detail.songs.into_iter().map(|song| (song.id, song)).collect();
+            detail.songs = detail.track_ids.iter().filter_map(|id| by_id.remove(id)).collect();
+        }
+        Ok(detail)
+    }
     pub fn new() -> Result<NeteaseClient> {
         let auth_data = data_path()
             .join(AUTH_DIR)
@@ -181,7 +194,7 @@ impl Client for NeteaseClient {
             return Err(MusicClientError::UserSongListIsNull.anyhow_err());
         };
 
-        let play_list_info = self.api.song_list_detail(like_list.id).await?;
+        let play_list_info = self.complete_playlist(like_list.id).await?;
         Ok(PlayListInfo {
             data: PlayListInfoData::Netesae(play_list_info),
         })
@@ -204,7 +217,7 @@ impl Client for NeteaseClient {
     }
 
     async fn list_detail(&mut self, list_id: u64) -> Result<PlayListInfo> {
-        let list_info = self.api.song_list_detail(list_id).await?;
+        let list_info = self.complete_playlist(list_id).await?;
         Ok(PlayListInfo {
             data: PlayListInfoData::Netesae(list_info),
         })
@@ -218,6 +231,9 @@ impl Client for NeteaseClient {
         for si in result {
             let csi = SongInfo {
                 data: SongInfoData::Netesae(si),
+                song_type: None,
+                release_year: None,
+                release_date: None,
             };
             song_infos.push(csi);
         }
@@ -226,7 +242,7 @@ impl Client for NeteaseClient {
     }
 
     async fn search_song(&mut self, song: &str, singer: &str) -> Result<Option<SongInfo>> {
-        let search_info = song.to_string();
+        let search_info = format!("{song} {singer}");
         let limit = 20;
         let offset = 0;
 
@@ -238,18 +254,41 @@ impl Client for NeteaseClient {
 
         let song_name = song.trim().to_lowercase();
         let singer_name = singer.trim().to_lowercase();
-        let song_info = result.iter().find(|x| {
+        fn choose<'a>(results: &'a [ncm_api::SongInfo], song_name: &str, singer_name: &str) -> Option<&'a ncm_api::SongInfo> {
+            results.iter().filter(|x| {
             x.name.trim().to_lowercase() == song_name
                 && x.singer.to_lowercase().contains(&singer_name)
-        });
+            }).min_by_key(|x| {
+            let album = x.album.to_lowercase();
+            ["live", "remix", "伴奏", "翻唱", "karaoke"].iter().filter(|marker| album.contains(**marker)).count()
+            })
+        }
+        let song_info = choose(&result, &song_name, &singer_name);
+
+        // Some catalogue search backends rank the artist query too narrowly.
+        let fallback_results = if song_info.is_none() {
+            self.api.search_song(song.to_string(), offset, limit).await.ok()
+        } else { None };
+        let song_info = song_info.or_else(|| fallback_results.as_ref().and_then(|results| choose(results, &song_name, &singer_name)));
 
         if let Some(song_info) = song_info {
             Ok(Some(SongInfo {
                 data: SongInfoData::Netesae(song_info.clone()),
+                song_type: None,
+                release_year: None,
+                release_date: None,
             }))
         } else {
             Ok(None)
         }
+    }
+
+    async fn album_release_date(&mut self, album_id: u64) -> Result<Option<(i32, String)>> {
+        let album = self.api.album(album_id).await?;
+        let seconds = (album.publish_time / 1000) as i64;
+        Ok(time::OffsetDateTime::from_unix_timestamp(seconds).ok().map(|date| {
+            (date.year(), format!("{:04}-{:02}-{:02}", date.year(), date.month() as u8, date.day()))
+        }))
     }
 
     async fn like_song(&mut self, song_id: u64, is_like: bool) -> Result<bool> {

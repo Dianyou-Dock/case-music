@@ -97,6 +97,45 @@ const playerControl = createStore("play-control")<PlayerControl>({
     },
   }))
   .extendActions((set) => ({
+    select(index: number) {
+      set.state((draft) => {
+        if (index < 0 || index >= draft.songs.length) return;
+        draft.index = index;
+        draft.immediately = undefined;
+        draft.isPlaying = true;
+      });
+    },
+    enqueue(song: SongInfo) {
+      set.state((draft) => {
+        draft.songs.push(song);
+        if (draft.index < 0) draft.index = 0;
+      });
+    },
+    remove(index: number) {
+      set.state((draft) => {
+        if (index < 0 || index >= draft.songs.length) return;
+        draft.songs.splice(index, 1);
+        if (draft.songs.length === 0) {
+          draft.index = -1;
+          draft.immediately = undefined;
+          draft.isPlaying = false;
+        } else if (index < draft.index) {
+          draft.index--;
+        } else if (index === draft.index) {
+          draft.index = Math.min(index, draft.songs.length - 1);
+        }
+      });
+    },
+    clear() {
+      set.state((draft) => {
+        draft.songs = [];
+        draft.index = -1;
+        draft.immediately = undefined;
+        draft.isPlaying = false;
+      });
+    },
+  }))
+  .extendActions((set) => ({
     likeCurrent(isLike: boolean) {
       set.state((draft) => {
         const currentIdx = draft.index;

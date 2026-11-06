@@ -11,10 +11,15 @@ import { ApplicationResp } from "@/types/application";
 import { parseLyrics } from "@/lib/lyrics";
 import { formatProgress } from "@/lib/format";
 import playerControl from "@/store/player-control";
+import { PlayQueue } from "@/components/play-queue";
+import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
+import { SpotifyMobilePlayer } from "@/components/spotify/spotify-mobile-player";
+import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
 
 type Lyrics = { lyric: string[]; tlyric: string[] };
 
 export function MobilePlayer() {
+  const spotify = useSpotifyPlayback();
   const { t } = useTranslation();
   const currentTrack = playerControl.useTracked.currentSong();
   const isPlaying = playerControl.useTracked.isPlaying();
@@ -45,6 +50,7 @@ export function MobilePlayer() {
     return () => { active = false; };
   }, [open, currentTrack?.content.id, currentTrack?.type]);
 
+  if (spotify.active) return <SpotifyMobilePlayer />;
   if (!currentTrack) return null;
 
   let activeLine = -1;
@@ -73,6 +79,7 @@ export function MobilePlayer() {
               <span className="block truncate text-sm text-muted-foreground">{currentTrack.content.singer}</span>
             </span>
           </button>
+          <NetEasePlayerHeart />
           <Button variant="ghost" size="icon" onClick={togglePlayback} aria-label={t(isPlaying ? "player_pause" : "player_play")}>
             {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
@@ -104,7 +111,7 @@ export function MobilePlayer() {
                 <ChevronDown className="h-7 w-7" />
               </Button>
               <span className="text-sm font-medium text-muted-foreground">{t("player_now_playing")}</span>
-              <span className="w-10" />
+              <PlayQueue />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
               <img
@@ -114,7 +121,7 @@ export function MobilePlayer() {
                 style={{ width: "min(76vw, 38dvh, 360px)" }}
               />
               <div className="mt-5 text-center">
-                <h2 className="truncate text-xl font-semibold">{currentTrack.content.name}</h2>
+                <div className="flex items-center justify-center gap-2"><h2 className="truncate text-xl font-semibold">{currentTrack.content.name}</h2><NetEasePlayerHeart /></div>
                 <p className="truncate text-muted-foreground">{currentTrack.content.singer}</p>
               </div>
               <div className="mt-7 space-y-4 text-center" aria-label={t("player_lyrics")}>

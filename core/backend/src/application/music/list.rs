@@ -3,7 +3,7 @@ use crate::types::constants::MusicSource;
 use crate::types::error::ErrorHandle;
 use crate::types::error::MusicClientError::NotLogin;
 use crate::types::login_info::LoginInfoData;
-use crate::types::play_list_info::{PlayListInfoData, SongListInfo};
+use crate::types::play_list_info::{PlayListInfoData, SongListData, SongListInfo};
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::INSTANCE;
 use serde::{Deserialize, Serialize};
@@ -24,6 +24,12 @@ pub struct CollectListReq {
 }
 
 #[tauri::command]
+pub async fn refresh_playlist(list_id: u64) -> Result<ApplicationResp<()>, InvokeError> {
+    INSTANCE.write().await.playlist_cache.remove(&list_id);
+    Ok(ApplicationResp::success())
+}
+
+#[tauri::command]
 pub async fn collect_list(
     source: MusicSource,
 ) -> Result<ApplicationResp<Vec<SongListInfo>>, InvokeError> {
@@ -39,12 +45,20 @@ pub async fn collect_list(
                 LoginInfoData::Netesae(v) => v,
             };
 
-            let result = instance
+            let liked_id = instance.netesae.like_list().map(|list| match &list.data {
+                PlayListInfoData::Netesae(data) => data.id,
+            });
+            let mut result = instance
                 .netesae
                 .client()
                 .collect_list(info.uid)
                 .await
                 .map_err(InvokeError::from_anyhow)?;
+            if let Some(liked_id) = liked_id {
+                result.retain(|list| match &list.data {
+                    SongListData::Netesae(data) => data.id != liked_id,
+                });
+            }
             result
         }
         MusicSource::Spotify => {
@@ -63,16 +77,15 @@ pub async fn collect_list(
 
 #[tauri::command]
 pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListResp>, InvokeError> {
-    let mut instance = INSTANCE.write().await;
-
     let Some(likeds) = INSTANCE.read().await.netesae.likeds() else {
         return Err(InvokeError::from_anyhow(NotLogin.anyhow_err()));
     };
+    let mut instance = INSTANCE.write().await;
 
     let skip = req.offset * req.limit;
     let take = req.limit;
 
-    let (list, total, ls) = match req.source {
+    let (list, total, ls, name, cover_img_url) = match req.source {
         MusicSource::Netesae => {
             if let Some(like_list_info) = instance.netesae.like_list() {
                 let data = match &like_list_info.data {
@@ -80,7 +93,6 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListResp>, 
                 };
                 if data.id == req.list_id {
                     let total = data.songs.len();
-                    let ls = (0..take).map(|_| true).collect::<Vec<bool>>();
                     let page_list = data
                         .songs
                         .iter()
@@ -88,12 +100,16 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListResp>, 
                         .take(take)
                         .map(|v| SongInfo {
                             data: SongInfoData::Netesae(v.clone()),
+                            song_type: None,
+                            release_year: None,
+                            release_date: None,
                         })
                         .collect::<Vec<_>>();
+                    let ls = vec![true; page_list.len()];
                     return Ok(ApplicationResp::success_data(ListResp {
                         id: req.list_id,
-                        name: "".to_string(),
-                        cover_img_url: "".to_string(),
+                        name: data.name.clone(),
+                        cover_img_url: data.cover_img_url.clone(),
                         songs: page_list,
                         likeds: ls,
                         total: total as u64,
@@ -101,15 +117,16 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListResp>, 
                 }
             }
 
-            let result = instance
-                .netesae
-                .client()
-                .list_detail(req.list_id)
-                .await
-                .map_err(InvokeError::from_anyhow)?;
+            let result = if let Some(cached) = instance.playlist_cache.get(&req.list_id) {
+                cached.clone()
+            } else {
+                let detail = instance.netesae.client().list_detail(req.list_id).await.map_err(InvokeError::from_anyhow)?;
+                instance.playlist_cache.insert(req.list_id, detail.clone());
+                detail
+            };
 
-            let songs = match result.data {
-                PlayListInfoData::Netesae(v) => v.songs,
+            let (songs, name, cover_img_url) = match result.data {
+                PlayListInfoData::Netesae(v) => (v.songs, v.name, v.cover_img_url),
             };
 
             let total = songs.len() as u64;
@@ -120,19 +137,15 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListResp>, 
                 .take(take)
                 .map(|v| SongInfo {
                     data: SongInfoData::Netesae(v.clone()),
+                    song_type: None,
+                    release_year: None,
+                    release_date: None,
                 })
                 .collect::<Vec<_>>();
 
-            let mut ls = vec![];
-            for x in &songs {
-                if likeds.contains(&x.id) {
-                    ls.push(true);
-                } else {
-                    ls.push(false);
-                }
-            }
+            let ls = songs.iter().skip(skip).take(take).map(|song| likeds.contains(&song.id)).collect();
 
-            (list, total, ls)
+            (list, total, ls, name, cover_img_url)
         }
         MusicSource::Spotify => {
             todo!()
@@ -147,8 +160,8 @@ pub async fn list_songs(req: ListSongsReq) -> Result<ApplicationResp<ListResp>, 
 
     Ok(ApplicationResp::success_data(ListResp {
         id: req.list_id,
-        name: "".to_string(),
-        cover_img_url: "".to_string(),
+        name,
+        cover_img_url,
         likeds: ls,
         total,
         songs: list,

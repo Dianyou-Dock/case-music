@@ -20,6 +20,13 @@ pub trait Client: Sync + Send {
         &self,
         data: &[AiRecommendSongInfo],
         count: u64,
+        previous: &[AiRecommendSongInfo],
+    ) -> Result<AiRecommendInfo>;
+
+    async fn fill_decades(
+        &self,
+        data: &[AiRecommendSongInfo],
+        decades: &[i32],
     ) -> Result<AiRecommendInfo>;
 
     /// This recommendation doesn't seem very accurate.

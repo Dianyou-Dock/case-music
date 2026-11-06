@@ -7,7 +7,23 @@ use crate::INSTANCE;
 use ncm_api::Lyrics;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use std::collections::HashMap;
 use tauri::ipc::InvokeError;
+use tokio::sync::Mutex;
+
+static RELEASE_DATES: Mutex<Option<HashMap<u64, Option<String>>>> = Mutex::const_new(None);
+
+#[tauri::command]
+pub async fn song_release_date(album_id: u64) -> Result<ApplicationResp<Option<String>>, InvokeError> {
+    let mut cache = RELEASE_DATES.lock().await;
+    let dates = cache.get_or_insert_with(HashMap::new);
+    if let Some(date) = dates.get(&album_id) {
+        return Ok(ApplicationResp::success_data(date.clone()));
+    }
+    let date = INSTANCE.write().await.netesae.client().album_release_date(album_id).await.ok().flatten().map(|(_, date)| date);
+    dates.insert(album_id, date.clone());
+    Ok(ApplicationResp::success_data(date))
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SongsUrlReq {

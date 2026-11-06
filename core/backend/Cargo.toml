@@ -18,8 +18,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
-tauri = { version = "2.12.5", features = [] }
+tauri = { version = "2.12.5", default-features = false, features = [] }
 tauri-plugin-shell = "2.5.0"
+tauri-plugin-deep-link = "2.6.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
@@ -29,6 +30,7 @@ anyhow = { version = "1.0.93", features = ["backtrace"] }
 reqwest = { version = "0.12.9", features = ["json"] }
 async-trait = "0.1.83"
 tokio = { version = "1.35.0", features = ["full"] }
+libc = "0.2"
 rand = "0.8.5" # 确保版本是最新的
 qrcode-generator = "5.0.0"
 once_cell = { version = "1.20.2", features = ["default"] }
@@ -39,4 +41,16 @@ cookie_store = "0.21.1"
 openssl-sys = { version = "0.9", features = ["vendored"] }
 err-logging = "0.1.1"
 log = "0.4.22"
+time = "0.3"
 env_logger = "0.11.5"
+base64 = "0.22"
+sha2 = "0.10"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = { version = "2.0.2", optional = true }
+tauri-runtime-cef = { path = "vendor/tauri-runtime-cef", default-features = false, optional = true }
+
+[features]
+default = ["native-webview"]
+native-webview = ["tauri/wry", "dep:webkit2gtk"]
+cef-webview = ["dep:tauri-runtime-cef", "tauri/custom-protocol"]
