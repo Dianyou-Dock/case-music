@@ -1,0 +1,53 @@
+[package]
+name = "netease-qq-music-api"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Unified async API bindings for Netease Cloud Music and QQ Music"
+documentation = "https://docs.rs/netease-qq-music-api"
+readme = "README.md"
+homepage = "https://github.com/AstronW/netease-qq-music-api"
+repository = "https://github.com/AstronW/netease-qq-music-api"
+license = "MIT"
+keywords = ["api", "async", "music", "netease", "qqmusic"]
+categories = ["api-bindings", "asynchronous"]
+exclude = [".idea/*", "AGENTS.md", "Cargo.lock", "target/*", "rustfmt.toml", ".gitignore"]
+
+[dependencies]
+aes = "0.8"
+aes-gcm = "0.10"
+async-tungstenite = { version = "0.29", default-features = false, features = [
+    "tokio-runtime",
+    "tokio-rustls-native-certs",
+] }
+base64 = "0.22"
+bytes = "1"
+cookie = "0.18.1"
+ecb = { version = "0.1", features = ["alloc"] }
+futures-util = "0.3"
+hex = "0.4"
+image = { version = "0.25", default-features = false, features = ["png"] }
+md5 = "0.8"
+qrcode = "0.14.1"
+rand = "0.10"
+reqwest = { version = "0.13", features = [
+    "brotli",
+    "form",
+    "gzip",
+    "json",
+    "query",
+    "zstd"
+] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+webpki-roots = "1"
+rumqttc = "0.25.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha1 = "0.10"
+thiserror = { version = "2" }
+time = "0.3.47"
+tokio = { version = "1", features = ["time"] }
+
+[dev-dependencies]
+dotenvy = "0.15"
+tokio = { version = "1", features = ["macros", "rt", "time"] }

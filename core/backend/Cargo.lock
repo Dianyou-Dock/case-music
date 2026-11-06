@@ -3206,7 +3206,6 @@ dependencies = [
 [[package]]
 name = "netease-qq-music-api"
 version = "0.1.0"
-source = "git+https://github.com/Dianyou-Dock/netease-qq-music-api?rev=8613382#8613382ebc9eea3226148c28272320ec95e53698"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -3223,12 +3222,14 @@ dependencies = [
  "rand 0.10.3",
  "reqwest 0.13.5",
  "rumqttc",
+ "rustls",
  "serde",
  "serde_json",
  "sha1",
  "thiserror 2.0.21",
  "time",
  "tokio",
+ "webpki-roots",
 ]
 
 [[package]]
