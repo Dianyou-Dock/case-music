@@ -99,13 +99,24 @@ pub async fn qq_disconnect() -> Result<ApplicationResp<()>, InvokeError> {
 }
 
 #[tauri::command]
-pub async fn qq_playback_url(id: String) -> Result<ApplicationResp<String>, InvokeError> {
+pub async fn qq_playback_url(id: String, media_mid: Option<String>) -> Result<ApplicationResp<String>, InvokeError> {
     if id.is_empty() || id.len() > 128 { return Err(InvokeError::from_anyhow(anyhow!("Invalid song ID"))); }
+    if media_mid.as_ref().is_some_and(|mid| mid.len() > 128) { return Err(InvokeError::from_anyhow(anyhow!("Invalid media ID"))); }
     let token = active_token().await.map_err(InvokeError::from_anyhow)?;
-    let request = CLIENT.playback().url().platform(Platform::Tencent).id(id).level(SongQuality::Standard);
+    let request = CLIENT.playback().url().platform(Platform::Tencent).id(id).media_mid(media_mid.unwrap_or_default()).level(SongQuality::Standard);
     let result = if let Some(ref token) = token { request.login(token).send().await } else { request.send().await };
     let result = result.map_err(|error| InvokeError::from_anyhow(error.into()))?;
-    if result.url.is_empty() { return Err(InvokeError::from_anyhow(anyhow!("No playable URL for this song or account"))); }
+    if result.url.is_empty() { return Err(InvokeError::from_anyhow(anyhow!("QQ 音乐未提供这首歌的可播放音源，请检查账号权益或尝试其他歌曲"))); }
+    let response = reqwest::Client::new()
+        .get(&result.url)
+        .header(reqwest::header::RANGE, "bytes=0-0")
+        .timeout(std::time::Duration::from_secs(8))
+        .send()
+        .await
+        .map_err(|error| InvokeError::from_anyhow(anyhow!("检查 QQ 音乐音源失败: {error}")))?;
+    if !response.status().is_success() {
+        return Err(InvokeError::from_anyhow(anyhow!("QQ 音乐未提供这首歌的可播放音源（HTTP {}），请检查账号权益或尝试其他歌曲", response.status())));
+    }
     Ok(ApplicationResp::success_data(result.url))
 }
 

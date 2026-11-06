@@ -8,6 +8,7 @@ import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 
 export type QqSong = {
   id: string;
+  media_mid?: string;
   name: string;
   pic_url: string;
   artists: { id: string; name: string }[];
@@ -66,7 +67,7 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
     playerControl.set.pause();
     try {
       if (spotify.active && !spotify.paused) await spotify.toggle();
-      const response = await invoke<ApplicationResp<string>>("qq_playback_url", { id: nextSong.id });
+      const response = await invoke<ApplicationResp<string>>("qq_playback_url", { id: nextSong.id, mediaMid: nextSong.media_mid });
       if (!response.data) throw new Error(response.msg || "QQ 音乐未返回可播放链接");
       if (currentRequest !== requestId.current) return;
       const element = audio.current;
