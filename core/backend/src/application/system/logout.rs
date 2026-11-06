@@ -19,7 +19,7 @@ pub async fn logout(source: MusicSource) -> anyhow::Result<ApplicationResp<()>, 
         MusicSource::Spotify => {
             super::spotify::spotify_disconnect().await?;
         }
-        MusicSource::QQ => {}
+        MusicSource::QQ => { super::qqmusic::qq_disconnect().await?; }
         MusicSource::Apple => {}
     }
 

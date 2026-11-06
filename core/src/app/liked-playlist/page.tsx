@@ -21,6 +21,37 @@ import { SpotifyTracks } from "@/components/spotify/spotify-tracks";
 import { SongInfo } from "@/types/song";
 import playerControl from "@/store/player-control";
 import { startSampleRecommendation } from "@/store/recommendation-task";
+import { qqUserPlaylist } from "@/lib/qq-music";
+import { QqMusicList } from "@/components/music/qq-music-list";
+import { useQqPlayback } from "@/hooks/use-qq-playback";
+import useSWR from "swr";
+
+function QqLikedPlaylist() {
+  const { t, i18n } = useTranslation();
+  const router = useRouter();
+  const { audioSource } = useAudioSource();
+  const connected = audioSource?.some((source) => source.id === "QQ" && source.connected);
+  const { data, error, isLoading, mutate } = useSWR(connected ? "qq-liked-songs" : null, () => qqUserPlaylist("qq-liked:201"), { revalidateOnFocus: false });
+  const { play } = useQqPlayback();
+  useEffect(() => {
+    const onChanged = (event: Event) => {
+      if (!(event as CustomEvent<{ liked: boolean }>).detail.liked) void mutate();
+    };
+    window.addEventListener("case-music:qq-liked", onChanged);
+    return () => window.removeEventListener("case-music:qq-liked", onChanged);
+  }, [mutate]);
+  const recommend = (song: import("@/hooks/use-qq-playback").QqSong) => {
+    const runId = startSampleRecommendation("QQ", song.name, song.artists[0]?.name ?? "", String(song.qq_id ?? ""));
+    if (runId) router.push(`/rand-recommend/qq?pending=${encodeURIComponent(runId)}`);
+  };
+  return <div className="flex flex-col gap-6 p-6">
+    <Button asChild variant="ghost" className="self-start gap-2"><Link href="/liked-sources"><ArrowLeft className="h-4 w-4" />{t("liked_playlist")}</Link></Button>
+    {!connected && audioSource && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
+    {isLoading && <PlaylistSkeleton />}
+    {error && <div role="alert" className="space-y-3"><p>{String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
+    {data && <><MusicHeader title={`${t("liked_playlist")} · ${musicSourceName("QQ", i18n.language)}`} subtitle={t("song_count", { count: data.songs.length })} coverUrl={data.pic_url || data.songs[0]?.pic_url} handlePlayAllClick={() => void play(data.songs, 0)} handleRefreshClick={() => void mutate()} /><QqMusicList songs={data.songs} knownLiked onRecommend={recommend} /></>}
+  </div>;
+}
 
 function LikedPlaylistDetail() {
   const router = useRouter();
@@ -125,6 +156,7 @@ export default function PlaylistPage() {
 function SourceDetail() {
   const source = useSearchParams().get("source");
   const { t, i18n } = useTranslation();
-  if (source === "Spotify") return <SpotifyTracks kind="liked" title={t("source_liked", { source: musicSourceName("Spotify", i18n.language) })} />;
+  if (source === "Spotify") return <SpotifyTracks kind="liked" title={`${t("liked_playlist")} · ${musicSourceName("Spotify", i18n.language)}`} />;
+  if (source === "QQ") return <QqLikedPlaylist />;
   return <LikedPlaylistDetail />;
 }

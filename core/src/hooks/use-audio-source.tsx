@@ -47,7 +47,7 @@ export function AudioSourceProvider({
 
   const currentSource = useMemo(() => {
     // only use one source
-    return audioSource?.filter((item) => item.connected)[0]?.id as MusicSource;
+    return audioSource?.find((item) => item.connected && (item.id === "Netesae" || item.id === "Spotify"))?.id as MusicSource;
   }, [audioSource]);
 
   useEffect(() => {

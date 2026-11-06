@@ -29,6 +29,8 @@ type DesktopRuntime = tauri::Wry;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
+    // Dependencies enable both rustls crypto backends; choose one before any TLS client starts.
+    let _ = rustls::crypto::ring::default_provider().install_default();
     #[cfg(not(target_os = "android"))]
     init_module().await.unwrap();
 
@@ -81,6 +83,17 @@ pub async fn run() {
             application::system::login::get_qr,
             application::system::login::login_by_qr,
             application::system::login::music_logged,
+            application::system::qqmusic::qq_status,
+            application::system::qqmusic::qq_login_start,
+            application::system::qqmusic::qq_login_poll,
+            application::system::qqmusic::qq_disconnect,
+            application::system::qqmusic::qq_playback_url,
+            application::system::qqmusic::qq_user_playlists,
+            application::system::qqmusic::qq_user_playlist,
+            application::system::qqmusic::qq_liked_status,
+            application::system::qqmusic::qq_set_liked,
+            application::system::qqmusic::qq_similar_songs,
+            application::system::qqmusic::qq_random_recommendations,
             application::system::spotify::spotify_auth_start,
             application::system::spotify::spotify_auth_open,
             application::system::spotify::spotify_status,

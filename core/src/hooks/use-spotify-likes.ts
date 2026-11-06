@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application";
 
-export function useSpotifyLikes(ids: string[]) {
+export function useSpotifyLikes(ids: string[], knownLiked = false) {
   const key = [...new Set(ids)].join(",");
   const [liked, setLiked] = useState<Set<string>>(new Set());
+  const [unliked, setUnliked] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
+  const effectiveLiked = knownLiked ? new Set(ids.filter((id) => !unliked.has(id))) : liked;
 
   useEffect(() => {
     const onChanged = (event: Event) => {
@@ -15,6 +17,11 @@ export function useSpotifyLikes(ids: string[]) {
       setLiked((previous) => {
         const updated = new Set(previous);
         if (next) updated.add(id); else updated.delete(id);
+        return updated;
+      });
+      setUnliked((previous) => {
+        const updated = new Set(previous);
+        if (next) updated.delete(id); else updated.add(id);
         return updated;
       });
     };
@@ -26,6 +33,10 @@ export function useSpotifyLikes(ids: string[]) {
     let cancelled = false;
     const requested = key ? key.split(",") : [];
     if (requested.length === 0) { setLiked(new Set()); return; }
+    if (knownLiked) {
+      setError("");
+      return;
+    }
     void (async () => {
       try {
         const found = new Set<string>();
@@ -39,10 +50,10 @@ export function useSpotifyLikes(ids: string[]) {
       } catch (cause) { if (!cancelled) setError(String(cause)); }
     })();
     return () => { cancelled = true; };
-  }, [key]);
+  }, [key, knownLiked]);
 
   async function toggle(id: string) {
-    const next = !liked.has(id);
+    const next = !effectiveLiked.has(id);
     setError("");
     try {
       const response = await invoke<ApplicationResp<void>>("spotify_set_liked", { id, liked: next });
@@ -52,10 +63,15 @@ export function useSpotifyLikes(ids: string[]) {
         if (next) updated.add(id); else updated.delete(id);
         return updated;
       });
+      setUnliked((previous) => {
+        const updated = new Set(previous);
+        if (next) updated.delete(id); else updated.add(id);
+        return updated;
+      });
       window.dispatchEvent(new CustomEvent("case-music:spotify-liked", { detail: { id, liked: next } }));
       return next;
     } catch (cause) { setError(String(cause)); return null; }
   }
 
-  return { liked, toggle, error };
+  return { liked: effectiveLiked, toggle, error };
 }

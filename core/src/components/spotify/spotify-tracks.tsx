@@ -9,6 +9,8 @@ import { ArrowLeft, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ApplicationResp } from "@/types/application";
 import { Button } from "@/components/ui/button";
+import { MusicHeader } from "@/components/music/music-header";
+import { PlaylistSkeleton } from "@/components/playlist-skeleton";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { SpotifyMusicList } from "@/components/spotify/spotify-music-list";
 import { SpotifyTrack } from "@/types/spotify-track";
@@ -35,6 +37,15 @@ export function SpotifyTracks({ kind, id, title }: { kind: "liked" | "playlist";
   const tracks = data?.flatMap((page) => page.items.map((entry) => entry.item ?? entry.track).filter((track): track is SpotifyTrack => Boolean(track?.id))) ?? [];
   const total = data?.[0]?.total ?? 0;
   const hasMore = data !== undefined && size * 50 < total;
+
+  useEffect(() => {
+    if (kind !== "liked") return;
+    const onChanged = (event: Event) => {
+      if (!(event as CustomEvent<{ liked: boolean }>).detail.liked) void mutate();
+    };
+    window.addEventListener("case-music:spotify-liked", onChanged);
+    return () => window.removeEventListener("case-music:spotify-liked", onChanged);
+  }, [kind, mutate]);
 
   useEffect(() => {
     if (!hasMore || isValidating || data?.length !== size) return;
@@ -77,18 +88,22 @@ export function SpotifyTracks({ kind, id, title }: { kind: "liked" | "playlist";
     catch (error) { setPlayError(String(error)); }
   }
 
-  return <div className="space-y-6 p-6">
-    <Button asChild variant="ghost" className="gap-2"><Link href={kind === "liked" ? "/liked-sources" : "/playlist-source?source=Spotify"}><ArrowLeft className="h-4 w-4" />{kind === "liked" ? t("liked_playlist") : t("playlist_nav")}</Link></Button>
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h1 className="text-3xl font-bold">{title}</h1><p className="text-muted-foreground">{t("song_count", { count: total })} · Spotify</p></div>
-      <div className="flex items-center gap-1">
-        {kind === "playlist" && <Button onClick={() => void playPlaylist()} className="gap-2"><Play className="h-4 w-4" />{t("play_all")}</Button>}
-      </div>
-    </div>
-    <p className="text-sm text-muted-foreground">{spotify.ready ? t("spotify_sdk_ready") : spotify.error || t("spotify_sdk_loading")}</p>
+  function refresh() {
+    void mutate();
+  }
+
+  return <div className="flex flex-col gap-6 p-6">
+    <Button asChild variant="ghost" className="self-start gap-2"><Link href={kind === "liked" ? "/liked-sources" : "/playlist-source?source=Spotify"}><ArrowLeft className="h-4 w-4" />{kind === "liked" ? t("liked_playlist") : t("playlist_nav")}</Link></Button>
+    {!data && !error ? <PlaylistSkeleton /> : kind === "liked" ?
+      <MusicHeader title={title} subtitle={t("song_count", { count: total })} coverUrl={tracks[0]?.album?.images?.[0]?.url} handlePlayAllClick={() => { if (tracks.length) void playTrack(tracks[0], 0); }} handleRefreshClick={refresh} /> :
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><h1 className="text-3xl font-bold">{title}</h1><p className="text-muted-foreground">{t("song_count", { count: total })} · Spotify</p></div>
+        <Button onClick={() => void playPlaylist()} className="gap-2"><Play className="h-4 w-4" />{t("play_all")}</Button>
+      </div>}
+    {!spotify.ready && spotify.error && <p role="alert" className="text-sm text-destructive">{spotify.error}</p>}
     {playError && <p role="alert" className="text-sm text-destructive">{playError}</p>}
     {error && <div role="alert" className="space-y-2"><p>{String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
-    <SpotifyMusicList tracks={tracks} onPlay={(track, index) => void playTrack(track, index)} onRecommend={(track) => { const runId = startSampleRecommendation("Spotify", track.name, track.artists?.[0]?.name ?? "", track.id); if (runId) router.push(`/rand-recommend/spotify?pending=${encodeURIComponent(runId)}`); }} onLikedChanged={(_, liked) => { if (kind === "liked" && !liked) void mutate(); }} />
+    <SpotifyMusicList tracks={tracks} knownLiked={kind === "liked"} onPlay={(track, index) => void playTrack(track, index)} onRecommend={(track) => { const runId = startSampleRecommendation("Spotify", track.name, track.artists?.[0]?.name ?? "", track.id); if (runId) router.push(`/rand-recommend/spotify?pending=${encodeURIComponent(runId)}`); }} />
     {hasMore && <div ref={sentinel} className="h-1" aria-hidden="true" />}
     {isValidating && <p role="status" className="text-center text-muted-foreground">{t("playlist_loading_more")}</p>}
   </div>;

@@ -107,11 +107,9 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
       headless.current = false;
       return;
     }
-    if (!navigator.requestMediaKeySystemAccess) {
-      setError("This system WebView does not support encrypted media required by Spotify. Try the Android build or a supported browser.");
-      return;
-    }
-    if (!supportsSpotifyAudioCodec()) {
+    const hasDrm = Boolean(navigator.requestMediaKeySystemAccess);
+    const hasAudioCodec = supportsSpotifyAudioCodec();
+    if (!hasDrm || !hasAudioCodec) {
       if (!navigator.userAgent.includes("Android") && "__TAURI_INTERNALS__" in window) {
         headless.current = true;
         let disposed = false;
@@ -135,7 +133,9 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
         }, 500);
         return () => { disposed = true; clearInterval(timer); };
       }
-      setError(unsupportedCodecMessage);
+      setError(!hasDrm
+        ? "当前 WebView 不支持 Spotify 所需的加密媒体，无法在此设备播放。"
+        : unsupportedCodecMessage);
       return;
     }
     let disposed = false;
@@ -219,6 +219,7 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
     if (!deviceId || (!headless.current && !player.current)) throw new Error(error || "Spotify player is still starting or is unsupported in this WebView.");
     if (!headless.current) void player.current?.activateElement();
     playerControl.set.pause();
+    window.dispatchEvent(new Event("case-music:spotify-play"));
     setError("");
     const response = await invoke<ApplicationResp<void>>("spotify_start_playback", {
       req: { device_id: deviceId, track_ids: trackIds, playlist_id: playlistId ?? null, offset_track_id: offsetTrackId ?? null },

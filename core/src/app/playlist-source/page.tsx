@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import useSWR from "swr";
 import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application";
+import { qqUserPlaylists } from "@/lib/qq-music";
 
 type SpotifyPlaylist = { id: string; name: string; images?: { url: string }[]; owner?: { display_name?: string }; external_urls?: { spotify?: string } };
 
@@ -36,17 +37,34 @@ function SpotifyPlaylists() {
   </>;
 }
 
+function QqPlaylists() {
+  const { t } = useTranslation();
+  const { data, error, isLoading, mutate } = useSWR("qq-account-playlists", qqUserPlaylists, { revalidateOnFocus: false });
+  const playlists = data?.filter((playlist) => playlist.id !== "qq-liked:201");
+  return <>
+    {isLoading && <p role="status" className="text-muted-foreground">{t("playlist_loading")}</p>}
+    {error && <div role="alert" className="space-y-3"><p>{String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
+    {playlists?.length === 0 && <p className="text-muted-foreground">{t("playlist_empty")}</p>}
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {playlists?.map((playlist) => <Link key={playlist.id} href={`/playlist?source=QQ&id=${encodeURIComponent(playlist.id)}`} className="flex min-w-0 items-center gap-4 rounded-lg border bg-card p-3 transition-colors hover:bg-accent">
+        {playlist.pic_url && <img src={playlist.pic_url} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />}
+        <span className="truncate font-medium">{playlist.name}</span>
+      </Link>)}
+    </div>
+  </>;
+}
+
 function SourcePlaylists() {
   const { t, i18n } = useTranslation();
   const source = useSearchParams().get("source") as MusicSource | null;
   const { audioSource } = useAudioSource();
   const connected = audioSource?.some((item) => item.id === source && item.connected);
-  const { data, error, isLoading, mutate } = useAccountPlaylists(connected && source !== "Spotify" ? source! : undefined);
+  const { data, error, isLoading, mutate } = useAccountPlaylists(connected && source !== "Spotify" && source !== "QQ" ? source! : undefined);
   return <div className="space-y-6 p-6">
     <Button asChild variant="ghost" className="gap-2"><Link href="/playlists"><ArrowLeft className="h-4 w-4" />{t("playlist_nav")}</Link></Button>
     <h1 className="text-3xl font-bold">{source ? t("source_playlists", { source: musicSourceName(source, i18n.language) }) : t("playlist_nav")}</h1>
     {audioSource && !connected && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
-    {connected && source === "Spotify" ? <SpotifyPlaylists /> : <>
+    {connected && source === "Spotify" ? <SpotifyPlaylists /> : connected && source === "QQ" ? <QqPlaylists /> : <>
     {isLoading && <p role="status" className="text-muted-foreground">{t("playlist_loading")}</p>}
     {error && <div role="alert" className="space-y-3"><p>{t("playlist_load_failed")}: {String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
     {data?.length === 0 && <p className="text-muted-foreground">{t("playlist_empty")}</p>}

@@ -15,26 +15,43 @@ import { PlayQueue } from "@/components/play-queue";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { SpotifyMobilePlayer } from "@/components/spotify/spotify-mobile-player";
 import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
+import { QqPlayerHeart } from "@/components/music/qq-player-heart";
+import { useQqPlayback } from "@/hooks/use-qq-playback";
 
 type Lyrics = { lyric: string[]; tlyric: string[] };
 
 export function MobilePlayer() {
   const spotify = useSpotifyPlayback();
+  const qq = useQqPlayback();
   const { t } = useTranslation();
   const currentTrack = playerControl.useTracked.currentSong();
   const isPlaying = playerControl.useTracked.isPlaying();
   const progress = playerControl.useTracked.progress();
   const duration = playerControl.useTracked.duration();
+  const qqActive = Boolean(qq.song);
+  const activeTrack = qq.song ? {
+    picUrl: qq.song.pic_url,
+    name: qq.song.name,
+    singer: qq.song.artists.map((artist) => artist.name).join("、"),
+    album: qq.song.album.name,
+  } : currentTrack ? {
+    picUrl: currentTrack.content.pic_url,
+    name: currentTrack.content.name,
+    singer: currentTrack.content.singer,
+    album: currentTrack.content.album,
+  } : null;
+  const activeProgress = qqActive ? qq.position : progress;
+  const activeDuration = qqActive ? qq.duration : duration;
   const [open, setOpen] = useState(false);
   const [lyrics, setLyrics] = useState<Lyrics>({ lyric: [], tlyric: [] });
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const lyricLines = useMemo(() => parseLyrics(lyrics.lyric, lyrics.tlyric), [lyrics]);
-  const seekMax = Math.max(duration, 1);
-  const position = Math.min(Math.max(progress, 0), seekMax);
+  const seekMax = Math.max(activeDuration, 1);
+  const position = Math.min(Math.max(activeProgress, 0), seekMax);
   const percent = Math.min((position / seekMax) * 100, 100);
 
   useEffect(() => {
-    if (!open || !currentTrack) return;
+    if (!open || !currentTrack || qqActive) return;
     let active = true;
     setLyrics({ lyric: [], tlyric: [] });
     setLyricsLoading(true);
@@ -48,20 +65,25 @@ export function MobilePlayer() {
       if (active) setLyricsLoading(false);
     });
     return () => { active = false; };
-  }, [open, currentTrack?.content.id, currentTrack?.type]);
+  }, [open, currentTrack?.content.id, currentTrack?.type, qqActive]);
 
-  if (spotify.active) return <SpotifyMobilePlayer />;
-  if (!currentTrack) return null;
+  if (spotify.active && !qqActive) return <SpotifyMobilePlayer />;
+  if (!activeTrack) return null;
 
   let activeLine = -1;
   for (let index = 0; index < lyricLines.length; index++) {
-    if (lyricLines[index].time <= progress) activeLine = index;
+    if (lyricLines[index].time <= activeProgress) activeLine = index;
   }
 
   const togglePlayback = () => {
-    if (isPlaying) playerControl.set.pause();
+    if (qqActive) qq.toggle();
+    else if (isPlaying) playerControl.set.pause();
     else playerControl.set.play();
   };
+  const seek = (value: number) => qqActive ? qq.seek(value) : playerControl.set.seek(value);
+  const next = () => qqActive ? qq.next() : playerControl.set.next();
+  const previous = () => qqActive ? qq.previous() : playerControl.set.back();
+  const activePlaying = qqActive ? qq.playing : isPlaying;
 
   return (
     <>
@@ -73,17 +95,17 @@ export function MobilePlayer() {
             onClick={() => setOpen(true)}
             aria-label={t("player_open")}
           >
-            <img src={currentTrack.content.pic_url} alt="" className="h-11 w-11 shrink-0 rounded-md object-cover" />
+            <img src={activeTrack.picUrl} alt="" className="h-11 w-11 shrink-0 rounded-md object-cover" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{currentTrack.content.name}</span>
-              <span className="block truncate text-sm text-muted-foreground">{currentTrack.content.singer}</span>
+              <span className="block truncate font-medium">{activeTrack.name}</span>
+              <span className="block truncate text-sm text-muted-foreground">{activeTrack.singer}</span>
             </span>
           </button>
-          <NetEasePlayerHeart />
-          <Button variant="ghost" size="icon" onClick={togglePlayback} aria-label={t(isPlaying ? "player_pause" : "player_play")}>
-            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+          {qqActive ? <QqPlayerHeart id={qq.song?.id} name={qq.song?.name} /> : <NetEasePlayerHeart />}
+          <Button variant="ghost" size="icon" onClick={togglePlayback} aria-label={t(activePlaying ? "player_pause" : "player_play")}>
+            {activePlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => playerControl.set.next()} aria-label={t("player_next")}>
+          <Button variant="ghost" size="icon" onClick={next} aria-label={t("player_next")}>
             <SkipForward className="h-5 w-5" />
           </Button>
         </div>
@@ -96,7 +118,7 @@ export function MobilePlayer() {
           max={seekMax}
           step={1}
           value={position}
-          onChange={(event) => playerControl.set.seek(Number(event.target.value))}
+          onChange={(event) => seek(Number(event.target.value))}
           className="absolute inset-x-0 bottom-0 h-3 w-full cursor-pointer opacity-0"
           aria-label={t("player_seek")}
         />
@@ -115,17 +137,19 @@ export function MobilePlayer() {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
               <img
-                src={currentTrack.content.pic_url}
-                alt={currentTrack.content.album || currentTrack.content.name}
+                src={activeTrack.picUrl}
+                alt={activeTrack.album || activeTrack.name}
                 className="mx-auto aspect-square max-w-full rounded-xl object-cover shadow-lg"
                 style={{ width: "min(76vw, 38dvh, 360px)" }}
               />
               <div className="mt-5 text-center">
-                <div className="flex items-center justify-center gap-2"><h2 className="truncate text-xl font-semibold">{currentTrack.content.name}</h2><NetEasePlayerHeart /></div>
-                <p className="truncate text-muted-foreground">{currentTrack.content.singer}</p>
+                <div className="flex items-center justify-center gap-2"><h2 className="truncate text-xl font-semibold">{activeTrack.name}</h2>{qqActive ? <QqPlayerHeart id={qq.song?.id} name={qq.song?.name} /> : <NetEasePlayerHeart />}</div>
+                <p className="truncate text-muted-foreground">{activeTrack.singer}</p>
               </div>
               <div className="mt-7 space-y-4 text-center" aria-label={t("player_lyrics")}>
-                {lyricsLoading ? (
+                {qqActive ? (
+                  <p className="text-muted-foreground">{t("no_lyrics")}</p>
+                ) : lyricsLoading ? (
                   <p className="text-muted-foreground">{t("lyrics_loading")}</p>
                 ) : lyricLines.length === 0 ? (
                   <p className="text-muted-foreground">{t("no_lyrics")}</p>
@@ -134,7 +158,7 @@ export function MobilePlayer() {
                     type="button"
                     key={`${line.time}-${index}`}
                     className={`block w-full rounded px-2 py-1 text-center ${index === activeLine ? "font-semibold text-foreground" : "text-muted-foreground"}`}
-                    onClick={() => playerControl.set.seek(line.time)}
+                    onClick={() => seek(line.time)}
                   >
                     <span className="block">{line.text}</span>
                     {line.translation && <span className="mt-1 block text-sm opacity-75">{line.translation}</span>}
@@ -147,21 +171,21 @@ export function MobilePlayer() {
                 value={[position]}
                 max={seekMax}
                 step={1}
-                onValueChange={(value) => playerControl.set.seek(value[0])}
+                onValueChange={(value) => seek(value[0])}
                 aria-label={t("player_seek")}
               />
               <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                <span>{formatProgress(progress)}</span>
-                <span>{formatProgress(duration)}</span>
+                <span>{formatProgress(activeProgress)}</span>
+                <span>{formatProgress(activeDuration)}</span>
               </div>
               <div className="mt-4 flex items-center justify-center gap-12">
-                <Button variant="ghost" size="icon" onClick={() => playerControl.set.back()} aria-label={t("player_previous")}>
+                <Button variant="ghost" size="icon" onClick={previous} aria-label={t("player_previous")}>
                   <SkipBack className="h-7 w-7" />
                 </Button>
-                <Button size="icon" className="h-14 w-14 rounded-full" onClick={togglePlayback} aria-label={t(isPlaying ? "player_pause" : "player_play")}>
-                  {isPlaying ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7" />}
+                <Button size="icon" className="h-14 w-14 rounded-full" onClick={togglePlayback} aria-label={t(activePlaying ? "player_pause" : "player_play")}>
+                  {activePlaying ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7" />}
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => playerControl.set.next()} aria-label={t("player_next")}>
+                <Button variant="ghost" size="icon" onClick={next} aria-label={t("player_next")}>
                   <SkipForward className="h-7 w-7" />
                 </Button>
               </div>

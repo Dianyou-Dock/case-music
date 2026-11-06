@@ -10,7 +10,7 @@ export const lastRecommendationViewKey = "case-music:last-recommendation-view";
 export function useRecommendationRoute(source: MusicSource, records: RecommendationRecord[]) {
   const router = useRouter();
   const params = useSearchParams();
-  const base = `/rand-recommend/${source === "Spotify" ? "spotify" : "netease"}`;
+  const base = `/rand-recommend/${source === "Spotify" ? "spotify" : source === "QQ" ? "qq" : "netease"}`;
   const recordId = params.get("record");
   const pendingId = params.get("pending");
   const record = records.find((item) => item.id === recordId);
