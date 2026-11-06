@@ -11,6 +11,7 @@ import { ApplicationResp } from "@/types/application.ts";
 import {useTranslation} from "react-i18next";
 import { useEffect } from "react";
 import { QqAuthDialog } from "@/components/audio-source/qq-auth-dialog";
+import { resetQqLikesCache } from "@/hooks/use-qq-likes";
 
 export function AudioSourceCard({ source }: { source: AudioSource }) {
   const { audioSource, configureSource } = useAudioSource();
@@ -93,6 +94,7 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
             return s;
           });
           configureSource(newSource);
+          if (source.id === "QQ") resetQqLikesCache();
         }
       });
     } else if (source.id === "QQ") {
@@ -152,7 +154,7 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
       </div>
 
       {spotifyError && <p role="alert" className="text-sm text-destructive">{spotifyError}</p>}
-      {source.id === "QQ" && <QqAuthDialog isOpen={showQqLogin} setIsOpen={setShowQqLogin} onConnected={() => { configureSource((audioSource ?? []).map((item) => item.id === "QQ" ? { ...item, connected: true } : item)); setShowQqLogin(false); }} />}
+      {source.id === "QQ" && <QqAuthDialog isOpen={showQqLogin} setIsOpen={setShowQqLogin} onConnected={() => { resetQqLikesCache(); configureSource((audioSource ?? []).map((item) => item.id === "QQ" ? { ...item, connected: true } : item)); setShowQqLogin(false); }} />}
 
       <AuthDialog
         isOpen={isAuthDialogOpen}

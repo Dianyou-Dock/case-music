@@ -7,11 +7,18 @@ import { ApplicationResp } from "@/types/application";
 const statusCache = new Map<string, boolean>();
 const statusRevision = new Map<string, number>();
 
+export function resetQqLikesCache() {
+  statusCache.clear();
+  statusRevision.clear();
+  window.dispatchEvent(new Event("case-music:qq-account-changed"));
+}
+
 export function useQqLikes(ids: string[], knownLiked = false) {
   const key = [...new Set(ids)].join(",");
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [unliked, setUnliked] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [accountRevision, setAccountRevision] = useState(0);
   const [error, setError] = useState("");
   const effectiveLiked = knownLiked
     ? new Set(ids.filter((id) => !unliked.has(id)))
@@ -25,8 +32,13 @@ export function useQqLikes(ids: string[], knownLiked = false) {
       setLiked((previous) => { const updated = new Set(previous); if (next) updated.add(id); else updated.delete(id); return updated; });
       setUnliked((previous) => { const updated = new Set(previous); if (next) updated.delete(id); else updated.add(id); return updated; });
     };
+    const onAccountChanged = () => { setLiked(new Set()); setUnliked(new Set()); setAccountRevision((value) => value + 1); };
     window.addEventListener("case-music:qq-liked", onChanged);
-    return () => window.removeEventListener("case-music:qq-liked", onChanged);
+    window.addEventListener("case-music:qq-account-changed", onAccountChanged);
+    return () => {
+      window.removeEventListener("case-music:qq-liked", onChanged);
+      window.removeEventListener("case-music:qq-account-changed", onAccountChanged);
+    };
   }, []);
 
   useEffect(() => {
@@ -52,7 +64,7 @@ export function useQqLikes(ids: string[], knownLiked = false) {
       } catch (cause) { if (!cancelled) setError(String(cause)); }
     })();
     return () => { cancelled = true; };
-  }, [key, knownLiked]);
+  }, [key, knownLiked, accountRevision]);
 
   async function toggle(id: string) {
     if (pending.has(id)) return null;
