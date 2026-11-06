@@ -40,12 +40,13 @@ function SpotifyPlaylists() {
 function QqPlaylists() {
   const { t } = useTranslation();
   const { data, error, isLoading, mutate } = useSWR("qq-account-playlists", qqUserPlaylists, { revalidateOnFocus: false });
+  const playlists = data?.filter((playlist) => playlist.id !== "qq-liked:201");
   return <>
     {isLoading && <p role="status" className="text-muted-foreground">{t("playlist_loading")}</p>}
     {error && <div role="alert" className="space-y-3"><p>{String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
-    {data?.length === 0 && <p className="text-muted-foreground">{t("playlist_empty")}</p>}
+    {playlists?.length === 0 && <p className="text-muted-foreground">{t("playlist_empty")}</p>}
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {data?.map((playlist) => <Link key={playlist.id} href={`/playlist?source=QQ&id=${encodeURIComponent(playlist.id)}`} className="flex min-w-0 items-center gap-4 rounded-lg border bg-card p-3 transition-colors hover:bg-accent">
+      {playlists?.map((playlist) => <Link key={playlist.id} href={`/playlist?source=QQ&id=${encodeURIComponent(playlist.id)}`} className="flex min-w-0 items-center gap-4 rounded-lg border bg-card p-3 transition-colors hover:bg-accent">
         {playlist.pic_url && <img src={playlist.pic_url} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />}
         <span className="truncate font-medium">{playlist.name}</span>
       </Link>)}
