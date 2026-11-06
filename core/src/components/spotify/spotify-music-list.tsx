@@ -9,19 +9,18 @@ import { useSpotifyLikes } from "@/hooks/use-spotify-likes";
 import { SpotifyTrack } from "@/types/spotify-track";
 import { RecommendationDislikeButton } from "@/components/recommendation/dislike-button";
 
-export function SpotifyMusicList({ tracks, onPlay, onRecommend, onLikedChanged, showFeedback = false }: {
+export function SpotifyMusicList({ tracks, onPlay, onRecommend, showFeedback = false, knownLiked = false }: {
   tracks: SpotifyTrack[];
   onPlay: (track: SpotifyTrack, index: number) => void;
   onRecommend: (track: SpotifyTrack) => void;
-  onLikedChanged?: (track: SpotifyTrack, liked: boolean) => void;
   showFeedback?: boolean;
+  knownLiked?: boolean;
 }) {
   const { t } = useTranslation();
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const likes = useSpotifyLikes(tracks.map((track) => track.id));
+  const likes = useSpotifyLikes(tracks.map((track) => track.id), knownLiked);
   async function toggle(track: SpotifyTrack) {
-    const liked = await likes.toggle(track.id);
-    if (liked !== null) onLikedChanged?.(track, liked);
+    await likes.toggle(track.id);
   }
   function actions(track: SpotifyTrack, _index: number, showPlay: boolean) {
     const liked = likes.liked.has(track.id);

@@ -144,7 +144,7 @@ export default function PlaylistPage() {
 function SourceDetail() {
   const source = useSearchParams().get("source");
   const { t, i18n } = useTranslation();
-  if (source === "Spotify") return <SpotifyTracks kind="liked" title={t("source_liked", { source: musicSourceName("Spotify", i18n.language) })} />;
+  if (source === "Spotify") return <SpotifyTracks kind="liked" title={`${t("liked_playlist")} · ${musicSourceName("Spotify", i18n.language)}`} />;
   if (source === "QQ") return <QqLikedPlaylist />;
   return <LikedPlaylistDetail />;
 }
