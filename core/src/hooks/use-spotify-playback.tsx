@@ -71,6 +71,18 @@ function supportsSpotifyAudioCodec() {
   return document.createElement("audio").canPlayType(codec) !== "";
 }
 
+function usesDesktopSpotifyPlayer() {
+  return "__TAURI_INTERNALS__" in window && /Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
+}
+
+async function startDesktopSpotifyPlayer() {
+  const response = await invoke<ApplicationResp<HeadlessStatus>>("spotify_headless_start");
+  if (response.code !== 0 || !response.data?.device_id) {
+    throw new Error(response.data?.error || response.msg || "Spotify 播放器启动失败");
+  }
+  return response.data;
+}
+
 export function SpotifyPlaybackProvider({ children }: { children: React.ReactNode }) {
   const { audioSource } = useAudioSource();
   const connected = audioSource?.some((source) => source.id === "Spotify" && source.connected) ?? false;
@@ -109,8 +121,8 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
     }
     const hasDrm = Boolean(navigator.requestMediaKeySystemAccess);
     const hasAudioCodec = supportsSpotifyAudioCodec();
-    if (!hasDrm || !hasAudioCodec) {
-      if (!navigator.userAgent.includes("Android") && "__TAURI_INTERNALS__" in window) {
+    if (usesDesktopSpotifyPlayer() || !hasDrm || !hasAudioCodec) {
+      if (usesDesktopSpotifyPlayer()) {
         headless.current = true;
         let disposed = false;
         const update = (status?: HeadlessStatus) => {
@@ -124,8 +136,8 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
             setDurationMs(status.duration_ms);
           }
         };
-        void invoke<ApplicationResp<HeadlessStatus>>("spotify_headless_start")
-          .then((response) => update(response.data))
+        void startDesktopSpotifyPlayer()
+          .then(update)
           .catch((cause) => { if (!disposed) setError(String(cause)); });
         const timer = setInterval(() => {
           void invoke<ApplicationResp<HeadlessStatus>>("spotify_headless_status")
@@ -216,13 +228,22 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
   }, [neteasePlaying, active]);
 
   const play = useCallback(async ({ trackIds = [], playlistId, offsetTrackId, queueTracks }: PlayRequest) => {
-    if (!deviceId || (!headless.current && !player.current)) throw new Error(error || "Spotify player is still starting or is unsupported in this WebView.");
+    let playbackDeviceId = deviceId;
+    if (usesDesktopSpotifyPlayer() && !playbackDeviceId) {
+      const status = await startDesktopSpotifyPlayer();
+      playbackDeviceId = status.device_id;
+      headless.current = true;
+      setDeviceId(playbackDeviceId);
+    }
+    if (!playbackDeviceId || (!headless.current && !player.current)) {
+      throw new Error(error || "Spotify 播放器尚未就绪，请稍后重试。");
+    }
     if (!headless.current) void player.current?.activateElement();
     playerControl.set.pause();
     window.dispatchEvent(new Event("case-music:spotify-play"));
     setError("");
     const response = await invoke<ApplicationResp<void>>("spotify_start_playback", {
-      req: { device_id: deviceId, track_ids: trackIds, playlist_id: playlistId ?? null, offset_track_id: offsetTrackId ?? null },
+      req: { device_id: playbackDeviceId, track_ids: trackIds, playlist_id: playlistId ?? null, offset_track_id: offsetTrackId ?? null },
     });
     if (response.code !== 0) throw new Error(response.msg || "Spotify playback failed");
     activeRef.current = true;
