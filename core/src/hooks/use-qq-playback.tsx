@@ -8,7 +8,10 @@ import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 
 export type QqSong = {
   id: string;
+  qq_id?: number;
   media_mid?: string;
+  duration_ms?: number;
+  release_date?: string;
   name: string;
   pic_url: string;
   artists: { id: string; name: string }[];
@@ -26,6 +29,7 @@ type Playback = {
   play(songs: QqSong[], index: number): Promise<void>;
   select(index: number): void;
   remove(index: number): void;
+  enqueue(song: QqSong): void;
   toggle(): void;
   seek(position: number): void;
   setVolume(volume: number): void;
@@ -127,6 +131,11 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
       if (targetIndex < index) setIndex(index - 1);
     }
   }, [index, select, stop]);
+  const enqueue = useCallback((nextSong: QqSong) => {
+    if (queue.current.some((item) => item.id === nextSong.id)) return;
+    queue.current = [...queue.current, nextSong];
+    setQueueSongs(queue.current);
+  }, []);
 
   useEffect(() => {
     window.addEventListener("case-music:spotify-play", stop);
@@ -138,7 +147,7 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
   }, [neteasePlaying, song, stop]);
 
 
-  return <Context.Provider value={{ song, playing, loading, error, position, duration, queue: queueSongs, play: select, select: selectIndex, remove, toggle, seek, setVolume, next, previous, stop }}>
+  return <Context.Provider value={{ song, playing, loading, error, position, duration, queue: queueSongs, play: select, select: selectIndex, remove, enqueue, toggle, seek, setVolume, next, previous, stop }}>
     {children}
     <audio ref={audio} onEnded={next} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} onError={() => { setPlaying(false); setError("QQ 音乐播放失败，请检查账号权益或地区限制"); }} />
   </Context.Provider>;

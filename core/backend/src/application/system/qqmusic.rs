@@ -135,6 +135,26 @@ pub async fn qq_user_playlist(id: String) -> Result<ApplicationResp<PlaylistDeta
 }
 
 #[tauri::command]
+pub async fn qq_liked_status(ids: Vec<String>) -> Result<ApplicationResp<Vec<bool>>, InvokeError> {
+    let token = active_token().await.map_err(InvokeError::from_anyhow)?.context("请先登录 QQ 音乐").map_err(InvokeError::from_anyhow)?;
+    let result = CLIENT.tencent_liked_status(&ids, &token).await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
+    Ok(ApplicationResp::success_data(result))
+}
+
+#[tauri::command]
+pub async fn qq_set_liked(id: String, liked: bool) -> Result<ApplicationResp<()>, InvokeError> {
+    let token = active_token().await.map_err(InvokeError::from_anyhow)?.context("请先登录 QQ 音乐").map_err(InvokeError::from_anyhow)?;
+    CLIENT.tencent_set_liked(&id, liked, &token).await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
+    Ok(ApplicationResp::success_data(()))
+}
+
+#[tauri::command]
+pub async fn qq_similar_songs(song_id: u64) -> Result<ApplicationResp<Vec<Song>>, InvokeError> {
+    let result = CLIENT.tencent_similar_songs(song_id).await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
+    Ok(ApplicationResp::success_data(result))
+}
+
+#[tauri::command]
 pub async fn qq_random_recommendations() -> Result<ApplicationResp<Vec<Song>>, InvokeError> {
     let token = active_token().await.map_err(InvokeError::from_anyhow)?;
     let request = CLIENT.discover().recommend_playlist().platform(Platform::Tencent);

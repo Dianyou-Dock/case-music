@@ -21,6 +21,7 @@ import { recordRecommendationFeedback } from "@/lib/recommendation-feedback";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { SpotifyDesktopPlayer } from "@/components/spotify/spotify-desktop-player";
 import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
+import { QqPlayerHeart } from "@/components/music/qq-player-heart";
 import { useQqPlayback } from "@/hooks/use-qq-playback";
 
 interface PlayerProps {
@@ -172,7 +173,7 @@ export default function Player({ className }: PlayerProps) {
                     {qqActive ? qq.song?.artists.map((artist) => artist.name).join("、") : current?.content?.singer || ""}
                   </p>
                 </div>
-                {!qqActive && <NetEasePlayerHeart />}
+                {qqActive ? <QqPlayerHeart id={qq.song?.id} name={qq.song?.name} /> : <NetEasePlayerHeart />}
               </div>
               {qqActive && qq.error && <p role="alert" className="max-w-40 truncate text-xs text-destructive" title={qq.error}>{qq.error}</p>}
             </div>

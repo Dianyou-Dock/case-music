@@ -15,6 +15,7 @@ import { PlayQueue } from "@/components/play-queue";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { SpotifyMobilePlayer } from "@/components/spotify/spotify-mobile-player";
 import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
+import { QqPlayerHeart } from "@/components/music/qq-player-heart";
 import { useQqPlayback } from "@/hooks/use-qq-playback";
 
 type Lyrics = { lyric: string[]; tlyric: string[] };
@@ -100,7 +101,7 @@ export function MobilePlayer() {
               <span className="block truncate text-sm text-muted-foreground">{activeTrack.singer}</span>
             </span>
           </button>
-          {!qqActive && <NetEasePlayerHeart />}
+          {qqActive ? <QqPlayerHeart id={qq.song?.id} name={qq.song?.name} /> : <NetEasePlayerHeart />}
           <Button variant="ghost" size="icon" onClick={togglePlayback} aria-label={t(activePlaying ? "player_pause" : "player_play")}>
             {activePlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
@@ -142,7 +143,7 @@ export function MobilePlayer() {
                 style={{ width: "min(76vw, 38dvh, 360px)" }}
               />
               <div className="mt-5 text-center">
-                <div className="flex items-center justify-center gap-2"><h2 className="truncate text-xl font-semibold">{activeTrack.name}</h2>{!qqActive && <NetEasePlayerHeart />}</div>
+                <div className="flex items-center justify-center gap-2"><h2 className="truncate text-xl font-semibold">{activeTrack.name}</h2>{qqActive ? <QqPlayerHeart id={qq.song?.id} name={qq.song?.name} /> : <NetEasePlayerHeart />}</div>
                 <p className="truncate text-muted-foreground">{activeTrack.singer}</p>
               </div>
               <div className="mt-7 space-y-4 text-center" aria-label={t("player_lyrics")}>
