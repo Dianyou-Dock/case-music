@@ -53,6 +53,7 @@ export function useQqLikes(ids: string[], knownLiked = false) {
         for (let offset = 0; offset < requested.length; offset += 100) {
           const batch = requested.slice(offset, offset + 100);
           const response = await invoke<ApplicationResp<boolean[]>>("qq_liked_status", { ids: batch });
+          if (cancelled) return;
           if (response.code !== 0 || !response.data || response.data.length !== batch.length) throw new Error(response.msg || "QQ 音乐收藏状态查询失败");
           response.data.forEach((value, index) => {
             const id = batch[index];
