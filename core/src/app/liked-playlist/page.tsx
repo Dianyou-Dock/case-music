@@ -21,6 +21,25 @@ import { SpotifyTracks } from "@/components/spotify/spotify-tracks";
 import { SongInfo } from "@/types/song";
 import playerControl from "@/store/player-control";
 import { startSampleRecommendation } from "@/store/recommendation-task";
+import { qqUserPlaylist } from "@/lib/qq-music";
+import { QqMusicList } from "@/components/music/qq-music-list";
+import { useQqPlayback } from "@/hooks/use-qq-playback";
+import useSWR from "swr";
+
+function QqLikedPlaylist() {
+  const { t, i18n } = useTranslation();
+  const { audioSource } = useAudioSource();
+  const connected = audioSource?.some((source) => source.id === "QQ" && source.connected);
+  const { data, error, isLoading, mutate } = useSWR(connected ? "qq-liked-songs" : null, () => qqUserPlaylist("qq-liked:201"), { revalidateOnFocus: false });
+  const { play } = useQqPlayback();
+  return <div className="flex flex-col gap-6 p-6">
+    <Button asChild variant="ghost" className="self-start gap-2"><Link href="/liked-sources"><ArrowLeft className="h-4 w-4" />{t("liked_playlist")}</Link></Button>
+    {!connected && audioSource && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
+    {isLoading && <PlaylistSkeleton />}
+    {error && <div role="alert" className="space-y-3"><p>{String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
+    {data && <><MusicHeader title={`${t("liked_playlist")} · ${musicSourceName("QQ", i18n.language)}`} subtitle={t("song_count", { count: data.songs.length })} coverUrl={data.pic_url || data.songs[0]?.pic_url} handlePlayAllClick={() => void play(data.songs, 0)} handleRefreshClick={() => void mutate()} /><QqMusicList songs={data.songs} /></>}
+  </div>;
+}
 
 function LikedPlaylistDetail() {
   const router = useRouter();
@@ -126,5 +145,6 @@ function SourceDetail() {
   const source = useSearchParams().get("source");
   const { t, i18n } = useTranslation();
   if (source === "Spotify") return <SpotifyTracks kind="liked" title={t("source_liked", { source: musicSourceName("Spotify", i18n.language) })} />;
+  if (source === "QQ") return <QqLikedPlaylist />;
   return <LikedPlaylistDetail />;
 }

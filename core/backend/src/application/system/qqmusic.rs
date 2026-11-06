@@ -2,7 +2,7 @@ use crate::application::resp::ApplicationResp;
 use crate::types::constants::data_path;
 use anyhow::{anyhow, Context, Result};
 use netease_qq_music_api::client::LoginSession;
-use netease_qq_music_api::models::{LoginStatus, LoginToken, Platform, PlaylistDetailResult, SearchPlaylistResult, SearchSongResult, SongQuality, TencentLoginToken, TencentUserPlaylists};
+use netease_qq_music_api::models::{LoginStatus, LoginToken, Platform, PlaylistDetailResult, SongQuality, TencentLoginToken, TencentUserPlaylists, Song};
 use netease_qq_music_api::MusicClient;
 use once_cell::sync::Lazy;
 use serde::Serialize;
@@ -92,16 +92,6 @@ pub async fn qq_disconnect() -> Result<ApplicationResp<()>, InvokeError> {
 }
 
 #[tauri::command]
-pub async fn qq_search(keyword: String, offset: u64) -> Result<ApplicationResp<SearchSongResult>, InvokeError> {
-    let keyword = keyword.trim();
-    if keyword.is_empty() { return Err(InvokeError::from_anyhow(anyhow!("Search keyword is required"))); }
-    let token = active_token().await.map_err(InvokeError::from_anyhow)?;
-    let request = CLIENT.search().song().platform(Platform::Tencent).keyword(keyword).offset(offset).limit(30);
-    let result = if let Some(ref token) = token { request.login(token).send().await } else { request.send().await };
-    Ok(ApplicationResp::success_data(result.map_err(|error| InvokeError::from_anyhow(error.into()))?))
-}
-
-#[tauri::command]
 pub async fn qq_playback_url(id: String) -> Result<ApplicationResp<String>, InvokeError> {
     if id.is_empty() || id.len() > 128 { return Err(InvokeError::from_anyhow(anyhow!("Invalid song ID"))); }
     let token = active_token().await.map_err(InvokeError::from_anyhow)?;
@@ -110,22 +100,6 @@ pub async fn qq_playback_url(id: String) -> Result<ApplicationResp<String>, Invo
     let result = result.map_err(|error| InvokeError::from_anyhow(error.into()))?;
     if result.url.is_empty() { return Err(InvokeError::from_anyhow(anyhow!("No playable URL for this song or account"))); }
     Ok(ApplicationResp::success_data(result.url))
-}
-
-#[tauri::command]
-pub async fn qq_search_playlists(keyword: String) -> Result<ApplicationResp<SearchPlaylistResult>, InvokeError> {
-    let token = active_token().await.map_err(InvokeError::from_anyhow)?;
-    let request = CLIENT.search().playlist().platform(Platform::Tencent).keyword(keyword.trim()).limit(20);
-    let result = if let Some(ref token) = token { request.login(token).send().await } else { request.send().await };
-    Ok(ApplicationResp::success_data(result.map_err(|error| InvokeError::from_anyhow(error.into()))?))
-}
-
-#[tauri::command]
-pub async fn qq_playlist(id: String) -> Result<ApplicationResp<PlaylistDetailResult>, InvokeError> {
-    let token = active_token().await.map_err(InvokeError::from_anyhow)?;
-    let request = CLIENT.playlist().detail().platform(Platform::Tencent).id(id);
-    let result = if let Some(ref token) = token { request.login(token).send().await } else { request.send().await };
-    Ok(ApplicationResp::success_data(result.map_err(|error| InvokeError::from_anyhow(error.into()))?))
 }
 
 #[tauri::command]
@@ -140,4 +114,26 @@ pub async fn qq_user_playlist(id: String) -> Result<ApplicationResp<PlaylistDeta
     let token = active_token().await.map_err(InvokeError::from_anyhow)?.context("请先登录 QQ 音乐").map_err(InvokeError::from_anyhow)?;
     let result = CLIENT.tencent_user_playlist(&id, &token).await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
     Ok(ApplicationResp::success_data(result))
+}
+
+#[tauri::command]
+pub async fn qq_random_recommendations() -> Result<ApplicationResp<Vec<Song>>, InvokeError> {
+    let token = active_token().await.map_err(InvokeError::from_anyhow)?;
+    let request = CLIENT.discover().recommend_playlist().platform(Platform::Tencent);
+    let result = if let Some(ref token) = token { request.login(token).send().await } else { request.send().await };
+    let playlists = result.map_err(|error| InvokeError::from_anyhow(error.into()))?.playlists;
+    if playlists.is_empty() { return Err(InvokeError::from_anyhow(anyhow!("QQ 音乐没有返回推荐歌单"))); }
+    let start = time::OffsetDateTime::now_utc().unix_timestamp_nanos().unsigned_abs() as usize % playlists.len();
+    for offset in 0..playlists.len().min(5) {
+        let playlist = &playlists[(start + offset) % playlists.len()];
+        let request = CLIENT.playlist().detail().platform(Platform::Tencent).id(playlist.id.as_str());
+        let detail = if let Some(ref token) = token { request.login(token).send().await } else { request.send().await };
+        if let Ok(detail) = detail {
+            if !detail.songs.is_empty() {
+                let songs = detail.songs.into_iter().take(30).collect();
+                return Ok(ApplicationResp::success_data(songs));
+            }
+        }
+    }
+    Err(InvokeError::from_anyhow(anyhow!("QQ 音乐推荐歌单暂时不可用")))
 }

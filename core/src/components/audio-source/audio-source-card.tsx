@@ -10,7 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application.ts";
 import {useTranslation} from "react-i18next";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { QqLogin } from "@/components/audio-source/qq-login";
 
 export function AudioSourceCard({ source }: { source: AudioSource }) {
   const { audioSource, configureSource } = useAudioSource();
@@ -20,8 +20,8 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
   const [spotifyPending, setSpotifyPending] = useState(false);
   const [spotifyError, setSpotifyError] = useState("");
   const [streamingAuthorized, setStreamingAuthorized] = useState(true);
+  const [showQqLogin, setShowQqLogin] = useState(false);
   const { t } = useTranslation();
-  const router = useRouter();
 
   useEffect(() => {
     if (source.id !== "Spotify" || !audioSource) return;
@@ -96,7 +96,7 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
         }
       });
     } else if (source.id === "QQ") {
-      router.push("/qq-music");
+      setShowQqLogin(true);
     } else if (source.id === "Spotify") {
       await startSpotifyAuthorization();
     } else {
@@ -152,6 +152,7 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
       </div>
 
       {spotifyError && <p role="alert" className="text-sm text-destructive">{spotifyError}</p>}
+      {source.id === "QQ" && showQqLogin && !isSelected && <QqLogin onConnected={() => { configureSource((audioSource ?? []).map((item) => item.id === "QQ" ? { ...item, connected: true } : item)); setShowQqLogin(false); }} />}
 
       <AuthDialog
         isOpen={isAuthDialogOpen}

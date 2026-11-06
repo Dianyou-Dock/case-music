@@ -20,6 +20,26 @@ import { Playlist, PlaylistRes } from "@/types/music";
 import { MusicSource } from "@/types/constants";
 import { musicSourceName } from "@/lib/audio-sources";
 import { SongInfo } from "@/types/song";
+import { qqUserPlaylist } from "@/lib/qq-music";
+import { QqMusicList } from "@/components/music/qq-music-list";
+import useSWR from "swr";
+import { useQqPlayback } from "@/hooks/use-qq-playback";
+
+function QqPlaylistDetail() {
+  const id = useSearchParams().get("id") ?? "";
+  const { t } = useTranslation();
+  const { audioSource } = useAudioSource();
+  const connected = audioSource?.some((source) => source.id === "QQ" && source.connected);
+  const { data, error, isLoading, mutate } = useSWR(connected && id ? ["qq-playlist", id] : null, () => qqUserPlaylist(id), { revalidateOnFocus: false });
+  const { play } = useQqPlayback();
+  return <div className="flex flex-col gap-6 p-6">
+    <Button asChild variant="ghost" className="self-start gap-2"><Link href="/playlist-source?source=QQ"><ArrowLeft className="h-4 w-4" />{t("playlist_nav")}</Link></Button>
+    {!connected && audioSource && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
+    {isLoading && <PlaylistSkeleton />}
+    {error && <div role="alert" className="space-y-3"><p>{String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
+    {data && <><MusicHeader title={data.name} subtitle={t("song_count", { count: data.songs.length })} coverUrl={data.pic_url || data.songs[0]?.pic_url} handlePlayAllClick={() => void play(data.songs, 0)} handleRefreshClick={() => void mutate()} /><QqMusicList songs={data.songs} /></>}
+  </div>;
+}
 
 const pageSize = 100;
 
@@ -107,5 +127,10 @@ function PlaylistDetail() {
 }
 
 export default function PlaylistPage() {
-  return <Suspense fallback={<PlaylistSkeleton />}><PlaylistDetail /></Suspense>;
+  return <Suspense fallback={<PlaylistSkeleton />}><SourceDetail /></Suspense>;
+}
+
+function SourceDetail() {
+  const source = useSearchParams().get("source");
+  return source === "QQ" ? <QqPlaylistDetail /> : <PlaylistDetail />;
 }

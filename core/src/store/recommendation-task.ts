@@ -5,6 +5,7 @@ import { MusicSource } from "@/types/constants";
 import { PlaylistRes } from "@/types/music";
 import { SongInfo } from "@/types/song";
 import { SpotifyTrack } from "@/types/spotify-track";
+import type { QqSong } from "@/hooks/use-qq-playback";
 import { getRecommendationFeedback, getSourceRecommendationFeedback } from "@/lib/recommendation-feedback";
 
 export type RecommendationTask = {
@@ -17,6 +18,7 @@ export type RecommendationTask = {
   seedTrackId?: string;
   songs: SongInfo[];
   spotifySongs?: SpotifyTrack[];
+  qqSongs?: QqSong[];
   coverUrl?: string;
   error?: string;
 };
@@ -32,6 +34,7 @@ export type RecommendationRecord = {
   seedTrackId?: string;
   songs: SongInfo[];
   spotifySongs?: SpotifyTrack[];
+  qqSongs?: QqSong[];
   coverUrl?: string;
 };
 
@@ -99,7 +102,7 @@ export function getRecommendationState() {
 
 function run(
   pending: RecommendationTask & { kind: "sample" | "random"; source: MusicSource },
-  work: () => Promise<{ songs: SongInfo[]; spotifySongs?: SpotifyTrack[]; coverUrl?: string }>,
+  work: () => Promise<{ songs: SongInfo[]; spotifySongs?: SpotifyTrack[]; qqSongs?: QqSong[]; coverUrl?: string }>,
 ) {
   hydrateRecommendationState();
   // Take the lock synchronously; requests made while this one runs are discarded.
@@ -122,6 +125,7 @@ function run(
         seedTrackId: pending.seedTrackId,
         songs: result.songs,
         spotifySongs: result.spotifySongs,
+        qqSongs: result.qqSongs,
         coverUrl: result.coverUrl,
       };
       setState({ ...state, task, history: [record, ...state.history] });
@@ -187,6 +191,11 @@ export function startSampleRecommendation(source: MusicSource, song: string, sin
 
 export function startRandomRecommendation(source: MusicSource, refresh = false) {
   return run({ kind: "random", status: "idle", source, songs: [] }, async () => {
+    if (source === "QQ") {
+      const response = await invoke<ApplicationResp<QqSong[]>>("qq_random_recommendations");
+      if (response.code !== 0 || !response.data) throw new Error(response.msg || "QQ 音乐推荐失败");
+      return { songs: [], qqSongs: response.data, coverUrl: response.data[0]?.pic_url };
+    }
     if (source === "Spotify") {
       const excludedTrackIds = [...new Set([...getSourceRecommendationFeedback("Spotify").skipped, ...recentTracks("Spotify").map((track) => track.id)])].slice(0, 160);
       const response = await invoke<ApplicationResp<SpotifyTrack[]>>("spotify_random_recommendations", { seedTrackId: null, excludedTrackIds });
