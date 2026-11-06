@@ -57,9 +57,7 @@ pub async fn qq_status() -> Result<ApplicationResp<QqStatus>, InvokeError> {
 #[tauri::command]
 pub async fn qq_login_start() -> Result<ApplicationResp<String>, InvokeError> {
     let session = tokio::time::timeout(std::time::Duration::from_secs(20), async {
-        let session = CLIENT.login().session().platform(Platform::Tencent).send().await?;
-        session.prepare().await?;
-        Ok::<_, netease_qq_music_api::MusicClientError>(session)
+        CLIENT.login().session().platform(Platform::Tencent).send().await
     })
     .await
     .map_err(|_| InvokeError::from_anyhow(anyhow!("QQ 登录连接超时，请重试")))?
@@ -72,7 +70,10 @@ pub async fn qq_login_start() -> Result<ApplicationResp<String>, InvokeError> {
 #[tauri::command]
 pub async fn qq_login_poll() -> Result<ApplicationResp<String>, InvokeError> {
     let session = SESSION.lock().map_err(|_| InvokeError::from_anyhow(anyhow!("QQ login lock failed")))?.take().context("Start QQ login first").map_err(InvokeError::from_anyhow)?;
-    let result = session.status().await;
+    // Establish the MQTT subscription after the QR is visible. On mobile networks
+    // connecting to the MQTT server may be slow, but it must not block the QR UI.
+    let result = tokio::time::timeout(std::time::Duration::from_secs(12), session.status()).await
+        .map_err(|_| InvokeError::from_anyhow(anyhow!("QQ 扫码状态连接超时，请重试")))?;
     let state = match result {
         Ok(LoginStatus::WaitingScan) => "waiting_scan",
         Ok(LoginStatus::WaitingConfirm) => "waiting_confirm",
