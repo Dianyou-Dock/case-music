@@ -10,6 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application.ts";
 import {useTranslation} from "react-i18next";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export function AudioSourceCard({ source }: { source: AudioSource }) {
   const { audioSource, configureSource } = useAudioSource();
@@ -20,6 +21,7 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
   const [spotifyError, setSpotifyError] = useState("");
   const [streamingAuthorized, setStreamingAuthorized] = useState(true);
   const { t } = useTranslation();
+  const router = useRouter();
 
   useEffect(() => {
     if (source.id !== "Spotify" || !audioSource) return;
@@ -93,6 +95,8 @@ export function AudioSourceCard({ source }: { source: AudioSource }) {
           configureSource(newSource);
         }
       });
+    } else if (source.id === "QQ") {
+      router.push("/qq-music");
     } else if (source.id === "Spotify") {
       await startSpotifyAuthorization();
     } else {

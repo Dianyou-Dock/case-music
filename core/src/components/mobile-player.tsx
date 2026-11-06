@@ -15,11 +15,13 @@ import { PlayQueue } from "@/components/play-queue";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { SpotifyMobilePlayer } from "@/components/spotify/spotify-mobile-player";
 import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
+import { useQqPlayback } from "@/hooks/use-qq-playback";
 
 type Lyrics = { lyric: string[]; tlyric: string[] };
 
 export function MobilePlayer() {
   const spotify = useSpotifyPlayback();
+  const qq = useQqPlayback();
   const { t } = useTranslation();
   const currentTrack = playerControl.useTracked.currentSong();
   const isPlaying = playerControl.useTracked.isPlaying();
@@ -50,6 +52,7 @@ export function MobilePlayer() {
     return () => { active = false; };
   }, [open, currentTrack?.content.id, currentTrack?.type]);
 
+  if (qq.song) return null;
   if (spotify.active) return <SpotifyMobilePlayer />;
   if (!currentTrack) return null;
 

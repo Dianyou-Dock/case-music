@@ -1,6 +1,6 @@
 "use client";
 
-import {Home, Settings, ListMusic, Heart} from "lucide-react";
+import {Home, Settings, ListMusic, Heart, Music2} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavigationLink } from "@/components/navigation/navigation-link";
@@ -42,6 +42,7 @@ export default function Sidebar({ className }: SidebarProps) {
         ))}
         <Link href="/playlists" className={cn("flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent hover:text-accent-foreground", pathname === "/playlists" || pathname === "/playlist-source" || pathname === "/playlist" || pathname === "/spotify-playlist" ? "bg-accent text-accent-foreground" : "text-muted-foreground")}><ListMusic className="h-4 w-4" />{t("playlist_nav")}</Link>
         <Link href="/liked-sources" className={cn("flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent hover:text-accent-foreground", pathname === "/liked-sources" || pathname === "/liked-playlist" ? "bg-accent text-accent-foreground" : "text-muted-foreground")}><Heart className="h-4 w-4" />{t("liked_playlist")}</Link>
+        <Link href="/qq-music" className={cn("flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent hover:text-accent-foreground", pathname === "/qq-music" ? "bg-accent text-accent-foreground" : "text-muted-foreground")}><Music2 className="h-4 w-4" />QQ 音乐</Link>
         <PlaylistButton name="Rand Recommend" />
       </nav>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Wand, Heart, Settings, ListMusic } from "lucide-react";
+import { Home, Wand, Heart, Settings, ListMusic, Music2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const navigationLinks = [
   { href: "/", icon: Home, label: "home" },
   { href: "/liked-sources", icon: Heart, label: "liked_nav" },
   { href: "/playlists", icon: ListMusic, label: "playlist_nav" },
+  { href: "/qq-music", icon: Music2, label: "QQ 音乐" },
   { href: "/rand-recommend", icon: Wand, label: "recommend_nav" },
   { href: "/settings", icon: Settings, label: "settings" },
 ];
@@ -41,7 +42,7 @@ export default function MobileNav({ className }: MobileNavProps) {
               )}
             >
               <Icon className="h-6 w-6" />
-              <span className="text-xs">{t(isRecommending ? "recommend_loading_nav" : link.label)}</span>
+              <span className="text-xs">{link.href === "/qq-music" ? link.label : t(isRecommending ? "recommend_loading_nav" : link.label)}</span>
             </Link>
           );
         })}

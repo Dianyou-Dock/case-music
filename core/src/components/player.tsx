@@ -21,6 +21,7 @@ import { recordRecommendationFeedback } from "@/lib/recommendation-feedback";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { SpotifyDesktopPlayer } from "@/components/spotify/spotify-desktop-player";
 import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
+import { useQqPlayback } from "@/hooks/use-qq-playback";
 
 interface PlayerProps {
   className?: string;
@@ -28,6 +29,7 @@ interface PlayerProps {
 
 export default function Player({ className }: PlayerProps) {
   const spotify = useSpotifyPlayback();
+  const qq = useQqPlayback();
   const index = playerControl.useTracked.index();
   const isPlaying = playerControl.useTracked.isPlaying();
   const current = playerControl.useTracked.currentSong();
@@ -129,6 +131,8 @@ export default function Player({ className }: PlayerProps) {
     });
     return () => { active = false; };
   }, [index, current?.content.id, current?.type]);
+
+  if (qq.song) return null;
 
   return (
     <>

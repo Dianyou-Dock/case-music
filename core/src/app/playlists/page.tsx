@@ -17,7 +17,7 @@ export default function PlaylistsPage() {
       {audioSource && connected.length === 0 && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {connected.map((source) => (
-          <Link key={source.id} href={`/playlist-source?source=${encodeURIComponent(source.id)}`} className="flex items-center gap-4 rounded-lg border bg-card p-4 transition-colors hover:bg-accent">
+          <Link key={source.id} href={source.id === "QQ" ? "/qq-music" : `/playlist-source?source=${encodeURIComponent(source.id)}`} className="flex items-center gap-4 rounded-lg border bg-card p-4 transition-colors hover:bg-accent">
             <ListMusic className="h-8 w-8 shrink-0 text-primary" />
             <span className="font-medium">{t("source_playlists", { source: musicSourceName(source.id, i18n.language) })}</span>
           </Link>

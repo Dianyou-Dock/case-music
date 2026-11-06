@@ -10,6 +10,8 @@ import { AiSourceProvider } from "@/hooks/use-ai-source.tsx";
 import MobileNav from "@/components/mobile-nav";
 import { MobilePlayer } from "@/components/mobile-player";
 import { SpotifyPlaybackProvider } from "@/hooks/use-spotify-playback";
+import { QqPlaybackProvider } from "@/hooks/use-qq-playback";
+import { QqPlayer } from "@/components/qq-player";
 
 import "@/hooks/i18n.ts"; // 导入 I18nProvider
 
@@ -40,6 +42,7 @@ export default function RootLayout({
           <AuthProvider>
             <AudioSourceProvider>
               <SpotifyPlaybackProvider>
+              <QqPlaybackProvider>
               <AiSourceProvider>
                 <div className="flex h-screen h-dvh flex-col">
                   <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -50,9 +53,11 @@ export default function RootLayout({
                   </div>
                   <MobilePlayer />
                   <Player className="hidden md:flex" />
+                  <QqPlayer />
                   <MobileNav className="md:hidden" />
                 </div>
               </AiSourceProvider>
+              </QqPlaybackProvider>
               </SpotifyPlaybackProvider>
             </AudioSourceProvider>
           </AuthProvider>

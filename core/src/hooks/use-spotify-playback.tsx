@@ -219,6 +219,7 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
     if (!deviceId || (!headless.current && !player.current)) throw new Error(error || "Spotify player is still starting or is unsupported in this WebView.");
     if (!headless.current) void player.current?.activateElement();
     playerControl.set.pause();
+    window.dispatchEvent(new Event("case-music:spotify-play"));
     setError("");
     const response = await invoke<ApplicationResp<void>>("spotify_start_playback", {
       req: { device_id: deviceId, track_ids: trackIds, playlist_id: playlistId ?? null, offset_track_id: offsetTrackId ?? null },

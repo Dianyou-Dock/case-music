@@ -203,11 +203,14 @@ pub async fn music_logged(
 
     // qq
     {
+        let connected = super::qqmusic::qq_status().await
+            .map(|response| response.data.is_some_and(|status| status.connected))
+            .unwrap_or(false);
         map.insert(
             MusicSource::QQ.to_string(),
             MusicLoggedData {
-                logged: false,
-                disable: true,
+                logged: connected,
+                disable: false,
             },
         );
     }
