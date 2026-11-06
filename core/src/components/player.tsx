@@ -30,6 +30,7 @@ interface PlayerProps {
 export default function Player({ className }: PlayerProps) {
   const spotify = useSpotifyPlayback();
   const qq = useQqPlayback();
+  const qqActive = Boolean(qq.song);
   const index = playerControl.useTracked.index();
   const isPlaying = playerControl.useTracked.isPlaying();
   const current = playerControl.useTracked.currentSong();
@@ -40,6 +41,10 @@ export default function Player({ className }: PlayerProps) {
   const seekRequest = playerControl.useTracked.seekRequest();
   const howlerRef = useRef<ReactHowler | null>(null);
   const playbackRef = useRef({ progress: 0, duration: 0, completed: false });
+
+  useEffect(() => {
+    if (qqActive) qq.setVolume(volume / 100);
+  }, [qqActive, qq.setVolume, volume]);
 
   useEffect(() => {
     playbackRef.current.progress = progress;
@@ -132,12 +137,10 @@ export default function Player({ className }: PlayerProps) {
     return () => { active = false; };
   }, [index, current?.content.id, current?.type]);
 
-  if (qq.song) return null;
-
   return (
     <>
-      {spotify.active ? <SpotifyDesktopPlayer className={className} /> : <>
-      {songUrl && (
+      {spotify.active && !qqActive ? <SpotifyDesktopPlayer className={className} /> : <>
+      {songUrl && !qqActive && (
         <ReactHowler
           key={current?.content.id}
           src={songUrl}
@@ -153,24 +156,25 @@ export default function Player({ className }: PlayerProps) {
       )}
       <div className={cn("border-t bg-background p-4", className)}>
         <div className="mx-auto flex w-full items-center justify-between">
-          {current ? (
+          {qqActive || current ? (
             <div className="flex items-center gap-4 flex-1">
               <img
-                src={current?.content.pic_url}
+                src={qqActive ? qq.song?.pic_url : current?.content.pic_url}
                 alt="Album art"
                 className="h-12 w-12 rounded-lg object-cover"
               />
               <div className="flex items-center gap-3">
                 <div>
                   <h3 className="font-medium">
-                    {current?.content?.name || ""}
+                    {qqActive ? qq.song?.name : current?.content?.name || ""}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    {current?.content?.singer || ""}
+                    {qqActive ? qq.song?.artists.map((artist) => artist.name).join("、") : current?.content?.singer || ""}
                   </p>
                 </div>
-                <NetEasePlayerHeart />
+                {!qqActive && <NetEasePlayerHeart />}
               </div>
+              {qqActive && qq.error && <p role="alert" className="max-w-40 truncate text-xs text-destructive" title={qq.error}>{qq.error}</p>}
             </div>
           ) : (
             <div className="flex items-center gap-4 flex-1"></div>
@@ -180,41 +184,41 @@ export default function Player({ className }: PlayerProps) {
             <div className="flex items-center gap-6">
               <SkipBack
                 className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground text-green-500 "
-                onClick={() => playerControl.set.back()}
+                onClick={() => qqActive ? qq.previous() : playerControl.set.back()}
               />
               <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-transparent ">
                 <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-transparent border-2 border-green-500 hover:bg-green-500">
-                  {!isPlaying ? (
+                  {!(qqActive ? qq.playing : isPlaying) ? (
                     <Play
                       className="h-5 w-5 text-primary-foreground"
-                      onClick={() => playerControl.set.play()}
+                      onClick={() => qqActive ? qq.toggle() : playerControl.set.play()}
                     />
                   ) : (
                     <Pause
                       className="h-5 w-5 text-primary-foreground"
-                      onClick={() => playerControl.set.pause()}
+                      onClick={() => qqActive ? qq.toggle() : playerControl.set.pause()}
                     />
                   )}
                 </div>
               </div>
               <SkipForward
                 className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground text-green-500"
-                onClick={() => playerControl.set.next()}
+                onClick={() => qqActive ? qq.next() : playerControl.set.next()}
               />
             </div>
             <div className="flex w-[400px] items-center gap-2">
               <span className="text-sm text-muted-foreground mr-2">
-                {formatProgress(progress)}
+                {formatProgress(qqActive ? qq.position : progress)}
               </span>
               <Slider
-                value={[progress]}
-                max={Math.max(duration, 1)}
+                value={[qqActive ? Math.min(qq.position, Math.max(qq.duration, 1)) : progress]}
+                max={Math.max(qqActive ? qq.duration : duration, 1)}
                 step={1}
                 className="cursor-pointer"
-                onValueChange={handleSliderChange}
+                onValueChange={(value) => qqActive ? qq.seek(value[0]) : handleSliderChange(value)}
               />
               <span className="text-sm text-muted-foreground">
-                {formatDuration(current?.content?.duration || 0)}
+                {qqActive ? formatProgress(qq.duration) : formatDuration(current?.content?.duration || 0)}
               </span>
             </div>
           </div>

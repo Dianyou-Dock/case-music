@@ -21,9 +21,13 @@ type Playback = {
   error: string;
   position: number;
   duration: number;
+  queue: QqSong[];
   play(songs: QqSong[], index: number): Promise<void>;
+  select(index: number): void;
+  remove(index: number): void;
   toggle(): void;
   seek(position: number): void;
+  setVolume(volume: number): void;
   next(): void;
   previous(): void;
   stop(): void;
@@ -38,6 +42,7 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
   const queue = useRef<QqSong[]>([]);
   const requestId = useRef(0);
   const [index, setIndex] = useState(-1);
+  const [queueSongs, setQueueSongs] = useState<QqSong[]>([]);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -50,6 +55,7 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
     if (!nextSong) return;
     const currentRequest = ++requestId.current;
     queue.current = songs;
+    setQueueSongs(songs);
     setIndex(nextIndex);
     setLoading(true);
     setError("");
@@ -87,19 +93,39 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
       setPosition(value);
     }
   }, []);
-  const next = useCallback(() => { void select(queue.current, index + 1); }, [index, select]);
+  const setVolume = useCallback((value: number) => {
+    if (audio.current) audio.current.volume = Math.min(1, Math.max(0, value));
+  }, []);
+  const next = useCallback(() => {
+    if (index + 1 < queue.current.length) void select(queue.current, index + 1);
+    else setPlaying(false);
+  }, [index, select]);
   const previous = useCallback(() => { void select(queue.current, index - 1); }, [index, select]);
+  const selectIndex = useCallback((nextIndex: number) => { void select(queue.current, nextIndex); }, [select]);
   const stop = useCallback(() => {
     requestId.current++;
     audio.current?.pause();
     audio.current?.removeAttribute("src");
     queue.current = [];
+    setQueueSongs([]);
     setIndex(-1);
     setPlaying(false);
     setPosition(0);
     setDuration(0);
     setError("");
   }, []);
+  const remove = useCallback((targetIndex: number) => {
+    if (targetIndex < 0 || targetIndex >= queue.current.length) return;
+    const remaining = queue.current.filter((_, songIndex) => songIndex !== targetIndex);
+    if (targetIndex === index) {
+      if (remaining.length === 0) stop();
+      else void select(remaining, Math.min(targetIndex, remaining.length - 1));
+    } else {
+      queue.current = remaining;
+      setQueueSongs(remaining);
+      if (targetIndex < index) setIndex(index - 1);
+    }
+  }, [index, select, stop]);
 
   useEffect(() => {
     window.addEventListener("case-music:spotify-play", stop);
@@ -107,14 +133,11 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
   }, [stop]);
 
   useEffect(() => {
-    if (neteasePlaying && playing) {
-      audio.current?.pause();
-      setPlaying(false);
-    }
-  }, [neteasePlaying, playing]);
+    if (neteasePlaying && song) stop();
+  }, [neteasePlaying, song, stop]);
 
 
-  return <Context.Provider value={{ song, playing, loading, error, position, duration, play: select, toggle, seek, next, previous, stop }}>
+  return <Context.Provider value={{ song, playing, loading, error, position, duration, queue: queueSongs, play: select, select: selectIndex, remove, toggle, seek, setVolume, next, previous, stop }}>
     {children}
     <audio ref={audio} onEnded={next} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} onError={() => { setPlaying(false); setError("QQ 音乐播放失败，请检查账号权益或地区限制"); }} />
   </Context.Provider>;

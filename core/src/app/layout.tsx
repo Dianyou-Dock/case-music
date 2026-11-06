@@ -11,7 +11,6 @@ import MobileNav from "@/components/mobile-nav";
 import { MobilePlayer } from "@/components/mobile-player";
 import { SpotifyPlaybackProvider } from "@/hooks/use-spotify-playback";
 import { QqPlaybackProvider } from "@/hooks/use-qq-playback";
-import { QqPlayer } from "@/components/qq-player";
 
 import "@/hooks/i18n.ts"; // 导入 I18nProvider
 
@@ -53,7 +52,6 @@ export default function RootLayout({
                   </div>
                   <MobilePlayer />
                   <Player className="hidden md:flex" />
-                  <QqPlayer />
                   <MobileNav className="md:hidden" />
                 </div>
               </AiSourceProvider>
