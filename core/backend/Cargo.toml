@@ -45,7 +45,7 @@ time = "0.3"
 env_logger = "0.11.5"
 base64 = "0.22"
 sha2 = "0.10"
-netease-qq-music-api = { git = "https://github.com/Dianyou-Dock/netease-qq-music-api", rev = "bcace76" }
+netease-qq-music-api = { git = "https://github.com/Dianyou-Dock/netease-qq-music-api", rev = "2dab52d" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 webkit2gtk = { version = "2.0.2", optional = true }

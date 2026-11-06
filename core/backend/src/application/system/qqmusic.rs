@@ -57,6 +57,7 @@ pub async fn qq_status() -> Result<ApplicationResp<QqStatus>, InvokeError> {
 #[tauri::command]
 pub async fn qq_login_start() -> Result<ApplicationResp<String>, InvokeError> {
     let session = CLIENT.login().session().platform(Platform::Tencent).send().await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
+    session.prepare().await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
     let qr = session.qr_code().to_string();
     *SESSION.lock().map_err(|_| InvokeError::from_anyhow(anyhow!("QQ login lock failed")))? = Some(session);
     Ok(ApplicationResp::success_data(qr))

@@ -3161,7 +3161,7 @@ dependencies = [
 [[package]]
 name = "netease-qq-music-api"
 version = "0.1.0"
-source = "git+https://github.com/Dianyou-Dock/netease-qq-music-api?rev=bcace76#bcace7669f525d541962d3cd426ed897b400c281"
+source = "git+https://github.com/Dianyou-Dock/netease-qq-music-api?rev=2dab52d#2dab52d82048f21190e43d6244c03d60f26f8afb"
 dependencies = [
  "aes",
  "async-tungstenite",
