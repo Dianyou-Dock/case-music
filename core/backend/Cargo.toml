@@ -28,6 +28,7 @@ ncm-api = { path = "vendor/netease-cloud-music-api", package = "netease-cloud-mu
 #ncm-api = {path = "../../../netease-cloud-music-api", package = "netease-cloud-music-api"}
 anyhow = { version = "1.0.93", features = ["backtrace"] }
 reqwest = { version = "0.12.9", features = ["json"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 async-trait = "0.1.83"
 tokio = { version = "1.35.0", features = ["full"] }
 libc = "0.2"

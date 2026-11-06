@@ -29,6 +29,8 @@ type DesktopRuntime = tauri::Wry;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
+    // Dependencies enable both rustls crypto backends; choose one before any TLS client starts.
+    let _ = rustls::crypto::ring::default_provider().install_default();
     #[cfg(not(target_os = "android"))]
     init_module().await.unwrap();
 

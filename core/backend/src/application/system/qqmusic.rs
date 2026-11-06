@@ -56,8 +56,14 @@ pub async fn qq_status() -> Result<ApplicationResp<QqStatus>, InvokeError> {
 
 #[tauri::command]
 pub async fn qq_login_start() -> Result<ApplicationResp<String>, InvokeError> {
-    let session = CLIENT.login().session().platform(Platform::Tencent).send().await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
-    session.prepare().await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
+    let session = tokio::time::timeout(std::time::Duration::from_secs(20), async {
+        let session = CLIENT.login().session().platform(Platform::Tencent).send().await?;
+        session.prepare().await?;
+        Ok::<_, netease_qq_music_api::MusicClientError>(session)
+    })
+    .await
+    .map_err(|_| InvokeError::from_anyhow(anyhow!("QQ 登录连接超时，请重试")))?
+    .map_err(|error| InvokeError::from_anyhow(error.into()))?;
     let qr = session.qr_code().to_string();
     *SESSION.lock().map_err(|_| InvokeError::from_anyhow(anyhow!("QQ login lock failed")))? = Some(session);
     Ok(ApplicationResp::success_data(qr))

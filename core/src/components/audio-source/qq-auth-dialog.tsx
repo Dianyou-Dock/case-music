@@ -28,7 +28,14 @@ export function QqAuthDialog({ isOpen, setIsOpen, onConnected }: Props) {
     setError("");
     setStatus("waiting_scan");
     setLoading(true);
-    void invoke<ApplicationResp<string>>("qq_login_start")
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const start = Promise.race([
+      invoke<ApplicationResp<string>>("qq_login_start"),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("获取 QQ 音乐二维码超时，请重试")), 25000);
+      }),
+    ]);
+    void start
       .then((response) => {
         if (!active) return;
         if (response.code !== 0 || !response.data) throw new Error(response.msg || "无法获取登录二维码");
@@ -36,8 +43,8 @@ export function QqAuthDialog({ isOpen, setIsOpen, onConnected }: Props) {
         setQr(response.data);
       })
       .catch((cause) => { if (active) setError(String(cause)); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .finally(() => { if (timeout) clearTimeout(timeout); if (active) setLoading(false); });
+    return () => { active = false; if (timeout) clearTimeout(timeout); };
   }, [isOpen, attempt]);
 
   useEffect(() => {
