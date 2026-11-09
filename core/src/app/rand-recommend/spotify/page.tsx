@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ function SpotifyRecommendationContent() {
   const pending = task.source === "Spotify" && task.runId === route.pendingId ? task : null;
   const songs = selected?.spotifySongs ?? [];
   const [playError, setPlayError] = useState("");
+  const retriedEmptyRecord = useRef(false);
 
   useEffect(() => hydrateRecommendationState(), []);
 
@@ -41,6 +42,11 @@ function SpotifyRecommendationContent() {
       route.openPending(startSampleRecommendation("Spotify", selected.song ?? "", selected.singer ?? "", selected.seedTrackId));
     } else generate();
   }
+  useEffect(() => {
+    if (!hydrated || !route.isDetail || !selected || songs.length || retriedEmptyRecord.current) return;
+    retriedEmptyRecord.current = true;
+    refreshRecord();
+  }, [hydrated, route.isDetail, selected?.id]);
   async function playFrom(index: number) {
     setPlayError("");
     try {
@@ -52,16 +58,16 @@ function SpotifyRecommendationContent() {
   if (!hydrated) return <PlaylistSkeleton />;
 
   return <div className="flex flex-col gap-6 p-6">
-    <Button variant="ghost" className="self-start gap-2" onClick={route.back}><ArrowLeft className="h-4 w-4" />{route.isDetail || route.isPending ? t("recommend_history") : t("rand_recommend")}</Button>
+    <Button variant="ghost" className="self-start gap-2 border border-white" onClick={route.back}><ArrowLeft className="h-4 w-4" />{route.isDetail || route.isPending ? t("recommend_history") : t("rand_recommend")}</Button>
     {route.isDetail && selected ? <>
       <p className="text-sm text-muted-foreground">{new Date(selected.completedAt).toLocaleString(i18n.language)} · {t("song_count", { count: songs.length })}</p>
       {playError && <p role="alert" className="text-sm text-destructive">{playError}</p>}
       {!spotify.ready && <p className="text-sm text-muted-foreground">{spotify.error || t("spotify_sdk_loading")}</p>}
       {songs.length > 0 && <>
         <MusicHeader title={selected.kind === "sample" ? t("song_recommend_sample", { song: selected.song, singer: selected.singer }) : t("rand_recommend_title")} subtitle={t("song_count", { count: songs.length })} coverUrl={songs[0]?.album?.images?.[0]?.url} handlePlayAllClick={() => void playFrom(0)} handleRefreshClick={refreshRecord} />
-        <SpotifyMusicList tracks={songs} onPlay={(_song, index) => void playFrom(index)} onRecommend={recommendFrom} showFeedback />
+        <SpotifyMusicList tracks={songs} onPlay={(_song, index) => void playFrom(index)} onRecommend={recommendFrom} showFeedback recommendationId={selected.id} />
       </>}
-      {songs.length === 0 && <p className="text-muted-foreground">{t("recommend_empty")}</p>}
+      {songs.length === 0 && <GenerateRecommendationButton label={t("qr_retry")} onClick={refreshRecord} />}
     </> : route.isPending ? <>
       <h1 className="text-2xl font-bold">{pending?.kind === "sample" ? t("song_recommend_title") : t("rand_recommend_title")}</h1>
       {pending?.status === "error" ? <div role="alert" className="space-y-3 rounded-lg border border-destructive p-4"><p>{t("recommend_failed")}: {pending.error === "recommend_interrupted" ? t(pending.error) : pending.error}</p><GenerateRecommendationButton label={t("qr_retry")} onClick={retry} /></div> : <div role="status"><p className="text-muted-foreground">{pending?.kind === "sample" ? t("song_recommend_loading", { song: pending.song }) : t("playlist_loading_more")}</p><PlaylistSkeleton /></div>}

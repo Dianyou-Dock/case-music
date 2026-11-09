@@ -73,6 +73,8 @@ export function AiDialog({
         <DialogHeader>
           <DialogTitle>{t("ai_apikey_title")}</DialogTitle>
           <DialogDescription>{t("ai_apikey_desc")}</DialogDescription>
+          {source.id === "ChatGPT" && <p className="text-sm text-muted-foreground">{t("ai_chatgpt_key_hint")}</p>}
+          {source.id === "Cursor" && <p className="text-sm text-muted-foreground">{t("ai_cursor_key_hint")}</p>}
         </DialogHeader>
 
         <Form {...form}>

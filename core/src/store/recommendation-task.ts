@@ -6,7 +6,7 @@ import { PlaylistRes } from "@/types/music";
 import { SongInfo } from "@/types/song";
 import { SpotifyTrack } from "@/types/spotify-track";
 import type { QqSong } from "@/hooks/use-qq-playback";
-import { getRecommendationFeedback, getSourceRecommendationFeedback } from "@/lib/recommendation-feedback";
+import { getDislikedArtists, getDislikedTracks, getRecommendationFeedback, getSourceRecommendationFeedback, isDislikedMatch } from "@/lib/recommendation-feedback";
 
 export type RecommendationTask = {
   runId?: string;
@@ -36,7 +36,28 @@ export type RecommendationRecord = {
   spotifySongs?: SpotifyTrack[];
   qqSongs?: QqSong[];
   coverUrl?: string;
+  votes?: Record<string, "liked" | "disliked">;
 };
+
+export function recommendationFit(record: RecommendationRecord) {
+  const votes = Object.values(record.votes ?? {});
+  const liked = votes.filter((vote) => vote === "liked").length;
+  const disliked = votes.filter((vote) => vote === "disliked").length;
+  return { liked, disliked, matching: liked > disliked };
+}
+
+export function recordRecommendationVote(recordId: string, trackId: string | number, vote: "liked" | "disliked" | null) {
+  hydrateRecommendationState();
+  const history = state.history.map((record) => {
+    if (record.id !== recordId) return record;
+    const votes = { ...record.votes };
+    if (vote) votes[String(trackId)] = vote;
+    else delete votes[String(trackId)];
+    return { ...record, votes };
+  });
+  setState({ ...state, history });
+  persist();
+}
 
 type RecommendationState = {
   hydrated: boolean;
@@ -148,7 +169,7 @@ function run(
   return runId;
 }
 
-function recentTracks(source: MusicSource, limit = 60) {
+function recentTracks(source: MusicSource, limit = 20) {
   hydrateRecommendationState();
   const ids = new Set<string>();
   const songs: { id: string; name: string; singer: string }[] = [];
@@ -169,59 +190,108 @@ function recentTracks(source: MusicSource, limit = 60) {
   return songs;
 }
 
+function preferredSamples(source: MusicSource) {
+  hydrateRecommendationState();
+  const samples: { name: string; singer: string; song_type: string }[] = [];
+  const seen = new Set<string>();
+  for (const record of state.history) {
+    if (record.source !== source || !recommendationFit(record).matching) continue;
+    const tracks = source === "Spotify"
+      ? (record.spotifySongs ?? []).map((track) => ({ id: track.id, name: track.name, singer: track.artists[0]?.name ?? "" }))
+      : (record.qqSongs ?? []).map((track) => ({ id: track.id, name: track.name, singer: track.artists[0]?.name ?? "" }));
+    for (const track of tracks) {
+      const key = `${track.name.toLowerCase()}|${track.singer.toLowerCase()}`;
+      if (record.votes?.[String(track.id)] !== "liked" || !track.name || !track.singer || seen.has(key)) continue;
+      seen.add(key);
+      samples.push({ name: track.name, singer: track.singer, song_type: "" });
+      if (samples.length === 5) return samples;
+    }
+  }
+  return samples;
+}
+
 export function startSampleRecommendation(source: MusicSource, song: string, singer: string, seedTrackId?: string) {
   return run({ kind: "sample", status: "idle", source, song, singer, seedTrackId, songs: [] }, async () => {
     if (source === "QQ") {
-      const songId = Number(seedTrackId);
-      if (!Number.isSafeInteger(songId) || songId <= 0) throw new Error("QQ 音乐缺少数字歌曲 ID，无法生成单曲推荐");
-      const response = await invoke<ApplicationResp<QqSong[]>>("qq_similar_songs", { songId });
+      const response = await invoke<ApplicationResp<QqSong[]>>("recommend_provider_songs", { req: {
+        source, song, singer, count: 15,
+        previous: recentTracks(source, 15).map(({ name, singer }) => ({ name, singer, song_type: "" })),
+        excluded_ids: [...getSourceRecommendationFeedback(source).skipped, ...recentTracks(source).map((track) => track.id)],
+        excluded_artists: getDislikedArtists(),
+      } });
       if (response.code !== 0 || !response.data) throw new Error(response.msg || "QQ 音乐单曲推荐失败");
       const skipped = new Set(getSourceRecommendationFeedback("QQ").skipped);
-      const previous = new Set(recentTracks("QQ", 60).map((track) => track.id));
-      const songs = response.data.filter((track) => !skipped.has(track.id) && !previous.has(track.id));
-      return { songs: [], qqSongs: songs, coverUrl: songs[0]?.pic_url };
+      const previous = new Set(recentTracks("QQ", 20).map((track) => track.id));
+      const songs = response.data.filter((track) => !skipped.has(track.id) && !previous.has(track.id) &&
+        !isDislikedMatch("QQ", { id: track.id, artist: track.artists[0]?.name ?? "" }));
+      const available = songs.length ? songs : response.data.filter((track) =>
+        !isDislikedMatch("QQ", { id: track.id, artist: track.artists[0]?.name ?? "" }));
+      return { songs: [], qqSongs: available, coverUrl: available[0]?.pic_url };
     }
     if (source === "Spotify") {
       if (!seedTrackId) throw new Error("Spotify track ID is required");
       const excludedTrackIds = [...new Set([...getSourceRecommendationFeedback("Spotify").skipped, ...recentTracks("Spotify").map((track) => track.id)])].slice(0, 160);
-      const response = await invoke<ApplicationResp<SpotifyTrack[]>>("spotify_random_recommendations", { seedTrackId, excludedTrackIds });
+      const response = await invoke<ApplicationResp<SpotifyTrack[]>>("recommend_provider_songs", { req: {
+        source, song, singer, count: 15,
+        previous: recentTracks(source, 15).map(({ name, singer }) => ({ name, singer, song_type: "" })),
+        excluded_ids: excludedTrackIds,
+        excluded_artists: getDislikedArtists(),
+      } });
       if (response.code !== 0 || !response.data) throw new Error(response.msg || "Recommendation failed");
-      return { songs: [], spotifySongs: response.data };
+      return { songs: [], spotifySongs: response.data.filter((track) =>
+        !isDislikedMatch("Spotify", { id: track.id, artist: track.artists[0]?.name ?? "" })) };
     }
     const req: RecommendReq = {
       source, song, singer, recommend_song_count: 15, recommend_singer_count: 0,
-      previous: recentTracks(source, 30).map(({ name, singer }) => ({ name, singer, song_type: "" })),
-      excluded_song_ids: recentTracks(source, 60).map((track) => Number(track.id)).filter(Number.isFinite),
+      previous: recentTracks(source, 15).map(({ name, singer }) => ({ name, singer, song_type: "" })),
+      excluded_song_ids: recentTracks(source, 20).map((track) => Number(track.id)).filter(Number.isFinite),
+      excluded_artists: getDislikedArtists(),
     };
     const response = await invoke<ApplicationResp<RecommendSongResp>>("recommend_song", { req });
     if (response.code !== 0 || !response.data) {
       throw new Error(response.msg || "Recommendation failed");
     }
-    return { songs: response.data.song_infos };
+    return { songs: response.data.song_infos.filter((track) =>
+      !isDislikedMatch(source, { id: String(track.content.id), artist: track.content.singer })) };
   });
 }
 
 export function startRandomRecommendation(source: MusicSource, refresh = false) {
   return run({ kind: "random", status: "idle", source, songs: [] }, async () => {
     if (source === "QQ") {
-      const response = await invoke<ApplicationResp<QqSong[]>>("qq_random_recommendations");
+      const response = await invoke<ApplicationResp<QqSong[]>>("recommend_provider_songs", { req: {
+        source, count: 15,
+        preferred_samples: preferredSamples(source),
+        previous: recentTracks(source, 15).map(({ name, singer }) => ({ name, singer, song_type: "" })),
+        excluded_ids: [...getSourceRecommendationFeedback(source).skipped, ...recentTracks(source).map((track) => track.id)],
+        excluded_artists: getDislikedArtists(),
+      } });
       if (response.code !== 0 || !response.data) throw new Error(response.msg || "QQ 音乐推荐失败");
       const skipped = new Set(getSourceRecommendationFeedback("QQ").skipped);
-      const songs = response.data.filter((track) => !skipped.has(track.id));
+      const songs = response.data.filter((track) => !skipped.has(track.id) &&
+        !isDislikedMatch("QQ", { id: track.id, artist: track.artists[0]?.name ?? "" }));
       return { songs: [], qqSongs: songs, coverUrl: songs[0]?.pic_url };
     }
     if (source === "Spotify") {
       const excludedTrackIds = [...new Set([...getSourceRecommendationFeedback("Spotify").skipped, ...recentTracks("Spotify").map((track) => track.id)])].slice(0, 160);
-      const response = await invoke<ApplicationResp<SpotifyTrack[]>>("spotify_random_recommendations", { seedTrackId: null, excludedTrackIds });
+      const response = await invoke<ApplicationResp<SpotifyTrack[]>>("recommend_provider_songs", { req: {
+        source, count: 15,
+        preferred_samples: preferredSamples(source),
+        previous: recentTracks(source, 15).map(({ name, singer }) => ({ name, singer, song_type: "" })),
+        excluded_ids: excludedTrackIds,
+        excluded_artists: getDislikedArtists(),
+      } });
       if (response.code !== 0 || !response.data) throw new Error(response.msg || "Recommendation failed");
-      return { songs: [], spotifySongs: response.data };
+      return { songs: [], spotifySongs: response.data.filter((track) =>
+        !isDislikedMatch("Spotify", { id: track.id, artist: track.artists[0]?.name ?? "" })) };
     }
     const feedback = {
       ...getRecommendationFeedback(),
-      recently_recommended: recentTracks(source, 30).map(({ name, singer }) => ({ name, singer, song_type: "" })),
-      excluded_song_ids: recentTracks(source, 60).map((track) => Number(track.id)).filter(Number.isFinite),
+      recently_recommended: recentTracks(source, 15).map(({ name, singer }) => ({ name, singer, song_type: "" })),
+      excluded_song_ids: recentTracks(source, 20).map((track) => Number(track.id)).filter(Number.isFinite),
+      excluded_artists: getDislikedArtists(),
     };
-    if (refresh) {
+    if (refresh || getDislikedTracks(source).length > 0) {
       const refreshed = await invoke<ApplicationResp<void>>("refresh_rand_cache", { source, feedback });
       if (refreshed.code !== 0) throw new Error(refreshed.msg || "Recommendation failed");
     }
@@ -232,6 +302,8 @@ export function startRandomRecommendation(source: MusicSource, refresh = false) 
     return {
       songs: response.data.songs.map((song, index) => ({
         ...song, liked: response.data!.likeds[index] ?? song.liked,
+      })).filter((track) => !isDislikedMatch(source, {
+        id: String(track.content.id), artist: track.content.singer,
       })),
       coverUrl: response.data.cover_img_url,
     };

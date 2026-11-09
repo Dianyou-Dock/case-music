@@ -38,6 +38,7 @@ export interface RecommendReq {
   recommend_singer_count: number;
   previous?: RecommendSongInfo[];
   excluded_song_ids?: number[];
+  excluded_artists?: string[];
 }
 
 export interface RecommendSongInfo {

@@ -1,7 +1,7 @@
 export type MusicSource = "Netesae" | "Spotify" | "QQ" | "Apple";
 
 
-export type AiSources = "Kimi" | "DeepSeek"
+export type AiSources = "Kimi" | "DeepSeek" | "ChatGPT" | "Cursor"
 
 export enum SongRate {
   L = "L",

@@ -341,6 +341,25 @@ pub async fn spotify_saved_tracks(offset: u32) -> Result<ApplicationResp<Value>,
     Ok(ApplicationResp::success_data(value))
 }
 
+pub(crate) async fn recommendation_samples() -> Result<Vec<Value>> {
+    let page = api_get("me/tracks", &[("limit", "50".into()), ("offset", "0".into())]).await?;
+    Ok(page["items"].as_array().into_iter().flatten()
+        .filter_map(|item| item.get("track").cloned()).collect())
+}
+
+pub(crate) async fn search_recommendation_song(name: &str, singer: &str) -> Result<Option<Value>> {
+    let title = name.replace('"', "");
+    let artist = singer.replace('"', "");
+    let query = format!("track:\"{title}\" artist:\"{artist}\"");
+    let result = api_get("search", &[("q", query), ("type", "track".into()), ("limit", "10".into())]).await?;
+    Ok(result["tracks"]["items"].as_array().into_iter().flatten().find(|track|
+        track["name"].as_str().is_some_and(|value| value.trim().eq_ignore_ascii_case(name.trim())) &&
+        track["artists"].as_array().is_some_and(|artists| artists.iter().any(|item|
+            item["name"].as_str().is_some_and(|value| value.trim().eq_ignore_ascii_case(singer.trim()))
+        )) && track["is_playable"] != false
+    ).cloned())
+}
+
 #[tauri::command]
 pub async fn spotify_library_contains(ids: Vec<String>) -> Result<ApplicationResp<Vec<bool>>, InvokeError> {
     if ids.len() > 40 || ids.iter().any(|id| id.is_empty() || !id.chars().all(|ch| ch.is_ascii_alphanumeric())) {
@@ -453,7 +472,7 @@ pub async fn spotify_random_recommendations(seed_track_id: Option<String>, exclu
     }
     let favorite_family = family_counts.into_iter().max_by_key(|(_, count)| *count).map(|(family, _)| family);
     let primary_style = if let Some(id) = &seed_artist_id {
-        profiles.get(id).and_then(|genres| genres.iter().find(|genre| favorite_family.as_deref() == Some(recommendation_engine::major_style(genre).as_str())).or_else(|| genres.first())).cloned()
+        profiles.get(id).and_then(|genres| genres.first()).cloned()
     } else {
         style_counts.into_iter().filter(|(style, _)| favorite_family.as_deref() == Some(recommendation_engine::major_style(style).as_str()))
             .max_by_key(|(_, count)| *count).map(|(style, _)| style)
@@ -465,12 +484,14 @@ pub async fn spotify_random_recommendations(seed_track_id: Option<String>, exclu
         "reggae" => "reggae", "latin" => "latin", "blues" => "blues",
         _ => primary_style.as_str(),
     };
-    let mut styles = vec![broad_style.to_string()];
+    let mut styles = if seed.is_some() { vec![primary_style.clone()] } else { vec![broad_style.to_string()] };
     if !styles.contains(&primary_style) { styles.push(primary_style.clone()); }
-    for genres in profiles.values() {
-        for genre in genres {
-            if recommendation_engine::same_major_style(&primary_style, genre) && !styles.contains(genre) {
-                styles.push(genre.clone());
+    if seed.is_none() {
+        for genres in profiles.values() {
+            for genre in genres {
+                if recommendation_engine::same_major_style(&primary_style, genre) && !styles.contains(genre) {
+                    styles.push(genre.clone());
+                }
             }
         }
     }
@@ -494,8 +515,10 @@ pub async fn spotify_random_recommendations(seed_track_id: Option<String>, exclu
             if decade <= end { queries.push(format!("genre:\"{genre}\" year:{decade}-{end}")); }
         }
     }
-    for (_, (artist, _)) in favorite_artists.iter().take(4) {
-        queries.push(format!("artist:\"{}\"", artist.replace('"', "")));
+    if seed.is_none() {
+        for (_, (artist, _)) in favorite_artists.iter().take(4) {
+            queries.push(format!("artist:\"{}\"", artist.replace('"', "")));
+        }
     }
     for query in queries {
         let random_offset = if query.ends_with(&format!("year:{current_year}")) { 0 } else { OsRng.next_u32() % 4 * 10 };
@@ -522,7 +545,10 @@ pub async fn spotify_random_recommendations(seed_track_id: Option<String>, exclu
     for id in &candidate_order {
         let track = &tracks[id];
         let (Some(artist_id), Some(artist)) = (track["artists"][0]["id"].as_str(), track["artists"][0]["name"].as_str()) else { continue; };
-        let Some(style) = artist_genres.get(artist_id).and_then(|genres| genres.iter().find(|genre| recommendation_engine::same_major_style(&primary_style, genre))) else { continue; };
+        let Some(style) = artist_genres.get(artist_id).and_then(|genres| genres.iter().find(|genre|
+            if seed.is_some() { genre.eq_ignore_ascii_case(&primary_style) }
+            else { recommendation_engine::same_major_style(&primary_style, genre) }
+        )) else { continue; };
         let album_name = track["album"]["name"].as_str().unwrap_or("").to_lowercase();
         let track_name = track["name"].as_str().unwrap_or("").to_lowercase();
         if ["remaster", "reissue", "live", "re-record", "rerecord"].iter().any(|term| album_name.contains(term) || track_name.contains(term)) { continue; }
@@ -629,6 +655,45 @@ pub async fn spotify_start_playback(req: SpotifyStartReq) -> Result<ApplicationR
     if !response.status().is_success() {
         let status = response.status();
         return Err(InvokeError::from_anyhow(anyhow::anyhow!("Spotify playback failed ({status})")));
+    }
+    Ok(ApplicationResp::success())
+}
+
+#[derive(Deserialize)]
+pub struct SpotifyAppendQueueReq {
+    pub device_id: String,
+    pub track_ids: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn spotify_append_playback_queue(req: SpotifyAppendQueueReq) -> Result<ApplicationResp<()>, InvokeError> {
+    if !valid_spotify_id(&req.device_id) || req.track_ids.len() > 200 ||
+        req.track_ids.iter().any(|id| !valid_spotify_id(id)) {
+        return Err(InvokeError::from_anyhow(anyhow::anyhow!("Invalid Spotify queue IDs")));
+    }
+    let token = access_token().await.map_err(InvokeError::from_anyhow)?;
+    let client = Client::new();
+    for id in req.track_ids {
+        let mut url = Url::parse("https://api.spotify.com/v1/me/player/queue")
+            .map_err(|error| InvokeError::from_anyhow(error.into()))?;
+        url.query_pairs_mut().append_pair("uri", &format!("spotify:track:{id}"))
+            .append_pair("device_id", &req.device_id);
+        let mut attempts = 0;
+        loop {
+            let response = client.post(url.clone()).bearer_auth(&token).send().await
+                .map_err(|error| InvokeError::from_anyhow(error.into()))?;
+            if response.status().is_success() { break; }
+            if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS && attempts < 3 {
+                attempts += 1;
+                let delay = response.headers().get(reqwest::header::RETRY_AFTER)
+                    .and_then(|value| value.to_str().ok()).and_then(|value| value.parse::<u64>().ok())
+                    .unwrap_or(2).min(30);
+                tokio::time::sleep(std::time::Duration::from_secs(delay)).await;
+                continue;
+            }
+            return Err(InvokeError::from_anyhow(anyhow::anyhow!("Spotify queue update failed ({})", response.status())));
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
     }
     Ok(ApplicationResp::success())
 }

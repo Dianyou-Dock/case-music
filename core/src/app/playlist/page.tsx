@@ -38,7 +38,7 @@ function QqPlaylistDetail() {
     if (runId) router.push(`/rand-recommend/qq?pending=${encodeURIComponent(runId)}`);
   };
   return <div className="flex flex-col gap-6 p-6">
-    <Button asChild variant="ghost" className="self-start gap-2"><Link href="/playlist-source?source=QQ"><ArrowLeft className="h-4 w-4" />{t("playlist_nav")}</Link></Button>
+    <Button asChild variant="ghost" className="self-start gap-2 border border-white"><Link href="/playlist-source?source=QQ"><ArrowLeft className="h-4 w-4" />{t("playlist_nav")}</Link></Button>
     {!connected && audioSource && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
     {isLoading && <PlaylistSkeleton />}
     {error && <div role="alert" className="space-y-3"><p>{String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
@@ -117,7 +117,7 @@ function PlaylistDetail() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <Button asChild variant="ghost" className="self-start gap-2"><Link href={`/playlist-source?source=${encodeURIComponent(source ?? "")}`}><ArrowLeft className="h-4 w-4" />{source ? t("source_playlists", { source: musicSourceName(source, i18n.language) }) : t("playlist_nav")}</Link></Button>
+      <Button asChild variant="ghost" className="self-start gap-2 border border-white"><Link href={`/playlist-source?source=${encodeURIComponent(source ?? "")}`}><ArrowLeft className="h-4 w-4" />{source ? t("source_playlists", { source: musicSourceName(source, i18n.language) }) : t("playlist_nav")}</Link></Button>
       {!currentSource && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
       {currentSource && !data && !error && <PlaylistSkeleton />}
       {data && <>

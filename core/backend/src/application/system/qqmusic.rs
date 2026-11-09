@@ -62,6 +62,10 @@ pub async fn qq_login_start() -> Result<ApplicationResp<String>, InvokeError> {
     .await
     .map_err(|_| InvokeError::from_anyhow(anyhow!("QQ 登录连接超时，请重试")))?
     .map_err(|error| InvokeError::from_anyhow(error.into()))?;
+    // Subscribe before exposing the QR: a scan can arrive before the first poll.
+    tokio::time::timeout(std::time::Duration::from_secs(12), session.prepare()).await
+        .map_err(|_| InvokeError::from_anyhow(anyhow!("QQ 扫码状态连接超时，请重试")))?
+        .map_err(|error| InvokeError::from_anyhow(error.into()))?;
     let qr = session.qr_code().to_string();
     *SESSION.lock().map_err(|_| InvokeError::from_anyhow(anyhow!("QQ login lock failed")))? = Some(session);
     Ok(ApplicationResp::success_data(qr))
@@ -72,8 +76,13 @@ pub async fn qq_login_poll() -> Result<ApplicationResp<String>, InvokeError> {
     let session = SESSION.lock().map_err(|_| InvokeError::from_anyhow(anyhow!("QQ login lock failed")))?.take().context("Start QQ login first").map_err(InvokeError::from_anyhow)?;
     // Establish the MQTT subscription after the QR is visible. On mobile networks
     // connecting to the MQTT server may be slow, but it must not block the QR UI.
-    let result = tokio::time::timeout(std::time::Duration::from_secs(12), session.status()).await
-        .map_err(|_| InvokeError::from_anyhow(anyhow!("QQ 扫码状态连接超时，请重试")))?;
+    let result = match tokio::time::timeout(std::time::Duration::from_secs(12), session.status()).await {
+        Ok(result) => result,
+        Err(_) => {
+            *SESSION.lock().map_err(|_| InvokeError::from_anyhow(anyhow!("QQ login lock failed")))? = Some(session);
+            return Ok(ApplicationResp::success_data("waiting_scan".to_string()));
+        }
+    };
     let state = match result {
         Ok(LoginStatus::WaitingScan) => "waiting_scan",
         Ok(LoginStatus::WaitingConfirm) => "waiting_confirm",
@@ -153,6 +162,20 @@ pub async fn qq_set_liked(id: String, liked: bool) -> Result<ApplicationResp<()>
 pub async fn qq_similar_songs(song_id: u64) -> Result<ApplicationResp<Vec<Song>>, InvokeError> {
     let result = CLIENT.tencent_similar_songs(song_id).await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
     Ok(ApplicationResp::success_data(result))
+}
+
+pub(crate) async fn recommendation_samples() -> Result<Vec<Song>> {
+    let token = active_token().await?.context("请先登录 QQ 音乐")?;
+    Ok(CLIENT.tencent_user_playlist("qq-liked:201", &token).await?.songs)
+}
+
+pub(crate) async fn search_recommendation_song(name: &str, singer: &str) -> Result<Option<Song>> {
+    let result = CLIENT.search().song().platform(Platform::Tencent)
+        .keyword(format!("{name} {singer}")).limit(10).send().await?;
+    Ok(result.songs.into_iter().find(|song|
+        song.name.trim().eq_ignore_ascii_case(name.trim()) &&
+        song.artists.iter().any(|artist| artist.name.trim().eq_ignore_ascii_case(singer.trim()))
+    ))
 }
 
 #[tauri::command]

@@ -13,14 +13,16 @@ import { recordRecommendationFeedback } from "@/lib/recommendation-feedback";
 import { ReleaseDate } from "@/components/music/release-year";
 import { UnifiedMusicList } from "@/components/music/unified-music-list";
 import { RecommendationDislikeButton } from "@/components/recommendation/dislike-button";
+import { recordRecommendationVote } from "@/store/recommendation-task";
 
 interface MusicListProps {
   songs: SongInfo[];
   onRecommend?: (song: SongInfo) => void;
   showFeedback?: boolean;
+  recommendationId?: string;
 }
 
-export function MusicList({ songs, onRecommend, showFeedback = false }: MusicListProps) {
+export function MusicList({ songs, onRecommend, showFeedback = false, recommendationId }: MusicListProps) {
   const { currentSource } = useAudioSource();
   const { t } = useTranslation();
   const [likes, setLikes] = useState<number[]>([]);
@@ -57,9 +59,10 @@ export function MusicList({ songs, onRecommend, showFeedback = false }: MusicLis
       setLikes(likes.filter((item) => item !== id));
     }
 
-    await invoke<ApplicationResp<boolean>>("like_song", {
+    const response = await invoke<ApplicationResp<boolean>>("like_song", {
       req: { source: currentSource, song_id: id, is_like: newLiked },
     });
+    if (response.code === 0 && recommendationId) recordRecommendationVote(recommendationId, id, newLiked ? "liked" : null);
   }
 
   function renderActions(track: SongInfo, showPlay: boolean) {
@@ -67,7 +70,7 @@ export function MusicList({ songs, onRecommend, showFeedback = false }: MusicLis
 
     return (
       <div className="flex shrink-0 items-center gap-1">
-        {showFeedback && <RecommendationDislikeButton source={track.type} id={track.content.id} name={track.content.name} onDislike={() => setDismissed((previous) => [...previous, track.content.id])} />}
+        {showFeedback && <RecommendationDislikeButton source={track.type} id={track.content.id} name={track.content.name} artist={track.content.singer} onDislike={() => { setDismissed((previous) => [...previous, track.content.id]); if (recommendationId) recordRecommendationVote(recommendationId, track.content.id, "disliked"); }} />}
         <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label={t("queue_add", { name: track.content.name })} title={t("queue_add", { name: track.content.name })} onClick={(event) => { event.stopPropagation(); playerControl.set.enqueue(track); }}>
           <ListPlus className="h-4 w-4" />
         </Button>

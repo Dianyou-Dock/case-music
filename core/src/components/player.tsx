@@ -37,6 +37,8 @@ export default function Player({ className }: PlayerProps) {
   const current = playerControl.useTracked.currentSong();
   const [volume, setVolume] = useState(50);
   const [songUrl, setSongUrl] = useState<string | null>(null); // 当前歌曲的 URL
+  const [songError, setSongError] = useState("");
+  const [urlRetry, setUrlRetry] = useState(0);
   const progress = playerControl.useTracked.progress();
   const duration = playerControl.useTracked.duration();
   const seekRequest = playerControl.useTracked.seekRequest();
@@ -117,6 +119,7 @@ export default function Player({ className }: PlayerProps) {
 
   useEffect(() => {
     setSongUrl(null);
+    setSongError("");
     playerControl.set.progress(0);
     playerControl.set.duration(current ? current.content.duration / 1000 : 0);
     if (!current) return;
@@ -131,12 +134,19 @@ export default function Player({ className }: PlayerProps) {
       "songs_url",
       { req }
     ).then((res) => {
-      if (active) setSongUrl(res.data?.urls?.[0]?.content?.url || null);
+      if (!active) return;
+      const url = res.data?.urls?.[0]?.content?.url;
+      if (res.code !== 0 || !url) {
+        setSongError(res.msg || "网易云没有返回可播放音源，请检查登录状态或歌曲版权");
+        return;
+      }
+      setSongUrl(url);
     }).catch((error) => {
       console.error("Could not load song URL", error);
+      if (active) setSongError(String(error));
     });
     return () => { active = false; };
-  }, [index, current?.content.id, current?.type]);
+  }, [index, current?.content.id, current?.type, urlRetry]);
 
   return (
     <>
@@ -156,6 +166,7 @@ export default function Player({ className }: PlayerProps) {
         />
       )}
       <div className={cn("border-t bg-background p-4", className)}>
+        {songError && !qqActive && <div role="alert" className="mb-2 text-sm text-destructive">{songError} <button type="button" className="underline" onClick={() => setUrlRetry((value) => value + 1)}>重试</button></div>}
         <div className="mx-auto flex w-full items-center justify-between">
           {qqActive || current ? (
             <div className="flex items-center gap-4 flex-1">
@@ -184,7 +195,7 @@ export default function Player({ className }: PlayerProps) {
           <div className="flex flex-col items-center gap-2 flex-1">
             <div className="flex items-center gap-6">
               <SkipBack
-                className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground text-green-500 "
+                className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground text-green-500"
                 onClick={() => qqActive ? qq.previous() : playerControl.set.back()}
               />
               <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-transparent ">

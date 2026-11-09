@@ -243,12 +243,18 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
     window.dispatchEvent(new Event("case-music:spotify-play"));
     setError("");
     const response = await invoke<ApplicationResp<void>>("spotify_start_playback", {
-      req: { device_id: playbackDeviceId, track_ids: trackIds, playlist_id: playlistId ?? null, offset_track_id: offsetTrackId ?? null },
+      req: { device_id: playbackDeviceId, track_ids: trackIds.slice(0, 100), playlist_id: playlistId ?? null, offset_track_id: offsetTrackId ?? null },
     });
     if (response.code !== 0) throw new Error(response.msg || "Spotify playback failed");
     activeRef.current = true;
     setQueue(queueTracks ?? []);
     setActive(true);
+    if (!playlistId && trackIds.length > 100) {
+      const queued = await invoke<ApplicationResp<void>>("spotify_append_playback_queue", {
+        req: { device_id: playbackDeviceId, track_ids: trackIds.slice(100) },
+      });
+      if (queued.code !== 0) throw new Error(queued.msg || "Spotify queue update failed");
+    }
   }, [deviceId, error]);
 
   const command = useCallback(async (action: string, value?: number) => {

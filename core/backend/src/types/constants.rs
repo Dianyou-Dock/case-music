@@ -7,6 +7,8 @@ use strum_macros::{Display, EnumString};
 
 pub static KIMI_URL: &str = "https://api.moonshot.cn/v1/chat/completions";
 pub static DEEPSEEK_URL: &str = "https://api.deepseek.com/chat/completions";
+pub static OPENAI_URL: &str = "https://api.openai.com/v1/chat/completions";
+pub static CURSOR_AGENTS_URL: &str = "https://api.cursor.com/v1/agents";
 pub static ACTIVE_AI_SOURCE_FILE: &str = "active-ai-source.json";
 
 pub static AI_SONG_REQ_EXAMPLE: &str = r#"
@@ -39,7 +41,7 @@ pub static AI_SONG_RESP_TEMPLATE: &str = r#"
         }
     ],
     "benchmark": {
-        "song_type": "Song type, at least 3 types",
+        "song_type": "One primary genre or established subgenre in English",
         "song_detail": "Describe this song in a little more detail",
         "recommend_detail": "Briefly describe the playlist you want to recommend"
     }
@@ -49,7 +51,7 @@ pub static AI_SONG_RESP_TEMPLATE: &str = r#"
 pub static AI_RESP_SINGER_TEMPLATE: &str = r#"
 {
     "benchmark": {
-        "song_type": "Song type, at least 3 types",
+        "song_type": "One primary genre or established subgenre in English",
         "song_detail": "Describe this song in a little more detail",
         "recommend_detail": "Briefly describe the playlist you want to recommend"
     },
@@ -159,17 +161,19 @@ pub fn gen_recommend_song_content(
 ) -> String {
     let template = format!(
         "Sample recording: song '{song}', artist '{singer}'. \
-        First identify its primary major genre and subgenre and its defining groove, tempo, vocals, \
-        instrumentation and era. Recommend up to {count} REAL, searchable recordings in the \
-        SAME primary major genre and matching at least two of those musical traits. \
-        Include different subgenres within that major genre when the sound still fits. \
-        Do not recommend a song solely because its artist is adjacent, it shares a broad genre, \
-        or it is commonly found on a generic mood playlist. Do not include remixes, covers, \
-        unrelated genres or the sample itself. Be conservative: return fewer than {count} \
-        songs if you cannot identify enough close matches. For every result, put its actual \
-        primary genre/subgenre in song_type; do not copy the sample's genre when it is untrue. \
-        In benchmark.song_type identify the sample's primary genre FIRST, then any more precise \
-        subgenres. Explain the shared musical traits in recommend_detail. \
+        Identify the ORIGINAL recording's primary genre and more specific style. Describe only \
+        musical traits you can recognize with confidence: groove, tempo, vocal delivery, lead \
+        instruments and production. Treat unknown traits as unknown rather than inventing them. \
+        Recommend up to {count} REAL recordings whose SOUND matches this recording: a compatible \
+        specific style plus at least two confidently known musical traits. A shared artist, broad \
+        genre, era, language, mood, or playlist placement alone is insufficient. Do not include \
+        the sample, live versions, covers, remixes, or uncertain title/artist pairs. If few close \
+        matches are known, return fewer songs. Diversity of artists, languages and eras is only \
+        a tie-breaker AFTER similarity is established. For each result, song_type must describe \
+        that recording's actual primary style; never copy the sample's label to make it fit. \
+        benchmark.song_type must be ONE primary genre or established subgenre, with the primary \
+        genre first if a compound label is necessary. In recommend_detail explain the shared \
+        audible traits, and say when the sample cannot be identified confidently. \
         song_type must be in English; song_detail and recommend_detail must be in Chinese. \
         Song title and artist must identify the same real recording. Return only this JSON shape: \
         {AI_SONG_RESP_TEMPLATE}"
@@ -185,11 +189,10 @@ pub fn gen_recommend_song_content(
 pub fn gen_single_song_prompt() -> String {
     format!(
         "You are a careful music similarity curator. A single song and artist identify the \
-        recording to match. Keep its primary major genre fixed while exploring compatible \
-        subgenres within it. Do not pad the list. If unsure whether a recording has the \
-        same primary major genre, omit it. Include different artists and some new recordings \
-        by the sample artist; at most two recordings by the same artist. Seek both current-year \
-        recordings and recordings from at least ten years ago when real matches exist. \
+        recording to match. Prioritize the specific audible style and arrangement over artist \
+        association or broad genre. Do not pad the list. If unsure about the sample or a candidate, \
+        omit the candidate. At most two recordings by the same artist. Consider era and artist \
+        variety only when candidates are equally close matches. \
         Return only a valid JSON object in this shape: {AI_SONG_RESP_TEMPLATE}"
     )
 }
@@ -197,22 +200,21 @@ pub fn gen_single_song_prompt() -> String {
 pub fn gen_single_song_review_content(
     song: &str,
     singer: &str,
-    benchmark: &str,
     candidates: &str,
 ) -> String {
     format!(
         "Audit these proposed recommendations for the recording '{song}' by '{singer}'. \
-        The first pass described the sample as: {benchmark}. \
-        Independently check each candidate's ACTUAL recording and style. A match needs the \
-        same primary major genre AND at least two of groove, vocal style, production and tempo. \
-        Compatible subgenres within that major genre are allowed. \
-        Reject broad R&B/pop adjacency, genre crossover dominated by another style, \
-        uncertain song/artist identities, and songs you do not know well enough to judge. \
-        Do not trust the candidate's song_type label without checking it. \
+        Independently identify the sample's audible style before looking at the candidates. \
+        Check each candidate's ACTUAL recording, not the proposed style label. Accept only a \
+        compatible specific style AND at least two clearly shared traits among groove, tempo, \
+        vocal delivery, instrumentation and production. Reject broad-genre adjacency, genre \
+        crossover dominated by another style, uncertain recording identities and unfamiliar \
+        songs whose sound you cannot judge. Treat missing knowledge as a reason to reject. \
         Candidates in order: {candidates}. \
         Return JSON only: {{\"reviews\":[{{\"index\":0,\"close_match\":true,\"score\":90}}]}}. \
         Include EVERY candidate exactly once; index is zero-based. Only set close_match=true \
-        when the match is strong, and score strong matches at least 80. Be strict; fewer songs \
+        when both style and two audible traits match; use 80-89 for a clear match and 90-100 \
+        only for a very close match. Otherwise set close_match=false and score below 80. Fewer songs \
         are preferable to unrelated songs."
     )
 }
@@ -251,6 +253,23 @@ pub fn gen_ai_singer_prompt() -> String {
     )
 }
 
+pub fn gen_random_recommend_prompt() -> String {
+    format!(
+        r#"
+你将收到从用户喜欢的歌曲中抽取的列表，格式如下:
+
+{AI_SONG_REQ_EXAMPLE}
+
+先按歌曲实际听感把样本分组，不要强行把所有喜欢的歌合成一种风格。选出内部最一致的一组作为本次主题；如果只有一首可用样本，就以这一首为主题；如果没有样本，就推荐真实、容易搜索的流行歌曲。benchmark.song_type 只写该组的一个主要风格或明确的细分风格。优先选择与该组在具体风格以及节奏、人声、乐器或制作特征上相近的真实歌曲；样本或反馈少时也必须给出推荐，不要返回空 recommends。不要虚构不熟悉歌曲的听感，也不要为了随机性、冷门、语言或年代跨度牺牲匹配度。优先不要返回样本歌曲。
+相似度达标后才考虑新歌手与年代多样性；同一歌手最多两首。如果严格匹配的歌曲不足，可逐步放宽到相邻风格，但要优先保证歌曲真实、可搜索。返回结构如下格式:
+
+{AI_SONG_RESP_TEMPLATE}
+
+歌曲名与歌手必须准确对应，优先选择能在音源中搜索到的原版录音。song_type 用英文，song_detail 和 recommend_detail 用中文。
+    "#
+    )
+}
+
 pub fn gen_recommend_singer_content(
     singer: &str,
     song_count: u64,
@@ -274,9 +293,36 @@ pub fn gen_recommend_singer_content(
 }
 
 pub fn gen_rand_recommend_content(song_list: &str, count: u64) -> String {
-    let template = format!("Liked songs sampled from the user's library: {song_list}. Choose the dominant primary genre and put it in benchmark.song_type. Recommend up to {count} distinct real songs in that SAME primary genre. Include unfamiliar artists and allow new recordings by familiar artists. Cover old and current-year releases where genuine same-genre candidates exist. Vary subgenres within that primary genre. Mark each candidate's actual style in song_type; do not relabel a mismatched recording. Return fewer songs rather than cross-genre filler. Return only valid JSON.");
+    let template = format!("Liked songs sampled from the user's library: {song_list}. Cluster the samples by their actual audible style; do not force unrelated samples into one genre. Choose the most coherent cluster, even if only one sample is available. Recommend {count} distinct, real, searchable recordings. Prefer close matches in specific style, groove, tempo, vocals, instrumentation or production. With no samples, recommend real, readily searchable popular songs. With sparse samples or feedback, still recommend songs: gradually broaden to adjacent styles if necessary, but never return an empty recommends array. Do not invent traits for unfamiliar songs. Artist, era, language and novelty are tie-breakers only after similarity. Put the chosen cluster's primary style in benchmark.song_type and each candidate's actual style in song_type. Return only valid JSON in the required shape.");
 
     template
+}
+
+#[cfg(test)]
+mod recommendation_prompt_tests {
+    use super::*;
+
+    #[test]
+    fn single_song_prioritizes_similarity_over_diversity() {
+        let prompt = gen_recommend_song_content("Sample", "Singer", 15, None);
+        assert!(prompt.contains("Diversity of artists, languages and eras is only"));
+        assert!(prompt.contains("return fewer songs"));
+        assert!(!gen_single_song_prompt().contains("current-year"));
+    }
+
+    #[test]
+    fn random_prompt_requires_a_coherent_sample_group() {
+        let prompt = gen_rand_recommend_content("[]", 15);
+        assert!(prompt.contains("only one sample"));
+        assert!(prompt.contains("never return an empty recommends array"));
+    }
+
+    #[test]
+    fn single_song_review_does_not_receive_a_first_pass_benchmark() {
+        let prompt = gen_single_song_review_content("Sample", "Singer", "[]");
+        assert!(!prompt.contains("first pass"));
+        assert!(!prompt.contains("benchmark"));
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -331,6 +377,10 @@ pub enum AiSource {
     Kimi,
     #[strum(serialize = "DeepSeek")]
     DeepSeek,
+    #[strum(serialize = "ChatGPT")]
+    ChatGPT,
+    #[strum(serialize = "Cursor")]
+    Cursor,
 }
 
 impl AiSource {
@@ -345,6 +395,16 @@ impl AiSource {
                 id: AiSource::DeepSeek.to_string(),
                 name: "DeepSeek".to_string(),
                 desc: "Set your DeepSeek API key".to_string(),
+            },
+            DisplayData {
+                id: AiSource::ChatGPT.to_string(),
+                name: "ChatGPT (OpenAI API)".to_string(),
+                desc: "Set your OpenAI API key".to_string(),
+            },
+            DisplayData {
+                id: AiSource::Cursor.to_string(),
+                name: "Cursor Cloud Agent".to_string(),
+                desc: "Set your Cursor API key".to_string(),
             },
         ]
     }

@@ -17,7 +17,7 @@ export function SpotifyQueue() {
     <SheetTrigger asChild><Button variant="ghost" size="icon" aria-label={t("play_queue")} title={t("play_queue")}><ListMusic className="h-5 w-5" /></Button></SheetTrigger>
     <SheetContent side="right" className="flex w-full flex-col p-0 sm:max-w-md [&>button]:hidden" {...swipeBack}>
       <div className="flex items-center gap-1 border-b px-3 py-3">
-        <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label={t("queue_back")}><ArrowLeft className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" className="border border-white" onClick={() => setOpen(false)} aria-label={t("queue_back")}><ArrowLeft className="h-5 w-5" /></Button>
         <SheetTitle>{t("play_queue")} · {queue.length}</SheetTitle>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">

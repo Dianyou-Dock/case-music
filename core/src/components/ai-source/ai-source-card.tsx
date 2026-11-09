@@ -69,7 +69,7 @@ export function AiSourceCard({ source }: { source: AiSource }) {
         {isSelected ? t("used") : isSwitching ? t("ai_switching") : t("use")}
       </Button>
         {current?.configured && (
-          <Button variant="ghost" size="sm" onClick={() => setIsAiDialogOpen(true)}>
+          <Button variant="ghost" size="sm" className="border-2 border-purple-500 hover:bg-purple-500/10" onClick={() => setIsAiDialogOpen(true)}>
             {t("ai_update_key")}
           </Button>
         )}

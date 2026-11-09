@@ -18,7 +18,8 @@ android {
     compileSdk = 37
     namespace = "com.case_music.app"
     defaultConfig {
-        manifestPlaceholders["usesCleartextTraffic"] = "false"
+        // NetEase may return HTTP CDN audio URLs even when its API uses HTTPS.
+        manifestPlaceholders["usesCleartextTraffic"] = "true"
         applicationId = "com.case_music.app"
         minSdk = 24
         targetSdk = 37

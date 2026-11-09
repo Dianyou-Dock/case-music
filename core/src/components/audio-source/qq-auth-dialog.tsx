@@ -32,7 +32,7 @@ export function QqAuthDialog({ isOpen, setIsOpen, onConnected }: Props) {
     const start = Promise.race([
       invoke<ApplicationResp<string>>("qq_login_start"),
       new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => reject(new Error("获取 QQ 音乐二维码超时，请重试")), 25000);
+        timeout = setTimeout(() => reject(new Error("获取 QQ 音乐二维码超时，请重试")), 40000);
       }),
     ]);
     void start

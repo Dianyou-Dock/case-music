@@ -93,7 +93,7 @@ export function SpotifyTracks({ kind, id, title }: { kind: "liked" | "playlist";
   }
 
   return <div className="flex flex-col gap-6 p-6">
-    <Button asChild variant="ghost" className="self-start gap-2"><Link href={kind === "liked" ? "/liked-sources" : "/playlist-source?source=Spotify"}><ArrowLeft className="h-4 w-4" />{kind === "liked" ? t("liked_playlist") : t("playlist_nav")}</Link></Button>
+    <Button asChild variant="ghost" className="self-start gap-2 border border-white"><Link href={kind === "liked" ? "/liked-sources" : "/playlist-source?source=Spotify"}><ArrowLeft className="h-4 w-4" />{kind === "liked" ? t("liked_playlist") : t("playlist_nav")}</Link></Button>
     {!data && !error ? <PlaylistSkeleton /> : kind === "liked" ?
       <MusicHeader title={title} subtitle={t("song_count", { count: total })} coverUrl={tracks[0]?.album?.images?.[0]?.url} handlePlayAllClick={() => { if (tracks.length) void playTrack(tracks[0], 0); }} handleRefreshClick={refresh} /> :
       <div className="flex flex-wrap items-end justify-between gap-3">

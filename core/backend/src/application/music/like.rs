@@ -31,7 +31,16 @@ pub async fn like_list(req: LikeListReq) -> Result<ApplicationResp<ListResp>, In
         MusicSource::Netesae => {
 
 
-            let list_info = instance.netesae.like_list().unwrap();
+            if instance.netesae.like_list().is_none() {
+                let info = instance.netesae.login_info()
+                    .ok_or_else(|| InvokeError::from_anyhow(NotLogin.anyhow_err()))?;
+                let user_info = match info.data { LoginInfoData::Netesae(v) => v };
+                let list = instance.netesae.client().like_list(user_info.uid).await
+                    .map_err(InvokeError::from_anyhow)?;
+                instance.netesae.set_like_list(list).map_err(InvokeError::from_anyhow)?;
+            }
+            let list_info = instance.netesae.like_list()
+                .ok_or_else(|| InvokeError::from_anyhow(anyhow::anyhow!("NetEase liked list unavailable")))?;
             let data = match &list_info.data {
                 PlayListInfoData::Netesae(v) => v,
             };

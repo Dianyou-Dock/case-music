@@ -29,7 +29,7 @@ export function PlayQueue() {
       <SheetContent side="right" className="flex w-full flex-col p-0 sm:max-w-md [&>button]:hidden" {...swipeBack}>
         <div className="flex items-center justify-between gap-2 border-b px-3 py-3">
           <div className="flex min-w-0 items-center gap-1">
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => setOpen(false)} aria-label={t("queue_back")}>
+            <Button variant="ghost" size="icon" className="shrink-0 border border-white" onClick={() => setOpen(false)} aria-label={t("queue_back")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <SheetTitle className="truncate">{t("play_queue")} · {qqActive ? qq.queue.length : songs.length + (immediately ? 1 : 0)}</SheetTitle>

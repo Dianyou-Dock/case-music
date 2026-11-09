@@ -9,6 +9,11 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait Client: Sync + Send {
+    async fn recommend_daily_artists(&self, samples: &[serde_json::Value], excluded: &[String], language: &str) -> Result<Vec<serde_json::Value>>;
+    async fn localize_artist_bio(&self, artist: &str, biography: &str, language: &str) -> Result<String>;
+    async fn generate_artist_bio(&self, artist: &str, facts: &serde_json::Value, language: &str) -> Result<String>;
+    async fn recommend_artist_tracks(&self, artist: &str, excluded: &[String]) -> Result<Vec<String>>;
+    async fn daily_music_notes(&self, songs: &[serde_json::Value]) -> Result<Vec<serde_json::Value>>;
     async fn recommend_song(
         &self,
         data: AiRecommendSongInfo,

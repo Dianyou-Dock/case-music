@@ -22,6 +22,7 @@ use tokio::time::Instant;
 
 pub mod ai;
 pub mod recommendation_engine;
+pub mod recommendation_pipeline;
 
 pub mod music;
 
@@ -43,6 +44,8 @@ pub struct RecommendationFeedback {
     pub skipped: Vec<u64>,
     #[serde(default)]
     pub excluded_song_ids: Vec<u64>,
+    #[serde(default)]
+    pub excluded_artists: Vec<String>,
     #[serde(default)]
     pub recently_recommended: Vec<AiRecommendSongInfo>,
 }
@@ -94,10 +97,11 @@ impl Application {
                 let mut bench_mark_list = vec![];
                 let mut selected = HashSet::new();
                 let skipped: HashSet<_> = feedback.skipped.iter().chain(&feedback.excluded_song_ids).copied().collect();
+                let excluded_artists: HashSet<_> = feedback.excluded_artists.iter().map(|artist| artist.trim().to_lowercase()).collect();
                 for id in &feedback.liked {
                     if bench_mark_list.len() >= RAND_RECOMMENDS_BENCHMARK_COUNT / 2 { break; }
                     if !skipped.contains(id) {
-                        if let Some(song) = like_list.iter().find(|song| song.id == *id) {
+                        if let Some(song) = like_list.iter().find(|song| song.id == *id && !excluded_artists.contains(&song.singer.trim().to_lowercase())) {
                             if selected.insert(*id) { bench_mark_list.push(song.clone()); }
                         }
                     }
@@ -111,14 +115,14 @@ impl Application {
                         for info in completed_songs {
                             let SongInfoData::Netesae(song) = info.data;
                             if bench_mark_list.len() >= RAND_RECOMMENDS_BENCHMARK_COUNT / 2 { break; }
-                            if selected.insert(song.id) { bench_mark_list.push(song); }
+                            if !excluded_artists.contains(&song.singer.trim().to_lowercase()) && selected.insert(song.id) { bench_mark_list.push(song); }
                         }
                     }
                 }
                 for idx in utils::random_num(like_list.len(), like_list.len()) {
                     if bench_mark_list.len() >= RAND_RECOMMENDS_BENCHMARK_COUNT { break; }
                     let song = &like_list[idx];
-                    if selected.insert(song.id) && !skipped.contains(&song.id) {
+                    if !skipped.contains(&song.id) && !excluded_artists.contains(&song.singer.trim().to_lowercase()) && selected.insert(song.id) {
                         bench_mark_list.push(song.clone());
                     }
                 }
@@ -137,8 +141,10 @@ impl Application {
                 let ai = self.ai.as_ref().unwrap();
 
                 let start = Instant::now();
-                let recommend_result = ai
-                    .rand_recommends(&recommends_req, RAND_RECOMMENDS_COUNT as u64, &feedback.recently_recommended)
+                let recommend_result = recommendation_pipeline::generate(
+                    ai.as_ref(), &recommends_req, RAND_RECOMMENDS_COUNT as u64,
+                    &feedback.recently_recommended, false,
+                )
                     .await
                     .elog(ctx!())?;
                 let duration = start.elapsed();
@@ -161,7 +167,7 @@ impl Application {
                 for pass in 0..2 {
                 for recommend_info in pending {
                     let artist = recommend_info.singer.trim().to_lowercase();
-                    if artist_counts.get(&artist).copied().unwrap_or(0) >= 2 { continue; }
+                    if artist_counts.get(&artist).copied().unwrap_or(0) >= 2 || excluded_artists.contains(&artist) { continue; }
                     let result = self
                         .netesae
                         .client()
@@ -226,7 +232,11 @@ impl Application {
                         year: *year,
                     }
                 }).collect::<Vec<_>>();
-                let songs_id = recommendation_engine::select_balanced(&ranked, RAND_RECOMMENDS_COUNT, &primary_style, time::OffsetDateTime::now_utc().year());
+                let mut songs_id = recommendation_pipeline::select(&ranked, RAND_RECOMMENDS_COUNT, &primary_style);
+                if songs_id.is_empty() {
+                    songs_id = bench_mark_list.iter().filter(|song| !skipped.contains(&song.id))
+                        .take(RAND_RECOMMENDS_COUNT).map(|song| song.id).collect();
+                }
 
                 let mut songs_info = if !songs_id.is_empty() {
                     self.netesae

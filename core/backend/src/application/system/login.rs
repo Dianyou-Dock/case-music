@@ -171,7 +171,17 @@ pub async fn music_logged(
 
     // netease
     {
-        let result = instance.netesae.client().logged().await;
+        let mut result = instance.netesae.client().logged().await;
+        if result && instance.netesae.login_info().is_none() {
+            match instance.netesae.client().login_info().await {
+                Ok(info) => instance.netesae.set_login_info(info),
+                Err(error) => {
+                    log::warn!("Could not restore NetEase login: {error:#}");
+                    instance.netesae.client().set_logged(false);
+                    result = false;
+                }
+            }
+        }
         let empty = instance.netesae.like_list().is_none();
 
         if result && empty {
@@ -179,16 +189,10 @@ pub async fn music_logged(
                 let user_info = match login_info.data {
                     LoginInfoData::Netesae(v) => v,
                 };
-                let like_list = instance
-                    .netesae
-                    .client()
-                    .like_list(user_info.uid)
-                    .await
-                    .map_err(InvokeError::from_anyhow)?;
-                instance
-                    .netesae
-                    .set_like_list(like_list)
-                    .map_err(InvokeError::from_anyhow)?;
+                match instance.netesae.client().like_list(user_info.uid).await {
+                    Ok(like_list) => instance.netesae.set_like_list(like_list).map_err(InvokeError::from_anyhow)?,
+                    Err(error) => log::warn!("Could not restore NetEase liked list: {error:#}"),
+                }
             }
         }
 

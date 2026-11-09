@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ function QqRecommendationContent() {
   const selected = route.record;
   const pending = task.source === "QQ" && task.runId === route.pendingId ? task : null;
   const songs = selected?.qqSongs ?? [];
+  const retriedEmptyRecord = useRef(false);
 
   useEffect(() => hydrateRecommendationState(), []);
   const generate = () => route.openPending(startRandomRecommendation("QQ", true));
@@ -35,14 +36,19 @@ function QqRecommendationContent() {
   const retry = () => pending?.kind === "sample" && pending.seedTrackId
     ? route.openPending(startSampleRecommendation("QQ", pending.song ?? "", pending.singer ?? "", pending.seedTrackId))
     : generate();
+  useEffect(() => {
+    if (!hydrated || !audioSource?.some((source) => source.id === "QQ" && source.connected) || !route.isDetail || !selected || songs.length || retriedEmptyRecord.current) return;
+    retriedEmptyRecord.current = true;
+    refresh();
+  }, [hydrated, audioSource, route.isDetail, selected?.id]);
   if (!hydrated || audioSource === null) return <PlaylistSkeleton />;
   const connected = audioSource.some((source) => source.id === "QQ" && source.connected);
 
   return <div className="flex flex-col gap-6 p-6">
-    <Button variant="ghost" className="self-start gap-2" onClick={route.back}><ArrowLeft className="h-4 w-4" />{route.isDetail || route.isPending ? t("recommend_history") : t("rand_recommend")}</Button>
+    <Button variant="ghost" className="self-start gap-2 border border-white" onClick={route.back}><ArrowLeft className="h-4 w-4" />{route.isDetail || route.isPending ? t("recommend_history") : t("rand_recommend")}</Button>
     {!connected ? <p className="text-muted-foreground">{t("recommend_music_source_required")}</p> : route.isDetail && selected ? <>
       <p className="text-sm text-muted-foreground">{new Date(selected.completedAt).toLocaleString(i18n.language)} · {t("song_count", { count: songs.length })}</p>
-      {songs.length > 0 ? <><MusicHeader title={selected.kind === "sample" ? t("song_recommend_sample", { song: selected.song, singer: selected.singer }) : t("rand_recommend_title")} subtitle={t("song_count", { count: songs.length })} coverUrl={selected.coverUrl} handlePlayAllClick={() => void player.play(songs, 0)} handleRefreshClick={refresh} /><QqMusicList songs={songs} onRecommend={recommend} showFeedback /></> : <p className="text-muted-foreground">{t("recommend_empty")}</p>}
+      {songs.length > 0 ? <><MusicHeader title={selected.kind === "sample" ? t("song_recommend_sample", { song: selected.song, singer: selected.singer }) : t("rand_recommend_title")} subtitle={t("song_count", { count: songs.length })} coverUrl={selected.coverUrl} handlePlayAllClick={() => void player.play(songs, 0)} handleRefreshClick={refresh} /><QqMusicList songs={songs} onRecommend={recommend} showFeedback recommendationId={selected.id} /></> : <GenerateRecommendationButton label={t("qr_retry")} onClick={refresh} />}
     </> : route.isPending ? <>
       <h1 className="text-2xl font-bold">{t("rand_recommend_title")}</h1>
       {pending?.status === "error" ? <div role="alert" className="space-y-3 rounded-lg border border-destructive p-4"><p>{t("recommend_failed")}: {pending.error}</p><GenerateRecommendationButton label={t("qr_retry")} onClick={retry} /></div> : <PlaylistSkeleton />}

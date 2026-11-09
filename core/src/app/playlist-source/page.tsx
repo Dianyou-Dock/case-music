@@ -61,7 +61,7 @@ function SourcePlaylists() {
   const connected = audioSource?.some((item) => item.id === source && item.connected);
   const { data, error, isLoading, mutate } = useAccountPlaylists(connected && source !== "Spotify" && source !== "QQ" ? source! : undefined);
   return <div className="space-y-6 p-6">
-    <Button asChild variant="ghost" className="gap-2"><Link href="/playlists"><ArrowLeft className="h-4 w-4" />{t("playlist_nav")}</Link></Button>
+    <Button asChild variant="ghost" className="gap-2 border border-white"><Link href="/playlists"><ArrowLeft className="h-4 w-4" />{t("playlist_nav")}</Link></Button>
     <h1 className="text-3xl font-bold">{source ? t("source_playlists", { source: musicSourceName(source, i18n.language) }) : t("playlist_nav")}</h1>
     {audioSource && !connected && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
     {connected && source === "Spotify" ? <SpotifyPlaylists /> : connected && source === "QQ" ? <QqPlaylists /> : <>

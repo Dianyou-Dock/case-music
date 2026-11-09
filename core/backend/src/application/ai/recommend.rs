@@ -1,6 +1,7 @@
 use crate::application::resp::{ApplicationResp, ListResp};
 use crate::application::RecommendationFeedback;
-use crate::application::recommendation_engine::{self, Candidate};
+use crate::application::recommendation_engine::Candidate;
+use crate::application::recommendation_pipeline;
 use crate::types::ai_recommend_info::{AiBenchmarkInfo, AiRecommendSongInfo};
 use crate::types::constants::MusicSource;
 use crate::types::error::ApplicationError::AiNotUse;
@@ -9,6 +10,7 @@ use crate::types::error::MusicClientError::NotLogin;
 use crate::types::song_info::{SongInfo, SongInfoData};
 use crate::INSTANCE;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::Debug;
 use std::time::Duration;
@@ -34,12 +36,117 @@ pub struct RecommendReq {
     pub previous: Option<Vec<AiRecommendSongInfo>>,
     #[serde(default)]
     pub excluded_song_ids: Vec<u64>,
+    #[serde(default)]
+    pub excluded_artists: Vec<String>,
 }
 
 #[derive(Serialize, Debug, Clone)]
 pub struct RecommendSongResp<T: Serialize + Clone + Debug> {
     pub song_infos: Vec<T>,
     pub benchmark_info: AiBenchmarkInfo,
+}
+
+#[derive(Deserialize)]
+pub struct ProviderRecommendReq {
+    pub source: MusicSource,
+    pub song: Option<String>,
+    pub singer: Option<String>,
+    pub count: usize,
+    #[serde(default)]
+    pub previous: Vec<AiRecommendSongInfo>,
+    #[serde(default)]
+    pub excluded_ids: Vec<String>,
+    #[serde(default)]
+    pub excluded_artists: Vec<String>,
+    #[serde(default)]
+    pub preferred_samples: Vec<AiRecommendSongInfo>,
+}
+
+#[tauri::command]
+pub async fn recommend_provider_songs(req: ProviderRecommendReq) -> Result<ApplicationResp<Vec<Value>>, InvokeError> {
+    use crate::application::system::{qqmusic, spotify};
+    let _task = try_recommend_task()?;
+    if req.count == 0 || req.count > 30 { return Err(InvokeError::from_anyhow(anyhow::anyhow!("Invalid recommendation count"))); }
+    if !matches!(req.source, MusicSource::QQ | MusicSource::Spotify) {
+        return Err(InvokeError::from_anyhow(anyhow::anyhow!("Use the NetEase recommendation command for this source")));
+    }
+    let single_song = req.song.is_some() && req.singer.is_some();
+    let excluded_artists: HashSet<_> = req.excluded_artists.iter().map(|artist| artist.trim().to_lowercase()).collect();
+    let samples = if single_song {
+        vec![AiRecommendSongInfo {
+            name: req.song.clone().unwrap(), singer: req.singer.clone().unwrap(), song_type: String::new(),
+        }]
+    } else {
+        let mut tracks: Vec<(String, String)> = match req.source {
+            MusicSource::QQ => qqmusic::recommendation_samples().await.map_err(InvokeError::from_anyhow)?
+                .into_iter().map(|track| (track.name, track.artists.first().map(|artist| artist.name.clone()).unwrap_or_default())).collect(),
+            MusicSource::Spotify => spotify::recommendation_samples().await.map_err(InvokeError::from_anyhow)?
+                .into_iter().map(|track| (track["name"].as_str().unwrap_or_default().to_string(), track["artists"][0]["name"].as_str().unwrap_or_default().to_string())).collect(),
+            _ => unreachable!(),
+        };
+        use rand::seq::SliceRandom;
+        tracks.shuffle(&mut rand::thread_rng());
+        req.preferred_samples.iter().filter(|sample| !sample.name.is_empty() && !sample.singer.is_empty()
+            && !excluded_artists.contains(&sample.singer.trim().to_lowercase())).take(5).cloned()
+            .chain(tracks.into_iter().filter(|(name, artist)| !name.is_empty() && !artist.is_empty() && !excluded_artists.contains(&artist.trim().to_lowercase()))
+                .map(|(name, singer)| AiRecommendSongInfo { name, singer, song_type: String::new() }))
+            .take(10).collect()
+    };
+    let instance = INSTANCE.read().await;
+    let ai = instance.ai.as_ref().ok_or_else(|| InvokeError::from_anyhow(AiNotUse.anyhow_err()))?;
+    let result = recommendation_pipeline::generate(ai.as_ref(), &samples, req.count as u64, &req.previous, single_song)
+        .await.map_err(InvokeError::from_anyhow)?;
+    drop(instance);
+    let primary_style = result.benchmark.song_type;
+    let excluded: HashSet<_> = req.excluded_ids.into_iter().collect();
+    let seed_artist = req.singer.unwrap_or_default().trim().to_lowercase();
+    let mut candidates = Vec::new();
+    let mut tracks = std::collections::HashMap::<String, Value>::new();
+    for song in result.recommends {
+        let resolved = match req.source {
+            MusicSource::QQ => qqmusic::search_recommendation_song(&song.name, &song.singer).await
+                .map(|track| track.and_then(|track| serde_json::to_value(track).ok())),
+            MusicSource::Spotify => spotify::search_recommendation_song(&song.name, &song.singer).await,
+            _ => unreachable!(),
+        };
+        let track = match resolved {
+            Ok(Some(track)) => track,
+            Ok(None) => continue,
+            Err(error) => {
+                log::warn!("Could not search recommended song '{}' by '{}': {error:#}", song.name, song.singer);
+                continue;
+            }
+        };
+        let Some(id) = track["id"].as_str() else { continue; };
+        if excluded.contains(id) || tracks.contains_key(id) { continue; }
+        let artist = song.singer.trim().to_lowercase();
+        if excluded_artists.contains(&artist) { continue; }
+        let date = if matches!(req.source, MusicSource::QQ) { track["release_date"].as_str() }
+            else { track["album"]["release_date"].as_str() };
+        let year = date.and_then(|date| date.get(..4)).and_then(|year| year.parse().ok());
+        candidates.push(Candidate {
+            id: id.to_string(), artist: artist.clone(), year, style: song.song_type,
+            familiar_artist: samples.iter().any(|sample| sample.singer.trim().eq_ignore_ascii_case(&artist)),
+            seed_artist: !seed_artist.is_empty() && artist == seed_artist,
+        });
+        tracks.insert(id.to_string(), track);
+    }
+    let selected = recommendation_pipeline::select(&candidates, req.count, &primary_style);
+    let mut songs: Vec<Value> = selected.into_iter().filter_map(|id| tracks.remove(&id)).collect();
+    if songs.is_empty() {
+        for sample in &samples {
+            if songs.len() >= req.count { break; }
+            if excluded_artists.contains(&sample.singer.trim().to_lowercase()) { continue; }
+            let found = match req.source {
+                MusicSource::QQ => qqmusic::search_recommendation_song(&sample.name, &sample.singer).await
+                    .ok().flatten().and_then(|track| serde_json::to_value(track).ok()),
+                MusicSource::Spotify => spotify::search_recommendation_song(&sample.name, &sample.singer).await.ok().flatten(),
+                _ => None,
+            };
+            if let Some(track) = found { songs.push(track); }
+        }
+    }
+    Ok(ApplicationResp::success_data(songs))
 }
 
 #[tauri::command]
@@ -54,6 +161,7 @@ pub async fn recommend_song(
     let mut instance = INSTANCE.write().await;
     let seed_artist = req.singer.trim().to_lowercase();
     let excluded_song_ids: HashSet<u64> = req.excluded_song_ids.iter().copied().collect();
+    let excluded_artists: HashSet<_> = req.excluded_artists.iter().map(|artist| artist.trim().to_lowercase()).collect();
 
     let recommend_param = AiRecommendSongInfo {
         name: req.song,
@@ -61,8 +169,10 @@ pub async fn recommend_song(
         song_type: "".to_string(),
     };
 
-    let recommend_result = instance.ai.as_ref().unwrap()
-        .recommend_song(recommend_param.clone(), req.recommend_song_count, req.previous)
+    let recommend_result = recommendation_pipeline::generate(
+        instance.ai.as_ref().unwrap().as_ref(), &[recommend_param.clone()],
+        req.recommend_song_count, &req.previous.unwrap_or_default(), true,
+    )
         .await
         .map_err(InvokeError::from_anyhow)?;
 
@@ -89,6 +199,7 @@ pub async fn recommend_song(
                         let (song_id, album_id, artist) = match &info.data {
                             SongInfoData::Netesae(d) => (d.id, d.album_id, d.singer.trim().to_lowercase()),
                         };
+                        if excluded_artists.contains(&artist) { continue; }
                         if excluded_song_ids.contains(&song_id) { continue; }
                         let release = instance.netesae.client().album_release_date(album_id).await.ok().flatten();
                         if let Some((year, date)) = &release {
@@ -142,6 +253,7 @@ pub async fn recommend_song(
                         let mut info = info.with_type(candidate.song_type.clone());
                         let SongInfoData::Netesae(data) = &info.data;
                         let (id, album_id, artist) = (data.id, data.album_id, data.singer.trim().to_lowercase());
+                        if excluded_artists.contains(&artist) { continue; }
                         if map.contains_key(&id) || excluded_song_ids.contains(&id) { continue; }
                         let release = instance.netesae.client().album_release_date(album_id).await.ok().flatten();
                         if let Some((year, date)) = &release {
@@ -161,9 +273,7 @@ pub async fn recommend_song(
         }
     }
 
-    let selected = recommendation_engine::select_balanced(
-        &candidates, req.recommend_song_count as usize, &primary_style, current_year,
-    );
+    let selected = recommendation_pipeline::select(&candidates, req.recommend_song_count as usize, &primary_style);
     let selected_ids: std::collections::HashSet<_> = selected.iter().copied().collect();
     list = selected.iter().filter_map(|id| map.get(id).cloned()).collect();
     map.retain(|id, _| selected_ids.contains(id));

@@ -45,7 +45,7 @@ function QqLikedPlaylist() {
     if (runId) router.push(`/rand-recommend/qq?pending=${encodeURIComponent(runId)}`);
   };
   return <div className="flex flex-col gap-6 p-6">
-    <Button asChild variant="ghost" className="self-start gap-2"><Link href="/liked-sources"><ArrowLeft className="h-4 w-4" />{t("liked_playlist")}</Link></Button>
+    <Button asChild variant="ghost" className="self-start gap-2 border border-white"><Link href="/liked-sources"><ArrowLeft className="h-4 w-4" />{t("liked_playlist")}</Link></Button>
     {!connected && audioSource && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
     {isLoading && <PlaylistSkeleton />}
     {error && <div role="alert" className="space-y-3"><p>{String(error)}</p><Button variant="outline" onClick={() => void mutate()}>{t("qr_retry")}</Button></div>}
@@ -121,7 +121,7 @@ function LikedPlaylistDetail() {
 
   return (
     <div ref={pageRef} className="flex flex-col gap-6 p-6">
-      <Button asChild variant="ghost" className="self-start gap-2"><Link href="/liked-sources"><ArrowLeft className="h-4 w-4" />{t("liked_playlist")}</Link></Button>
+      <Button asChild variant="ghost" className="self-start gap-2 border border-white"><Link href="/liked-sources"><ArrowLeft className="h-4 w-4" />{t("liked_playlist")}</Link></Button>
       {audioSource && !currentSource && <p className="text-muted-foreground">{t("playlist_source_required")}</p>}
       {currentSource && (!loaded && !error ? <PlaylistSkeleton /> : (
         <>

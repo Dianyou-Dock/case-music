@@ -20,12 +20,36 @@ window.onSpotifyWebPlaybackSDKReady = () => {
   }
   const report = state => {
     if (!state) return;
+    advanceIfStuck(state);
     post("/state", {
       track: state.track_window?.current_track || null,
       paused: state.paused,
       position_ms: state.position,
       duration_ms: state.duration
     });
+  };
+  let lastPlaying = null;
+  let advancing = null;
+  const advanceIfStuck = state => {
+    const id = state.track_window?.current_track?.id;
+    if (!id || !state.duration) return;
+    if (!state.paused) {
+      lastPlaying = { id, position: state.position, duration: state.duration };
+      return;
+    }
+    if (advancing === id || lastPlaying?.id !== id ||
+        lastPlaying.position < lastPlaying.duration - 2000 ||
+        !(state.position >= state.duration - 2000 || state.position <= 1000) ||
+        !state.track_window?.next_tracks?.length) return;
+    advancing = id;
+    // Give Spotify's own queue a moment to advance before issuing a command.
+    setTimeout(async () => {
+      try {
+        const current = await player.getCurrentState();
+        if (current?.paused && current.track_window?.current_track?.id === id &&
+            (current.position >= current.duration - 2000 || current.position <= 1000)) await player.nextTrack();
+      } catch (error) { post("/error", { message: String(error) }); }
+    }, 800);
   };
   player.addListener("player_state_changed", report);
   setInterval(() => player.getCurrentState().then(report).catch(() => {}), 500);

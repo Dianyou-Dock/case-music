@@ -77,6 +77,9 @@ pub fn select_balanced<Id: Clone + Eq + Hash>(
     let mut eligible: Vec<_> = candidates.iter()
         .filter(|candidate| same_major_style(primary_style, &candidate.style))
         .collect();
+    if eligible.is_empty() {
+        eligible = candidates.iter().collect();
+    }
     eligible.shuffle(&mut rand::thread_rng());
     let mut selected = Selection::new(limit);
 
@@ -103,6 +106,13 @@ pub fn select_balanced<Id: Clone + Eq + Hash>(
         let Some(candidate) = next else { break; };
         selected.add(candidate);
     }
+    if selected.ids.len() < limit {
+        let mut remaining: Vec<_> = candidates.iter().collect();
+        remaining.shuffle(&mut rand::thread_rng());
+        for candidate in remaining {
+            selected.add(candidate);
+        }
+    }
     selected.ids
 }
 
@@ -121,7 +131,14 @@ mod tests {
         ];
         let result = select_balanced(&candidates, 5, "R&B", 2026);
         assert!(result.contains(&1) && result.contains(&3) && result.contains(&5));
-        assert!(!result.contains(&4));
-        assert!(result.len() <= 4);
+        assert!(result.contains(&4));
+        assert_eq!(result.len(), 5);
+    }
+
+    #[test]
+    fn falls_back_to_available_candidates_when_style_tags_do_not_match() {
+        let candidates = vec![Candidate { id: 1, artist: "artist".into(), year: None,
+            style: "adjacent style".into(), familiar_artist: false, seed_artist: false }];
+        assert_eq!(select_balanced(&candidates, 5, "unknown style", 2026), vec![1]);
     }
 }

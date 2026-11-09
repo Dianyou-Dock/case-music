@@ -162,6 +162,24 @@ pub struct SongUrl {
     pub rate: u32,
 }
 
+fn secure_audio_url(url: String) -> String {
+    let Some(rest) = url.strip_prefix("http://") else { return url; };
+    let host = rest.split('/').next().unwrap_or_default();
+    if host == "music.126.net" || host.ends_with(".music.126.net") ||
+        host == "music.163.com" || host.ends_with(".music.163.com") {
+        format!("https://{rest}")
+    } else {
+        url
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn netease_cdn_audio_uses_https() {
+    assert_eq!(secure_audio_url("http://m8.music.126.net/song.mp3".into()), "https://m8.music.126.net/song.mp3");
+    assert_eq!(secure_audio_url("http://unrelated.example/song.mp3".into()), "http://unrelated.example/song.mp3");
+}
+
 #[allow(unused)]
 pub fn to_song_url(json: String) -> Result<Vec<SongUrl>> {
     let value = &serde_json::from_str::<Value>(&json)?;
@@ -174,7 +192,7 @@ pub fn to_song_url(json: String) -> Result<Vec<SongUrl>> {
             if !url.is_empty() {
                 vec.push(SongUrl {
                     id: get_val!(v, "id")?,
-                    url,
+                    url: secure_audio_url(url),
                     rate: get_val!(v, "br")?,
                 });
             }
