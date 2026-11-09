@@ -9,6 +9,7 @@ import { SpotifyQueue } from "@/components/spotify/spotify-queue";
 import { SpotifyPlayerHeart } from "@/components/spotify/spotify-player-heart";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { formatDuration, formatProgress } from "@/lib/format";
+import { PlaybackModeButton } from "@/components/playback-mode-button";
 
 export function SpotifyMobilePlayer() {
   const spotify = useSpotifyPlayback();
@@ -34,7 +35,7 @@ export function SpotifyMobilePlayer() {
       <SheetContent side="bottom" className="h-[100dvh] overflow-hidden p-0 [&>button]:hidden">
         <SheetTitle className="sr-only">Spotify</SheetTitle>
         <div className="flex h-full min-h-0 flex-col px-6 pb-8 pt-14">
-          <div className="mb-5 flex items-center justify-between"><Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="关闭播放器"><ChevronDown className="h-7 w-7" /></Button><div className="flex items-center gap-2"><span className="text-sm text-muted-foreground">Spotify</span><SpotifyQueue /></div></div>
+          <div className="mb-5 flex items-center justify-between"><Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="关闭播放器"><ChevronDown className="h-7 w-7" /></Button><div className="flex items-center gap-2"><span className="text-sm text-muted-foreground">Spotify</span><PlaybackModeButton /><SpotifyQueue /></div></div>
           <div className="flex min-h-0 flex-1 flex-col justify-center text-center">
             {image && <img src={image} alt="" className="mx-auto aspect-square max-w-full object-contain shadow-lg" style={{ width: "min(76vw, 38dvh, 360px)" }} />}
             <div className="mt-5 flex items-center justify-center gap-2"><h2 className="truncate text-xl font-semibold">{track?.name ?? "Spotify"}</h2><SpotifyPlayerHeart id={track?.id} name={track?.name} /></div>

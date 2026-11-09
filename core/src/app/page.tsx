@@ -17,6 +17,7 @@ import { qqUserPlaylist } from "@/lib/qq-music";
 import { musicSourceName } from "@/lib/audio-sources";
 import { UserNav } from "@/components/user-nav";
 import { getDislikedArtists, isDislikedArtist, recordDislikedArtist } from "@/lib/recommendation-feedback";
+import { getPlaybackMode } from "@/store/playback-mode";
 
 type Source = "Netesae" | "QQ" | "Spotify";
 type Sample = { title: string; artist: string };
@@ -270,11 +271,14 @@ export default function Home() {
     try {
       if (source === "QQ") await qq.play(tracks as QqSong[], index);
       else if (source === "Spotify") {
-        const queue = (tracks as SpotifyTrack[]).slice(index).concat((tracks as SpotifyTrack[]).slice(0, index));
+        const spotifyTracks = tracks as SpotifyTrack[];
+        const mode = getPlaybackMode();
+        const queue = mode === "list-loop" || mode === "shuffle" ? spotifyTracks.slice(index).concat(spotifyTracks.slice(0, index)) : spotifyTracks.slice(index);
         await spotify.play({ trackIds: queue.map(track => track.id), queueTracks: queue });
       } else {
         playerControl.set.songs(tracks as SongInfo[]);
         playerControl.set.index(index);
+        playerControl.set.restartKey(playerControl.get.restartKey() + 1);
         playerControl.set.play();
       }
     } catch (cause) { setPlayError(String(cause)); }

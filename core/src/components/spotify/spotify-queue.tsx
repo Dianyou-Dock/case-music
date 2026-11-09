@@ -10,7 +10,7 @@ import { useEdgeSwipeBack } from "@/hooks/use-edge-swipe-back";
 
 export function SpotifyQueue() {
   const { t } = useTranslation();
-  const { queue, track } = useSpotifyPlayback();
+  const { queue, track, playFrom } = useSpotifyPlayback();
   const [open, setOpen] = useState(false);
   const swipeBack = useEdgeSwipeBack(() => setOpen(false), open);
   return <Sheet open={open} onOpenChange={setOpen}>
@@ -22,9 +22,8 @@ export function SpotifyQueue() {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {queue.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{t("queue_empty")}</p>}
-        {queue.map((song, index) => <div key={`${song.id}-${index}`} className={`flex items-center gap-3 border-b px-5 py-2 ${song.id === track?.id ? "bg-accent" : ""}`}>
-          {song.album?.images?.[0]?.url && <img src={song.album.images[0].url} alt="" className="h-10 w-10 rounded object-cover" />}
-          <div className="min-w-0"><p className="truncate font-medium">{song.name}</p><p className="truncate text-xs text-muted-foreground">{song.artists?.map((artist) => artist.name).join(", ")}</p></div>
+        {queue.map((song, index) => <div key={`${song.id}-${index}`} className={`border-b px-5 py-2 ${song.id === track?.id ? "bg-accent" : ""}`}>
+          <button type="button" onClick={() => void playFrom(index)} className="flex w-full min-w-0 items-center gap-3 text-left" aria-label={t("play_song", { name: song.name })}>{song.album?.images?.[0]?.url && <img src={song.album.images[0].url} alt="" className="h-10 w-10 rounded object-cover" />}<span className="min-w-0 flex-1"><span className="block truncate font-medium">{song.name}</span><span className="block truncate text-xs text-muted-foreground">{song.artists?.map((artist) => artist.name).join(", ")}</span></span></button>
         </div>)}
       </div>
     </SheetContent>

@@ -1,5 +1,6 @@
 import { createStore } from "@udecode/zustood";
 import { SongInfo } from "@/types/song.ts";
+import { getPlaybackMode, nextQueueIndex, previousQueueIndex } from "@/store/playback-mode";
 
 type PlayerControl = {
   // 播放列表中的音乐列表
@@ -11,6 +12,7 @@ type PlayerControl = {
   progress: number;
   duration: number;
   seekRequest: { position: number; id: number } | null;
+  restartKey: number;
   // 插播的音乐
   immediately: SongInfo | undefined;
 };
@@ -22,6 +24,7 @@ const playerControl = createStore("play-control")<PlayerControl>({
   progress: 0,
   duration: 0,
   seekRequest: null,
+  restartKey: 0,
   immediately: undefined,
 })
   .extendSelectors((_, get) => ({
@@ -40,12 +43,15 @@ const playerControl = createStore("play-control")<PlayerControl>({
         });
       }
 
-      if (get.index() === 0) {
+      const previous = previousQueueIndex(get.index(), get.songs().length, getPlaybackMode());
+      if (previous < 0) {
         return new Error("Already at the first song");
       }
 
       set.state((draft) => {
-        draft.index = draft.index - 1;
+        draft.index = previous;
+        draft.restartKey++;
+        draft.isPlaying = true;
       });
     },
   }))
@@ -61,16 +67,15 @@ const playerControl = createStore("play-control")<PlayerControl>({
           draft.immediately = undefined;
         });
       }
-      const curIndex = get.index();
-
-      if (get.isLastSong()) {
+      const nextIndex = nextQueueIndex(get.index(), get.songs().length, getPlaybackMode());
+      if (nextIndex < 0) {
         return new Error("Already at the last song");
       }
 
-      const nextIndex = curIndex + 1;
-
       set.state((draft) => {
         draft.index = nextIndex;
+        draft.restartKey++;
+        draft.isPlaying = true;
       });
     },
   }))
@@ -101,6 +106,7 @@ const playerControl = createStore("play-control")<PlayerControl>({
       set.state((draft) => {
         if (index < 0 || index >= draft.songs.length) return;
         draft.index = index;
+        draft.restartKey++;
         draft.immediately = undefined;
         draft.isPlaying = true;
       });

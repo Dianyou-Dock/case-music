@@ -23,6 +23,8 @@ import { SpotifyDesktopPlayer } from "@/components/spotify/spotify-desktop-playe
 import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
 import { QqPlayerHeart } from "@/components/music/qq-player-heart";
 import { useQqPlayback } from "@/hooks/use-qq-playback";
+import { PlaybackModeButton } from "@/components/playback-mode-button";
+import { getPlaybackMode, nextQueueIndex } from "@/store/playback-mode";
 
 interface PlayerProps {
   className?: string;
@@ -42,6 +44,7 @@ export default function Player({ className }: PlayerProps) {
   const progress = playerControl.useTracked.progress();
   const duration = playerControl.useTracked.duration();
   const seekRequest = playerControl.useTracked.seekRequest();
+  const restartKey = playerControl.useTracked.restartKey();
   const howlerRef = useRef<ReactHowler | null>(null);
   const playbackRef = useRef({ progress: 0, duration: 0, completed: false });
 
@@ -70,13 +73,17 @@ export default function Player({ className }: PlayerProps) {
     if (current) recordRecommendationFeedback(current, "completed");
     playerControl.set.state((draft) => {
       if (draft.immediately) {
-        draft.immediately = undefined;
-        draft.isPlaying = draft.index >= 0 && draft.index < draft.songs.length;
-      } else if (draft.index >= 0 && draft.index < draft.songs.length - 1) {
-        draft.index += 1;
-        draft.isPlaying = true;
+        if (getPlaybackMode() === "single-loop") {
+          draft.restartKey++;
+          draft.isPlaying = true;
+        } else {
+          draft.immediately = undefined;
+          draft.isPlaying = draft.index >= 0 && draft.index < draft.songs.length;
+        }
       } else {
-        draft.isPlaying = false;
+        const nextIndex = nextQueueIndex(draft.index, draft.songs.length, getPlaybackMode(), true);
+        if (nextIndex < 0) draft.isPlaying = false;
+        else { draft.index = nextIndex; draft.restartKey++; draft.isPlaying = true; }
       }
     });
   }
@@ -153,7 +160,7 @@ export default function Player({ className }: PlayerProps) {
       {spotify.active && !qqActive ? <SpotifyDesktopPlayer className={className} /> : <>
       {songUrl && !qqActive && (
         <ReactHowler
-          key={current?.content.id}
+          key={`${current?.content.id}-${restartKey}`}
           src={songUrl}
           html5={true}
           preload={true}
@@ -236,6 +243,7 @@ export default function Player({ className }: PlayerProps) {
           </div>
 
           <div className="flex items-center gap-2 text-green-500 flex-1 justify-end">
+            <PlaybackModeButton />
             <PlayQueue />
             <Volume2 className="h-5 w-5" />
             <Slider

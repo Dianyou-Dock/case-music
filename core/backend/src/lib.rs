@@ -113,6 +113,7 @@ pub async fn run() {
             application::system::spotify::spotify_play_track,
             application::system::spotify::spotify_play_playlist,
             application::system::spotify::spotify_player_action,
+            application::system::spotify::spotify_set_playback_mode,
             application::system::spotify::spotify_start_playback,
             application::system::spotify::spotify_append_playback_queue,
             application::system::spotify::headless::spotify_headless_start,

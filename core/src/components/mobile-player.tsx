@@ -17,6 +17,7 @@ import { SpotifyMobilePlayer } from "@/components/spotify/spotify-mobile-player"
 import { NetEasePlayerHeart } from "@/components/music/netease-player-heart";
 import { QqPlayerHeart } from "@/components/music/qq-player-heart";
 import { useQqPlayback } from "@/hooks/use-qq-playback";
+import { PlaybackModeButton } from "@/components/playback-mode-button";
 
 type Lyrics = { lyric: string[]; tlyric: string[] };
 
@@ -134,6 +135,7 @@ export function MobilePlayer() {
               </Button>
               <span className="text-sm font-medium text-muted-foreground">{t("player_now_playing")}</span>
               <PlayQueue />
+              <PlaybackModeButton />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
               <img

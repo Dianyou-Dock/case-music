@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { SpotifyQueue } from "@/components/spotify/spotify-queue";
 import { SpotifyPlayerHeart } from "@/components/spotify/spotify-player-heart";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
+import { PlaybackModeButton } from "@/components/playback-mode-button";
 
 export function SpotifyDesktopPlayer({ className }: { className?: string }) {
   const spotify = useSpotifyPlayback();
@@ -31,7 +32,7 @@ export function SpotifyDesktopPlayer({ className }: { className?: string }) {
         </div>
       </div>
       <div className="flex flex-1 items-center justify-end gap-2 text-green-500">
-        <SpotifyQueue /><span className="text-sm">Spotify</span><Volume2 className="h-5 w-5" />
+        <PlaybackModeButton /><SpotifyQueue /><span className="text-sm">Spotify</span><Volume2 className="h-5 w-5" />
         <Slider value={[spotify.volume * 100]} max={100} step={1} onValueChange={(value) => void spotify.setVolume(value[0] / 100)} className="w-[100px]" />
       </div>
     </div>

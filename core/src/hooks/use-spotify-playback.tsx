@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useAudioSource } from "@/hooks/use-audio-source";
 import { ApplicationResp } from "@/types/application";
 import playerControl from "@/store/player-control";
+import { getPlaybackMode, usePlaybackMode } from "@/store/playback-mode";
 
 export type SdkTrack = {
   id: string;
@@ -47,6 +48,7 @@ type SpotifyPlayback = {
   durationMs: number;
   volume: number;
   play(request: PlayRequest): Promise<void>;
+  playFrom(index: number): Promise<void>;
   toggle(): Promise<void>;
   next(): Promise<void>;
   previous(): Promise<void>;
@@ -95,6 +97,8 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
   const [error, setError] = useState("");
   const [track, setTrack] = useState<SdkTrack | null>(null);
   const [queue, setQueue] = useState<SdkTrack[]>([]);
+  const [playlistContext, setPlaylistContext] = useState<string | null>(null);
+  const playbackMode = usePlaybackMode();
   const [paused, setPaused] = useState(true);
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
@@ -215,6 +219,13 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
   }, [active, deviceId, applyState]);
 
   useEffect(() => {
+    if (!active || !deviceId) return;
+    void invoke<ApplicationResp<void>>("spotify_set_playback_mode", { deviceId, mode: playbackMode })
+      .then(response => { if (response.code !== 0) setError(response.msg || "Spotify playback mode update failed"); })
+      .catch(cause => setError(String(cause)));
+  }, [active, deviceId, playbackMode]);
+
+  useEffect(() => {
     if (!neteasePlaying || !active) return;
     activeRef.current = false;
     setActive(false);
@@ -248,14 +259,30 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
     if (response.code !== 0) throw new Error(response.msg || "Spotify playback failed");
     activeRef.current = true;
     setQueue(queueTracks ?? []);
+    setPlaylistContext(playlistId ?? null);
     setActive(true);
+    const modeResponse = await invoke<ApplicationResp<void>>("spotify_set_playback_mode", { deviceId: playbackDeviceId, mode: getPlaybackMode() });
+    if (modeResponse.code !== 0) setError(modeResponse.msg || "Spotify playback mode update failed");
     if (!playlistId && trackIds.length > 100) {
-      const queued = await invoke<ApplicationResp<void>>("spotify_append_playback_queue", {
-        req: { device_id: playbackDeviceId, track_ids: trackIds.slice(100) },
-      });
-      if (queued.code !== 0) throw new Error(queued.msg || "Spotify queue update failed");
+      for (let offset = 100; offset < trackIds.length; offset += 200) {
+        const queued = await invoke<ApplicationResp<void>>("spotify_append_playback_queue", {
+          req: { device_id: playbackDeviceId, track_ids: trackIds.slice(offset, offset + 200) },
+        });
+        if (queued.code !== 0) throw new Error(queued.msg || "Spotify queue update failed");
+      }
     }
   }, [deviceId, error]);
+
+  const playFrom = useCallback(async (index: number) => {
+    if (index < 0 || index >= queue.length) return;
+    if (playlistContext) {
+      await play({ playlistId: playlistContext, offsetTrackId: queue[index].id, queueTracks: queue });
+      return;
+    }
+    const selected = getPlaybackMode() === "list-loop" || getPlaybackMode() === "shuffle"
+      ? [...queue.slice(index), ...queue.slice(0, index)] : queue.slice(index);
+    await play({ trackIds: selected.map(item => item.id), queueTracks: selected });
+  }, [queue, playlistContext, play]);
 
   const command = useCallback(async (action: string, value?: number) => {
     await invoke("spotify_headless_command", { action, value: value ?? null });
@@ -266,7 +293,7 @@ export function SpotifyPlaybackProvider({ children }: { children: React.ReactNod
   const seek = useCallback(async (value: number) => { if (headless.current) await command("seek", value); else await player.current?.seek(value); setPositionMs(value); }, [command]);
   const setVolume = useCallback(async (value: number) => { if (headless.current) await command("volume", value); else await player.current?.setVolume(value); setVolumeState(value); }, [command]);
 
-  return <Context.Provider value={{ active, ready: Boolean(deviceId) && !error, error, track, queue, paused, positionMs, durationMs, volume, play, toggle, next, previous, seek, setVolume }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ active, ready: Boolean(deviceId) && !error, error, track, queue, paused, positionMs, durationMs, volume, play, playFrom, toggle, next, previous, seek, setVolume }}>{children}</Context.Provider>;
 }
 
 export function useSpotifyPlayback() {

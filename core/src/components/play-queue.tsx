@@ -41,10 +41,10 @@ export function PlayQueue() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           {(qqActive ? qq.queue.length === 0 : songs.length === 0 && !immediately) && <p className="p-6 text-center text-sm text-muted-foreground">{t("queue_empty")}</p>}
           {!qqActive && immediately && (
-            <div className="flex items-center gap-3 border-b px-5 py-3 bg-accent">
+            <button type="button" onClick={() => playerControl.set.state(draft => { draft.restartKey++; draft.isPlaying = true; })} className="flex w-full items-center gap-3 border-b bg-accent px-5 py-3 text-left" aria-label={t("play_song", { name: immediately.content.name })}>
               <img src={immediately.content.pic_url} alt="" className="h-10 w-10 rounded object-cover" />
               <div className="min-w-0 flex-1"><p className="truncate font-medium">{immediately.content.name}</p><p className="truncate text-xs text-muted-foreground">{t("player_now_playing")} · {immediately.content.singer}</p></div>
-            </div>
+            </button>
           )}
           {qqActive ? qq.queue.map((song, songIndex) => (
             <div key={`QQ-${song.id}-${songIndex}`} className={`flex items-center gap-3 border-b px-5 py-2 ${songIndex === qq.queue.findIndex((item) => item === qq.song) ? "bg-accent" : ""}`}>

@@ -618,6 +618,34 @@ pub async fn spotify_player_action(action: String) -> Result<ApplicationResp<()>
     Ok(ApplicationResp::success())
 }
 
+#[tauri::command]
+pub async fn spotify_set_playback_mode(device_id: String, mode: String) -> Result<ApplicationResp<()>, InvokeError> {
+    if device_id.is_empty() || device_id.len() > 200 || !device_id.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_') {
+        return Err(InvokeError::from_anyhow(anyhow::anyhow!("Invalid Spotify device ID")));
+    }
+    let (shuffle, repeat) = match mode.as_str() {
+        "list-once" => (false, "off"),
+        "list-loop" => (false, "context"),
+        "single-loop" => (false, "track"),
+        "shuffle" => (true, "context"),
+        _ => return Err(InvokeError::from_anyhow(anyhow::anyhow!("Invalid playback mode"))),
+    };
+    let token = access_token().await.map_err(InvokeError::from_anyhow)?;
+    let client = Client::new();
+    for (endpoint, parameter, value) in [("shuffle", "state", shuffle.to_string()), ("repeat", "state", repeat.to_owned())] {
+        let mut url = Url::parse(&format!("https://api.spotify.com/v1/me/player/{endpoint}"))
+            .map_err(|error| InvokeError::from_anyhow(error.into()))?;
+        url.query_pairs_mut().append_pair(parameter, &value).append_pair("device_id", &device_id);
+        let response = client.put(url).bearer_auth(&token)
+            .header(reqwest::header::CONTENT_LENGTH, 0).body(Vec::<u8>::new())
+            .send().await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
+        if !response.status().is_success() {
+            return Err(InvokeError::from_anyhow(anyhow::anyhow!("Spotify playback mode update failed ({})", response.status())));
+        }
+    }
+    Ok(ApplicationResp::success())
+}
+
 #[derive(Deserialize)]
 pub struct SpotifyStartReq {
     pub device_id: String,

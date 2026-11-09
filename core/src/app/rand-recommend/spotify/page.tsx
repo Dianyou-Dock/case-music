@@ -9,6 +9,7 @@ import { RecommendationHistoryList } from "@/components/recommendation/history-l
 import { PlaylistSkeleton } from "@/components/playlist-skeleton";
 import { MusicHeader } from "@/components/music/music-header";
 import { SpotifyMusicList } from "@/components/spotify/spotify-music-list";
+import { getPlaybackMode } from "@/store/playback-mode";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { useRecommendationRoute } from "@/hooks/use-recommendation-route";
 import { SpotifyTrack } from "@/types/spotify-track";
@@ -50,7 +51,8 @@ function SpotifyRecommendationContent() {
   async function playFrom(index: number) {
     setPlayError("");
     try {
-      const queue = songs.slice(index);
+      const mode = getPlaybackMode();
+      const queue = mode === "list-loop" || mode === "shuffle" ? [...songs.slice(index), ...songs.slice(0, index)] : songs.slice(index);
       await spotify.play({ trackIds: queue.map((song) => song.id), queueTracks: queue });
     } catch (cause) { setPlayError(String(cause)); }
   }

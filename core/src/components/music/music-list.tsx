@@ -42,6 +42,7 @@ export function MusicList({ songs, onRecommend, showFeedback = false, recommenda
     playerControl.set.state((draft) => {
       draft.songs = songs;
       draft.index = songIndex;
+      draft.restartKey++;
       draft.immediately = undefined;
       draft.isPlaying = true;
     });

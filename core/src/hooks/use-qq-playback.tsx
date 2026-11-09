@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ApplicationResp } from "@/types/application";
 import playerControl from "@/store/player-control";
 import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
+import { getPlaybackMode, nextQueueIndex, previousQueueIndex } from "@/store/playback-mode";
 
 export type QqSong = {
   id: string;
@@ -101,11 +102,21 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
   const setVolume = useCallback((value: number) => {
     if (audio.current) audio.current.volume = Math.min(1, Math.max(0, value));
   }, []);
-  const next = useCallback(() => {
-    if (index + 1 < queue.current.length) void select(queue.current, index + 1);
-    else setPlaying(false);
+  const advance = useCallback((automatic: boolean) => {
+    const nextIndex = nextQueueIndex(index, queue.current.length, getPlaybackMode(), automatic);
+    if (nextIndex < 0) { setPlaying(false); return; }
+    if (automatic && nextIndex === index) {
+      const element = audio.current;
+      if (element) { element.currentTime = 0; void element.play().then(() => setPlaying(true)).catch(cause => setError(String(cause))); }
+      return;
+    }
+    void select(queue.current, nextIndex);
   }, [index, select]);
-  const previous = useCallback(() => { void select(queue.current, index - 1); }, [index, select]);
+  const next = useCallback(() => advance(false), [advance]);
+  const previous = useCallback(() => {
+    const previousIndex = previousQueueIndex(index, queue.current.length, getPlaybackMode());
+    if (previousIndex >= 0) void select(queue.current, previousIndex);
+  }, [index, select]);
   const selectIndex = useCallback((nextIndex: number) => { void select(queue.current, nextIndex); }, [select]);
   const stop = useCallback(() => {
     requestId.current++;
@@ -149,7 +160,7 @@ export function QqPlaybackProvider({ children }: { children: React.ReactNode }) 
 
   return <Context.Provider value={{ song, playing, loading, error, position, duration, queue: queueSongs, play: select, select: selectIndex, remove, enqueue, toggle, seek, setVolume, next, previous, stop }}>
     {children}
-    <audio ref={audio} onEnded={next} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} onError={() => { setPlaying(false); setError("QQ 音乐播放失败，请检查账号权益或地区限制"); }} />
+    <audio ref={audio} onEnded={() => advance(true)} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)} onError={() => { setPlaying(false); setError("QQ 音乐播放失败，请检查账号权益或地区限制"); }} />
   </Context.Provider>;
 }
 

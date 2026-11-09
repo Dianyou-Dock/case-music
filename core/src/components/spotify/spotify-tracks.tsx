@@ -15,6 +15,7 @@ import { useSpotifyPlayback } from "@/hooks/use-spotify-playback";
 import { SpotifyMusicList } from "@/components/spotify/spotify-music-list";
 import { SpotifyTrack } from "@/types/spotify-track";
 import { startSampleRecommendation } from "@/store/recommendation-task";
+import { getPlaybackMode } from "@/store/playback-mode";
 
 type SpotifyPage = { items: { track?: SpotifyTrack | null; item?: SpotifyTrack | null }[]; total: number };
 
@@ -59,11 +60,10 @@ export function SpotifyTracks({ kind, id, title }: { kind: "liked" | "playlist";
     return () => observer.disconnect();
   }, [hasMore, isValidating, data?.length, size, setSize]);
 
-  async function playlistQueue(): Promise<SpotifyTrack[]> {
-    if (kind !== "playlist" || !id) return tracks;
+  async function fullQueue(): Promise<SpotifyTrack[]> {
     const all = [...tracks];
     for (let offset = size * 50; offset < total; offset += 50) {
-      const response = await invoke<ApplicationResp<SpotifyPage>>("spotify_playlist_items", { id, offset });
+      const response = await invoke<ApplicationResp<SpotifyPage>>(kind === "playlist" ? "spotify_playlist_items" : "spotify_saved_tracks", kind === "playlist" ? { id, offset } : { offset });
       if (response.code !== 0 || !response.data) throw new Error(response.msg || "Spotify playlist could not be loaded");
       all.push(...response.data.items.map((entry) => entry.item ?? entry.track).filter((item): item is SpotifyTrack => Boolean(item?.id)));
       if (response.data.items.length === 0) break;
@@ -74,8 +74,13 @@ export function SpotifyTracks({ kind, id, title }: { kind: "liked" | "playlist";
   async function playTrack(track: SpotifyTrack, index: number) {
     setPlayError("");
     try {
-      if (kind === "playlist" && id) await spotify.play({ playlistId: id, offsetTrackId: track.id, queueTracks: await playlistQueue() });
-      else await spotify.play({ trackIds: tracks.slice(index, index + 100).map((item) => item.id), queueTracks: tracks.slice(index, index + 100) });
+      const all = await fullQueue();
+      if (kind === "playlist" && id) await spotify.play({ playlistId: id, offsetTrackId: track.id, queueTracks: all });
+      else {
+        const mode = getPlaybackMode();
+        const queue = mode === "list-loop" || mode === "shuffle" ? [...all.slice(index), ...all.slice(0, index)] : all.slice(index);
+        await spotify.play({ trackIds: queue.map((item) => item.id), queueTracks: queue });
+      }
     } catch (error) {
       setPlayError(String(error));
     }
@@ -84,7 +89,7 @@ export function SpotifyTracks({ kind, id, title }: { kind: "liked" | "playlist";
   async function playPlaylist() {
     if (!id) return;
     setPlayError("");
-    try { await spotify.play({ playlistId: id, queueTracks: await playlistQueue() }); }
+    try { await spotify.play({ playlistId: id, queueTracks: await fullQueue() }); }
     catch (error) { setPlayError(String(error)); }
   }
 
