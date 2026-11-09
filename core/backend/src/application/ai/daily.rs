@@ -12,7 +12,7 @@ async fn mb(path: &str, params: &[(&str, String)]) -> Result<Value> {
     let _gate = MB_GATE.lock().await;
     let response = reqwest::Client::new().get(format!("https://musicbrainz.org/ws/2/{path}"))
         .query(&[("fmt", "json")]).query(params)
-        .header(reqwest::header::USER_AGENT, "case-music/0.1.37 (music discovery)")
+        .header(reqwest::header::USER_AGENT, "case-music/0.1.38 (music discovery)")
         .timeout(Duration::from_secs(12)).send().await?.error_for_status()?;
     let value = response.json().await?;
     tokio::time::sleep(Duration::from_millis(1100)).await;

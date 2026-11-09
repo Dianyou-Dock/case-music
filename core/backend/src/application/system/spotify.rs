@@ -387,7 +387,11 @@ pub async fn spotify_set_liked(id: String, liked: bool) -> Result<ApplicationRes
     url.query_pairs_mut().append_pair("uris", &format!("spotify:track:{id}"));
     let client = Client::new();
     let request = if liked { client.put(url) } else { client.delete(url) };
-    let response = request.bearer_auth(token).send().await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
+    // Spotify's library endpoint requires an explicit zero-length body for PUT and DELETE.
+    let response = request.bearer_auth(token)
+        .header(reqwest::header::CONTENT_LENGTH, 0)
+        .body(Vec::<u8>::new())
+        .send().await.map_err(|error| InvokeError::from_anyhow(error.into()))?;
     if !response.status().is_success() {
         return Err(InvokeError::from_anyhow(anyhow::anyhow!("Spotify library update failed ({})", response.status())));
     }
