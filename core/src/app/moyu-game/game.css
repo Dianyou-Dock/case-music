@@ -1,0 +1,9 @@
+@media (max-width: 767px), (pointer: coarse) and (max-height: 600px) {
+  .moyu-game-shell {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    height: 100dvh;
+    width: 100vw;
+  }
+}

@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const currentLanguage = i18n.resolvedLanguage === "en" ? "en" : "zh";
 
   const changeLanguage = (lng: string) => {
+    window.localStorage.setItem("i18nextLng", lng);
     void i18n.changeLanguage(lng);
   };
 

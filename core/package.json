@@ -4,8 +4,8 @@
   "version": "0.1.39",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/sync-moyu-game.mjs && next dev",
+    "build": "node scripts/sync-moyu-game.mjs && next build",
     "start": "next start",
     "lint": "next lint --fix"
   },
