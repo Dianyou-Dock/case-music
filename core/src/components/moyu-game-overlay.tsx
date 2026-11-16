@@ -21,10 +21,16 @@ export function MoyuGameOverlay() {
 
   return (
     <section className={`moyu-game-shell absolute inset-0 z-10 overflow-hidden bg-[#05070b] ${active ? "" : "hidden"}`}>
+      <div className="moyu-mobile-header">
+        <Link href="/" className="moyu-mobile-back" aria-label={t("moyu_back")}>
+          <ArrowLeft className="h-5 w-5" />
+          <span>{t("moyu_back")}</span>
+        </Link>
+      </div>
       <iframe
         title={t("moyu_game")}
         src="/moyu-static/index.html"
-        className="h-full w-full border-0"
+        className="moyu-game-frame h-full w-full border-0"
         allow="fullscreen"
       />
       <Link
