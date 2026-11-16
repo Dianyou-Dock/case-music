@@ -9,7 +9,7 @@ const output = resolve(game, "dist-portal");
 const target = resolve(core, "public/moyu-static");
 
 if (!existsSync(resolve(game, "package.json"))) {
-  throw new Error("摸鱼游戏子模块缺失，请先运行 git submodule update --init --recursive");
+  throw new Error("摸鱼之路子模块缺失，请先运行 git submodule update --init --recursive");
 }
 
 if (!existsSync(resolve(game, "node_modules"))) {
@@ -18,10 +18,10 @@ if (!existsSync(resolve(game, "node_modules"))) {
 
 execFileSync("npm", ["run", "build:portal"], { cwd: game, stdio: "inherit" });
 if (!existsSync(resolve(output, "index.html"))) {
-  throw new Error("摸鱼游戏构建未生成 index.html");
+  throw new Error("摸鱼之路构建未生成 index.html");
 }
 
 rmSync(target, { recursive: true, force: true });
 mkdirSync(target, { recursive: true });
 cpSync(output, target, { recursive: true });
-console.log(`摸鱼游戏资源已复制到 ${target}`);
+console.log(`摸鱼之路资源已复制到 ${target}`);
