@@ -6,4 +6,19 @@
     height: 100dvh;
     width: 100vw;
   }
+
+  .moyu-back-link {
+    left: 50%;
+    top: calc(env(safe-area-inset-top) + 6px);
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .moyu-back-link span {
+    display: none;
+  }
 }

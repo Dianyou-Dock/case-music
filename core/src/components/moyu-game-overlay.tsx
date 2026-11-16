@@ -30,7 +30,7 @@ export function MoyuGameOverlay() {
       <Link
         href="/"
         aria-label={t("moyu_back")}
-        className="absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex h-10 items-center gap-2 rounded-lg border border-white/20 bg-black/75 px-3 text-sm text-white shadow-lg backdrop-blur-sm md:left-4 md:top-4"
+        className="moyu-back-link absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex h-10 items-center gap-2 rounded-lg border border-white/20 bg-black/75 px-3 text-sm text-white shadow-lg backdrop-blur-sm md:left-4 md:top-4"
       >
         <ArrowLeft className="h-4 w-4" />
         <span>{t("moyu_back")}</span>
