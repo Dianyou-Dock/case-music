@@ -1,0 +1,4 @@
+[submodule "games/the-lost-storm"]
+	path = games/the-lost-storm
+	url = https://github.com/Dianyou-Dock/the-lost-storm.git
+	branch = codex/zh-cn-offline
