@@ -20,7 +20,7 @@ export function MoyuGameOverlay() {
   if (!hasOpened) return null;
 
   return (
-    <section className={`moyu-game-shell absolute inset-0 z-10 overflow-hidden bg-[#05070b] ${active ? "" : "hidden"}`}>
+    <section className={`moyu-game-shell absolute inset-0 z-10 overflow-hidden bg-[#05070b] ${active ? "active" : ""}`}>
       <div className="moyu-mobile-header">
         <Link href="/" className="moyu-mobile-back" aria-label={t("moyu_back")}>
           <ArrowLeft className="h-5 w-5" />
