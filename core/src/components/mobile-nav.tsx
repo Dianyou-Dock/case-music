@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Wand, Heart, Settings, ListMusic } from "lucide-react";
+import { Home, Wand, Heart, Settings, ListMusic, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ const navigationLinks = [
   { href: "/liked-sources", icon: Heart, label: "liked_nav" },
   { href: "/playlists", icon: ListMusic, label: "playlist_nav" },
   { href: "/rand-recommend", icon: Wand, label: "recommend_nav" },
+  { href: "/moyu-game", icon: Gamepad2, label: "moyu_game" },
   { href: "/settings", icon: Settings, label: "settings" },
 ];
 
@@ -26,7 +27,7 @@ export default function MobileNav({ className }: MobileNavProps) {
 
   return (
     <nav className={cn("shrink-0 border-t bg-background", className)}>
-      <div className="flex items-center justify-around py-3">
+      <div className="flex items-center justify-around gap-1 px-1 py-3">
         {navigationLinks.map((link) => {
           const isActive = pathname === link.href || (link.href === "/rand-recommend" && pathname.startsWith("/rand-recommend/")) || (link.href === "/liked-sources" && pathname === "/liked-playlist") || (link.href === "/playlists" && (pathname === "/playlist" || pathname === "/playlist-source" || pathname === "/spotify-playlist"));
           const Icon = link.icon;

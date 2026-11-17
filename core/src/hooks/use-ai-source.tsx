@@ -2,7 +2,7 @@
 
 import { AiSource } from "@/lib/ai-source.ts";
 import { createContext, useContext, useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { SourceListResp, UserAiSourceConfigRes } from "@/types/application.ts";
 import { cloneDeep, set } from "lodash";
 
@@ -41,6 +41,7 @@ export function AiSourceProvider({ children }: { children: React.ReactNode }) {
   const [reset, setReset] = useState(false);
 
   useEffect(() => {
+    if (!isTauri()) return;
     fetchAiSourceList().then((list) => {
       fetchUserAiSourceConfig().then((data) => {
         if (data && list) {

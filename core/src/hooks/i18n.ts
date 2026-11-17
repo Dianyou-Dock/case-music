@@ -2,22 +2,18 @@
 
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import HttpBackend from "i18next-http-backend";
-import LanguageDetector from "i18next-browser-languagedetector";
+import zh from "../../public/locales/zh/translation.json";
+import en from "../../public/locales/en/translation.json";
 
 
-// 配置 i18next
-i18n
-  .use(HttpBackend) // 从文件加载翻译资源
-  .use(LanguageDetector) // 自动检测语言
-  .use(initReactI18next) // 绑定到 React
-  .init({
-    fallbackLng: "zh", // 默认语言
-    detection: { order: ["localStorage", "navigator"], caches: ["localStorage"] },
-    debug: false,
-    interpolation: {
-      escapeValue: false, // React 已经内置防止 XSS
-    },
-  });
+void i18n.use(initReactI18next).init({
+  lng: "zh",
+  fallbackLng: "zh",
+  resources: {
+    zh: { translation: zh },
+    en: { translation: en },
+  },
+  interpolation: { escapeValue: false },
+});
 
 export default i18n;

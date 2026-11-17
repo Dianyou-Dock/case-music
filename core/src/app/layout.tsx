@@ -11,6 +11,8 @@ import MobileNav from "@/components/mobile-nav";
 import { MobilePlayer } from "@/components/mobile-player";
 import { SpotifyPlaybackProvider } from "@/hooks/use-spotify-playback";
 import { QqPlaybackProvider } from "@/hooks/use-qq-playback";
+import { I18nLanguageRestore } from "@/components/i18n-language-restore";
+import { MoyuGameOverlay } from "@/components/moyu-game-overlay";
 
 import "@/hooks/i18n.ts"; // 导入 I18nProvider
 
@@ -32,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="zh" suppressHydrationWarning>
       <body className={inter.className}>
+        <I18nLanguageRestore />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -46,8 +49,9 @@ export default function RootLayout({
                 <div className="flex h-screen h-dvh flex-col">
                   <div className="flex min-h-0 flex-1 overflow-hidden">
                     <Sidebar className="hidden md:flex" />
-                    <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background">
+                    <main className="relative min-h-0 min-w-0 flex-1 overflow-y-auto bg-background">
                       {children}
+                      <MoyuGameOverlay />
                     </main>
                   </div>
                   <MobilePlayer />

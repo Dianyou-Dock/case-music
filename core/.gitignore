@@ -25,6 +25,7 @@ dist-ssr
 
 .next
 out
+public/moyu-static/
 *.tsbuildinfo
 *.lock
 !backend/Cargo.lock

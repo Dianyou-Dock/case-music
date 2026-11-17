@@ -1,0 +1,40 @@
+.moyu-mobile-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  min-height: calc(52px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 12px 0;
+  background: #05070b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.moyu-game-shell { display: flex; flex-direction: column; }
+
+.moyu-mobile-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  color: white;
+  font-size: 14px;
+}
+
+.moyu-game-frame { flex: 1 1 auto; min-height: 0; height: auto; }
+
+.moyu-game-shell:not(.active) {
+  display: none;
+}
+
+@media (max-width: 767px), (pointer: coarse) and (max-height: 600px) {
+  .moyu-game-shell {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    height: 100dvh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+  }
+
+}

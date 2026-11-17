@@ -20,6 +20,8 @@
   "liked_load_failed": "Could not load liked songs",
   "liked_nav": "Liked",
   "recommend_nav": "Recommend",
+  "moyu_game": "Moyu Path",
+  "moyu_back": "Back to music",
   "recommend_loading_nav": "Recommending...",
   "rand_recommend": "Rand Recommend",
   "home": "Home",

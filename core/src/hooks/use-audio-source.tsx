@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { AudioSource } from "@/lib/audio-sources";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { UserSourceConfigRes, SourceListResp } from "@/types/application";
 import { cloneDeep, set } from "lodash";
 import { MusicSource } from "@/types/constants";
@@ -51,6 +51,7 @@ export function AudioSourceProvider({
   }, [audioSource]);
 
   useEffect(() => {
+    if (!isTauri()) return;
     fetchSourceList().then((list) => {
       fetchUserSourceConfig().then((data) => {
         if (data && list) {
